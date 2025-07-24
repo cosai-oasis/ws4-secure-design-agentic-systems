@@ -85,44 +85,21 @@ Access is tiered based on data classification:
 
 #### Implementation Reference Architecture
 
-```ini
-┌─────────────────┐                   ┌─────────────────────────┐
-│                 │                   │                         │
-│   AI Assistant  │                   │ User Identity Provider  │
-│  (Primary Agent)│                   │      (Session Auth)     │
-│                 │                   │                         │
-└───────┬─────────┘                   └───────────┬─────────────┘
-        │                                         │ Session Token
-        │                                         │ (e.g., JWT)
-        │ 1. Auth Req (Tool + Params + Metadata)  ▼
-        ├─────────────────────────────────>┌─────────────────┐
-        │         (Session Token)          │                 │
-        │                                  │ Confirmation    │
-        │ 2. Ephemeral Tx Token <----------│ Agent + State   │
-        │                                  │ Store           │
-        │ 3. Execute Tool (Tool + Params)  │                 │
-        ├─────────────────────────────────>│                 │
-        │   (Session Token +               │                 │
-        │    Ephemeral Tx Token)           │                 │
-        │                                  │                 │
-        │ 4. Result + Proof <--------------│                 │
-        │                                  └───────┬─────────┘
-        │                                          │
-        │                                          │ Validated Call
-        │                                          ▼
-        │                            ┌─────────────────────────┐
-        │                            │                         │
-        │                            │    Secure VPC/Cloud     │
-        │                            │    Environment          │
-        │                            │  ┌───────────────────┐  │
-        │                            │  │                   │  │
-        │                            │  │ Enterprise APIs   │  │
-        │                            │  │ & Services        │  │
-        │                            │  │                   │  │
-        │                            │  └───────────────────┘  │
-        │                            │                         │
-        │                            └─────────────────────────┘
+```mermaid
+sequenceDiagram
+    participant A as AI Assistant<br>(Primary Agent)
+    participant U as User Identity Provider<br>(Session Auth)
+    participant C as Confirmation Agent + State Store
+    box Secure VPC/Cloud Environment
+    participant E as Enterprise APIs & Services
+    end
 
+    U->>A: Session Token<br>(e.g., JWT)
+    A->>C: 1. Auth Req (Tool + Params + Metadata)<br>(Session Token)
+    C-->>A: 2. Ephemeral Tx Token
+    A->>C: 3. Execute Tool (Tool + Params)<br>(Session Token + Ephemeral Tx Token)
+    C-->>A: 4. Result + Proof
+    C->>E: Validated Call
 ```
 
 ---
