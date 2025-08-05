@@ -87,19 +87,27 @@ Access is tiered based on data classification:
 
 ```mermaid
 sequenceDiagram
-    participant A as AI Assistant<br>(Primary Agent)
-    participant U as User Identity Provider<br>(Session Auth)
-    participant C as Confirmation Agent + State Store
-    box Secure VPC/Cloud Environment
-    participant E as Enterprise APIs & Services
+    participant AI as AI Assistant<br/>(MCP Client)<br/>+ DPoP Key Pair
+    
+    box "Backend Systems"
+        participant TP as Ticketing Platform<br/>(JIRA/ServiceNow)
+        participant CAS as Confirmation Agent + State Store
+        participant EAPI as Enterprise APIs<br/>& Services
     end
 
-    U->>A: Session Token<br>(e.g., JWT)
-    A->>C: 1. Auth Req (Tool + Params + Metadata)<br>(Session Token)
-    C-->>A: 2. Ephemeral Tx Token
-    A->>C: 3. Execute Tool (Tool + Params)<br>(Session Token + Ephemeral Tx Token)
-    C-->>A: 4. Result + Proof
-    C->>E: Validated Call
+    AI->>TP: 1. Register Intent (Ticket ID)
+    
+    AI->>CAS: 2. Auth Request + Ticket ID<br/>+ DPoP: <proof-jwt>
+    activate CAS
+    note right of CAS: Stores DPoP thumbprint
+    CAS-->>AI: 3. DPoP-Bound Ephemeral Token
+    
+    AI->>CAS: 4. Execute (Token + Params)<br/>+ DPoP: <new-proof-jwt>
+    note right of CAS: Validates DPoP proof + binding
+    CAS->>EAPI: (Implicit) Executes action on Enterprise API
+    EAPI-->>CAS: (Implicit) Returns result
+    CAS-->>AI: 5. Result + Audit Trail
+    deactivate CAS
 ```
 
 ---
@@ -483,3 +491,4 @@ Class 4-5 operations use standard MCP 2.1. Class 1-3 layer zero-trust extensions
 4. Phase 4: Full zero-trust pipeline with comprehensive audit.
 
 ---
+
