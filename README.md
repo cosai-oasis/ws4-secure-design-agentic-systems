@@ -50,6 +50,17 @@ Please make sure to update it on a regular basis – when new files or folder ar
 
 Check out our [onboarding guidance for new participants](https://github.com/cosai-oasis/oasis-open-project/blob/main/ONBOARDING.md) and please see the [CoSAI Contributing policy](./CONTRIBUTING.md) for more details.
 
+### Project Documentation Site (Draft)
+
+Initial `github.io` content for this repository is available in [`github-io/index.md`](./github-io/index.md), including:
+
+- project documentation
+- current status
+- current version
+- contribution guidelines
+- templates
+- working topics
+
 <!-- Give a brief explanation of what kind of contributions you are looking for and what your requirements are for accepting them. Then link to
 [CONTRIBUTING.md](link to your contributing.md file) for more information and also add a link to [CODE_OF_CONDUCT](link to your code_of_conduct.md file).
 
@@ -70,5 +81,4 @@ CoSAI and the CoSAI workstream operates under the terms of the [Open Project Rul
   
 The applicable license will be determined for each repository, as applicable, at the time of its
 creation.
-
 
