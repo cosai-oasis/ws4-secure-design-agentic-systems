@@ -72,28 +72,38 @@ With the AI landscape, the existing capabilities have to be adapted and new capa
 - **Registration & Discovery**: Catalogs, versions, and classifies agents, tools, models, and MCP servers by trust level and capability with controlled registration mechanisms
 - **Routing & Protocol Mediation**: Multimodal routing across User→LLM, Agent→Tool, and MCP requests while maintaining session awareness
 
-## Implementation Considerations with References
+## Security Implementation Considerations
 
 In this section we will cover the best practices and recommendations for implementing the above capabilities, with references to existing implementations and tooling in the ecosystem.
 
 
-### Secure Credential Management & Key Obfuscation
+### 1. Authentication & Authorization
 
-### Authentication & Authorization Policy Definition
+### 2. Secure Credential Management & Key Obfuscation
 
-### Input Sanitization & Prompt Injection Prevention
+### 3. Input Sanitization & Prompt Injection Prevention
 
-### PII Detection & Removal Configuration
+### 4. Provider Abstraction and Multimodal Routing 
 
-### Rate Limiting & Consumption Control Setup
+### 5. PII Removal & Data Governance
 
-### AI-Specific Observability & Alerting
+### 6. AI-Specific Observability & Threat Detection
 
-### Canonical LLM API Definition Design
+### 7. Agentic Workflow security: Behavior & Policy Enforcement
 
-### Provider Failover & Health Check Implementation
+### 8. Canonical LLM API Definition & Request Enrichment
 
-### Output Filtering & Response Validation
+### 9. Output Filtering & Response Validation
+
+### 10. Human in the Loop Enforcement for High Risk Actions
+
+### 11. State Management, Context Lifecycle Policies and Memory-Safety Boundaries
+
+### 12. End to End Encryption and Secure Communication Protocols Implementation 
+
+### 13. Rate Limiting & Consumption Control
+
+### 14. Failover & Health Check Implementation
 
 
 
