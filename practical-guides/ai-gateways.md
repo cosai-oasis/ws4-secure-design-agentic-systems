@@ -45,13 +45,13 @@ With the above reference architecture depicting the ecosystem of users, autonomo
 
 ## Capabilities of AI Gateways
 
-As highlighted in the above use cases, with the AI landscape, the existing capabilities have to be adapted and new capabilities have to be introduced for the Gateways to manage:
+With the AI landscape, the existing capabilities have to be adapted and new capabilities have to be introduced for the Gateways to manage:
 
 ### Foundational Capabilities Inherited from Traditional API Gateways
 
 - **Unified Access Point**: Centralized entry point for secure access to multiple LLM APIs, models, and AI services approved by the organization
 - **Authentication and Authorization**: Integration with OAuth2, JWT, mTLS, and API keys for controlling access to AI models
-- **Credential Management**: Centralized key lifecycle management (tracking, revocation, refresh) to eliminate API key sprawl and enhance security
+- **Credentials Management**: Centralized key lifecycle management (tracking, revocation, refresh) to eliminate API key sprawl and enhance security
 - **Consumption Control**: Rate limiting and provider-specific/client-specific quotas to manage costs and prevent abuse
 - **Observability**: Tracking of token usage, quotas, error rates, and access logs across LLM providers with correlation IDs
 - **Enrichment**: Request/response transformation for usage reporting, context injection, and response filtering
@@ -72,29 +72,29 @@ As highlighted in the above use cases, with the AI landscape, the existing capab
 - **Registration & Discovery**: Catalogs, versions, and classifies agents, tools, models, and MCP servers by trust level and capability with controlled registration mechanisms
 - **Routing & Protocol Mediation**: Multimodal routing across User→LLM, Agent→Tool, and MCP requests while maintaining session awareness
 
-## Implementation Considerations & References
+## Implementation Considerations with References
 
-*WIP*
+In this section we will cover the best practices and recommendations for implementing the above capabilities, with references to existing implementations and tooling in the ecosystem.
 
-### Plugin Based Extensibility
 
-- Extensible plugin architecture for custom authentication, policy enforcement, and threat detection modules
+### Secure Credential Management & Key Obfuscation
 
-- Tooling: kgateway.dev, Kong MCP GW, OpenRouter, LiteLLM,..
+### Authentication & Authorization Policy Definition
 
-### Policy Attachment Model & Configuration Scope
+### Input Sanitization & Prompt Injection Prevention
 
-Strict policy scoping prevents accidental AI policy application to invalid backends and enables fine-grained control over AI-specific behaviors to mitigate drifts and unintended consequences
+### PII Detection & Removal Configuration
 
-Tooling: Kong MCP GW, OpenRouter, LiteLLM, kgateway.dev, Kuadrant MCP-Gateway, AgentGateway, Operant AI MCP Gateway, Microsoft MCP Gateway, Docker MCP Gateway, Lasso MCP Gateway, solo.io AgentMesh, Kagenti MCP-Gateway, Amazon Bedrock AgentCore, Google CAPSEM
+### Rate Limiting & Consumption Control Setup
 
-### Data Plane Separation
+### AI-Specific Observability & Alerting
 
- Out-of-process design allows independent scaling and development of AI-specific logic 
+### Canonical LLM API Definition Design
 
-### Credential Management
+### Provider Failover & Health Check Implementation
 
-Multiple auth patterns needed to support various deployment scenarios and security postures
+### Output Filtering & Response Validation
+
 
 
 ## AI Gateways References
