@@ -23,7 +23,7 @@ The key challenges introduced are:
   - Servers Compromise and Credentials Harvesting
 - Lack of predictability as AI systems now initiate their own autonomous actions which can lead to:
   - Non Deterministic Policy Evaluation
-  - Behavioral Drift, Rogue Actions due to the nature of the AI Systems, the Load or due to Hallucinated function calls 
+  - Behavioral Drift, Rogue Actions due to the nature of the AI Systems, the load or due to Hallucinated function calls 
   - Abuse of Delegation Mechanisms 
   - Privilege Escalations 
   - Unauthorized Actions
