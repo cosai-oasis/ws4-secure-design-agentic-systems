@@ -72,7 +72,7 @@ The following diagram tackles a list of Agentic Gateway capabilities. Each of th
 
 
 <p align="center">
-  <img src="./images/agentic_gateway_capabilities.png" alt="Agentic Gateway Capabilities" width="600"/>
+  <img src="./images/agentic_gateway_capabilities_mermaid.png" alt="Agentic Gateway Capabilities" width="800"/>
 </p>
 
 
