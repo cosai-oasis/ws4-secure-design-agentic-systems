@@ -2,11 +2,15 @@
 title: Model Context Protocol (MCP) Security
 author: "Workstream 4: Secure Design Patterns for Agentic Systems"
 date: 8 January 2026
+last_updated: 29 May 2026
+revision_note: "Updated for the MCP 2026-07-28 release candidate"
 ---
 
 # Model Context Protocol (MCP) Security
 
 Approved by the CoSAI Project Governing Board on 8 January 2026.
+
+Last updated on 29 May 2026 for the MCP 2026-07-28 release candidate.
 
 # Table of contents
   - [Abstract](#abstract)
