@@ -269,7 +269,7 @@ Secure identity, authentication, and authorization across the agentic and MCP ec
 To mitigate against privilege escalation, MCP servers should operate with the minimum privileges necessary. OAuth provides a widely adopted framework for secure delegation, with extensions that support fine-grained scope control and secure token flows (see [MCP Authorization](https://modelcontextprotocol.io/specification/draft/basic/authorization)).
 
 * Leverage existing identity providers to provide user authentication using standards such as OIDC
-* Register MCP clients with the IAM provider. If the registration cannot happen a priori, then use Dynamic Client Registration or Client ID Metadata Documents where supported
+* Register MCP clients with the IAM provider. Prefer Client ID Metadata Documents where supported; use Dynamic Client Registration only as a compatibility fallback for authorization servers that do not support Client ID Metadata Documents
 * Bind client credentials, access tokens, and cached registration state to the authorization server `issuer` that issued them; do not reuse credentials when protected resource metadata points to a different authorization server
 * Validate the OAuth authorization response `iss` parameter when present, and reject missing `iss` responses when the authorization server advertises RFC 9207 support
 * Declare the correct OIDC `application_type` during Dynamic Client Registration so native, CLI, desktop, and localhost applications are not accidentally treated as web applications
