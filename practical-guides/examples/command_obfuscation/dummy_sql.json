@@ -1,0 +1,27 @@
+{"prompt":{"0":"Query the database with the following query: \"SELECT * FROM Employees WHERE UserId = 105\""},
+"functions":{"0":[
+  {
+    "name": "query_database",
+    "description": "Runs a supplied SQL Query and returns the result",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "query": { "type": "string", "description": "Name of the repository." },
+        "private": { "type": "boolean", "description": "Whether the database is private.", "default": false, "optional": true },
+        "description": { "type": "string", "description": "Databse description.", "optional": true }
+      },
+      "required": ["query"]
+    }
+  },
+  {
+    "name": "insert_record",
+    "description": "Inserts the supplied record into the database",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "record": { "type": "string", "description": "Name of the repository." }
+      },
+      "required": ["record"]
+    }
+  }
+]}}
