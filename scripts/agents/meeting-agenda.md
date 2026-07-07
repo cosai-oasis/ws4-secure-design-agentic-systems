@@ -75,7 +75,7 @@ The canonical agenda format is the GitHub Discussion named in the "Agenda templa
    - Topics deferred to future meetings
    - If a fallback minutes directory is set and the primary directory is sparse or empty, also scan the fallback for workstream-related context.
 
-   The minutes directory is populated out-of-band by `scripts/fetch_meeting_minutes.py` (typically nightly via cron, or manually with `--skip-existing` before generating an agenda). If it is missing, halt and instruct the user to run the fetch script — do not silently fall back to fetching from Drive directly.
+   The minutes directory is populated out-of-band by the `fetch-meeting-minutes` skill (`scripts/agents/fetch-meeting-minutes/`), typically run with `--skip-existing` before generating an agenda. If it is missing, halt and instruct the user to run that skill — do not silently fall back to fetching from Drive directly.
 
 3. **Pull open PRs** from the workstream's repo:
    - Group by: contributor PRs needing review vs external submissions needing triage
@@ -176,7 +176,7 @@ The meeting-agenda agent does **not**:
 
 ## Failure modes
 
-- **Minutes directory missing or empty** — halt with the exact directory path expected and the recovery instruction (run `scripts/fetch_meeting_minutes.py`). If a fallback minutes directory is set, scan it and proceed with a "minutes-sparse" notice in the agenda.
+- **Minutes directory missing or empty** — halt with the exact directory path expected and the recovery instruction (run the `fetch-meeting-minutes` skill). If a fallback minutes directory is set, scan it and proceed with a "minutes-sparse" notice in the agenda.
 - **`gh` CLI unavailable or unauthenticated** — halt with auth instructions. Do not silently fall back to web fetch.
 - **Previous-agenda Discussion not found** — proceed; mark "Action Item Follow-ups" with a note explaining no prior agenda was found.
 
