@@ -39,6 +39,7 @@ Runbooks are practical guides, or "cookbooks" providing concrete examples, code 
 
 1. [Tool Design for Secure Agentic Systems](practical-guides/mcp-secure-tool-design.md)
 1. [Input and Data Sanitization and Filtering](practical-guides/input-and-data-sanitization-and-filtering.md)
+1. [MCP Runtime Isolation](practical-guides/mcp-runtime-isolation.md)
 
 ## Contributing
 
