@@ -346,6 +346,8 @@ Protocol-level sessions and the `Mcp-Session-Id` header are removed in the relea
 
 Caching is now explicit for cacheable results through `ttlMs` and `cacheScope`. Clients and intermediaries should honor `private` scope for user- or tenant-specific results, avoid caching sensitive resource reads unless policy permits it, and invalidate pinned tool metadata when cache lifetimes expire or list-change notifications arrive. Long `ttlMs` values improve availability and cost, but they increase exposure to stale policy, stale schemas, and delayed revocation after a server or tool compromise.
 
+For deployments handling long-lived sensitive data (biometrics, identity roots, classified material), classical asymmetric key exchange is vulnerable to "Harvest Now, Decrypt Later" (HNDL) attacks from future quantum adversaries. Organizations in this situation should plan migration to hybrid post-quantum TLS — combining classical X25519 with NIST FIPS 203 ML-KEM-768 — to protect data whose sensitivity extends beyond the quantum computing horizon. See the companion addendum, [*Quantum-Resistant AI Infrastructure: Implementing Post-Quantum Cryptography in MCP Architectures*](Addendum-MCP-and-PQC.md), for a detailed implementation roadmap.
+
 ### 3.2.8 Secure Tool and UX Design
 <a id="secure-tool-and-ux-design"></a>
 Tool and UX design represent a critical security control point in Model Context Protocol (MCP) deployments. While much attention is paid to model safety and prompt injection defenses, the tools that agents invoke are often the actual execution surface where security boundaries are crossed and sensitive operations are performed. Poor tool design can undermine even the most robust authentication and authorization controls by creating overly permissive capabilities or delegating security-critical decisions to the LLM itself.
@@ -618,6 +620,8 @@ The agent identity and authorization landscape is evolving rapidly. The followin
 
 * [AGNTCY](https://agntcy.org/) (Linux Foundation): Provides reference implementations for Agent Identity Badges and Tool-Based Access Control (TBAC). The TBAC model is referenced in the authorization controls at Level 3+. See [#47](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/47) and [#48](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/48) for evaluation threads.
 
+* **Post-Quantum Cryptography (NIST FIPS 203/204):** NIST has standardized ML-KEM (FIPS 203) for key encapsulation and ML-DSA (FIPS 204) for digital signatures. The US federal government requires CNSA 2.0 algorithm support for newly procured National Security Systems from January 2027, with full migration by 2033–2035. For MCP deployments, hybrid key exchange (X25519 + ML-KEM-768) is the current recommended approach for transport security, and ML-DSA replaces RSA/ECDSA for server identity signatures. See the companion addendum, [*Quantum-Resistant AI Infrastructure: Implementing Post-Quantum Cryptography in MCP Architectures*](Addendum-MCP-and-PQC.md), for data classification guidance, implementation examples, and a migration roadmap.
+
 ### 3.3.7 Open Questions
 
 1. **Granularity within levels.** Some organizations may need finer distinctions within Level 3 (e.g., "production with PII" vs. "production without PII"). Should sub-levels be supported, or should the matrix stay at four tiers with policy-level refinements handling the edge cases?
@@ -634,7 +638,7 @@ The agent identity and authorization landscape is evolving rapidly. The followin
 
  MCP adoption is accelerating, and security must keep pace. Our analysis reveals common vulnerabilities in deployments that lack adequate authentication, explicit state management, and supply chain controls. Incidents in adjacent AI systems demonstrate these are active threats, not theoretical concerns.
 
-Organizations deploying MCP-based systems must develop defense-in-depth strategies including zero-trust architectures, hardware-based isolation through trusted execution environments, rigorous supply chain vetting, and continuous monitoring. Securing MCP deployments requires coordinated effort across developers, organizations, and protocol maintainers—investment in security architecture now will pay dividends as agentic systems become more prevalent.
+Organizations deploying MCP-based systems must develop defense-in-depth strategies including zero-trust architectures, hardware-based isolation through trusted execution environments, rigorous supply chain vetting, and continuous monitoring. Organizations processing data with long operational lifespans should also begin planning for post-quantum cryptographic migration; see the companion addendum [*Quantum-Resistant AI Infrastructure*](Addendum-MCP-and-PQC.md) for implementation guidance. Securing MCP deployments requires coordinated effort across developers, organizations, and protocol maintainers—investment in security architecture now will pay dividends as agentic systems become more prevalent.
 
 # 5. Contributors and Acknowledgements
 
