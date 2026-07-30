@@ -1,139 +1,105 @@
 ---
-title: Addendum: Quantum-Resistant AI Infrastructure
+title: "Addendum: Post-Quantum Cryptography Considerations for MCP"
 author: "Workstream 4: Secure Design Patterns for Agentic Systems"
 status: Draft
-date: 11 June 2026
+date: 15 July 2026
 ---
 
-# White Paper: Quantum-Resistant AI Infrastructure
+# Addendum: Post-Quantum Cryptography Considerations for Model Context Protocol (MCP)
 
-## Implementing Post-Quantum Cryptography (PQC) in Model Context Protocol (MCP) Architectures
+## Purpose
 
-# Executive Summary
+Post-quantum cryptography (PQC) has moved from research to standards: NIST has ratified ML-KEM (FIPS 203), ML-DSA (FIPS 204), and SLH-DSA (FIPS 205), and the US NSA's CNSA 2.0 sets a phased migration schedule for national-security systems. This addendum gives MCP deployment teams a short summary of *what is changing*, *where to prepare*, and *how to reduce migration cost*.
 
-As the Model Context Protocol (MCP) becomes the standard for connecting LLMs to enterprise data, it introduces new cryptographic risks. The advent of functionally relevant quantum computing threatens the asymmetric encryption (RSA, ECC) currently securing these data pipes. This paper outlines the design and implementation of a **Quantum-Resistant MCP Server**, specifically focusing on protecting "Long-Lived Data" against "Harvest Now, Decrypt Later" (HNDL) attacks.
+**This is not an implementation guide, an algorithm-selection guide, or a substitute for consulting NIST/CNSA specs, IETF drafts, or your platform's TLS documentation.** MCP tool and server authors should not be writing cryptographic code; the recommendations below deliberately push all cryptographic implementation into well-supported components (TLS libraries, proxies, managed platforms) that ship, audit, and update PQC on the reader's behalf.
 
+## What is changing, and when
 
-# Information Classification & The "Ten-Year Rule"
+There are two distinct migration problems, and they move on different timelines:
 
-To prioritize cryptographic agility, organizations must classify data based on its **Value Longevity**.
+- **Transport confidentiality — "Harvest-Now-Decrypt-Later" (HNDL).** Classical key-exchange (RSA, ECDH) is vulnerable to Shor's algorithm. Traffic captured today can be decrypted post-Q-day. Any data that traverses an MCP boundary with a sensitivity horizon longer than the quantum-computing timeline (biometrics, identity roots, classified material, long-term contractual data) is exposed *today* — this is the pressing case.
+- **Signature integrity — forgery risk.** A quantum adversary can only forge signatures *after* Q-day. But the signature migration is structurally slower because it touches JOSE/JWT, OAuth/OIDC, code-signing, certificate chains, and audit-trail formats — all still stabilizing PQ variants. Practitioners should track proposals and prepare to migrate to new standards once they emerge.
 
-## Data Classification Definitions
+Reference timelines readers should track:
 
-* **Ephemeral Data (\<1 Year):** Session tokens, transient climate data, or stock tickers. Classical encryption is often sufficient.  
-* **Standard Business Data (1–10 Years):** Contractual details, internal strategy, or project roadmaps.  
-* **Long-Lived Data (10+ Years):** Data that remains sensitive or identifying for decades. If intercepted today, it remains a liability in the quantum era.
+| Milestone | Source | Date |
+|---|---|---|
+| ML-KEM / ML-DSA / SLH-DSA ratified | NIST FIPS 203 / 204 / 205 | 2024 |
+| CNSA 2.0 required for new NSS procurements | NSA CNSA 2.0 | Jan 2027 |
+| TLS 1.3 (or successor) required across federal systems | EO 14144 | Jan 2030 |
+| PQC key encapsulation | EO 14412 | Jan 2031 |
+| PQC digital signatures | EO 14412 | Jan 2032 |
+| CNSA 2.0 exclusive use — federal systems | NSA CNSA 2.0 | 2033 |
+| NSM-10 full migration deadline | NSM-10 | 2035 |
+| Industry Q-day working estimate | Google, Cloudflare | ~2029 |
 
-## "Long-Lived" Data Types
+## Recommendations for MCP deployments
 
-Specific focus is required for data that cannot be changed if compromised:
+The controlling principle: **do not build your own PQC — inherit it from well-supported, actively audited components.** The practices below reduce migration cost without turning MCP tool authors into cryptographers.
 
-* **Biometric Markers:** DNA sequences, high-resolution fingerprints, and retinal scans.  
-* **Identity Roots:** Social Security numbers, birth records, and heritage data.  
-* **National Security:** Cryptographic root keys and long-term classified intelligence.
+### 1. Rely on well-supported TLS libraries and platforms
 
-# Background: The Quantum Threat to MCP
+PQ-capable key exchange is arriving natively in mainstream TLS stacks (OpenSSL, BoringSSL, WolfSSL, rustls) and in managed TLS at the CDN, load-balancer, service-mesh, and cloud-provider layer. The industry-deployed hybrid — combining a classical curve with ML-KEM — is being rolled out across major CSPs and browsers through 2025–2026.
 
-MCP servers typically communicate via **SSE (Server-Sent Events)** over HTTPS or **STDIO** for local processes. While HTTPS (TLS 1.2/1.3) is currently secure, the key exchange mechanism (Diffie-Hellman or Elliptic Curve) is vulnerable to Shor's Algorithm. An adversary capturing MCP traffic today can store it and decrypt it once a quantum computer is available, compromising the long-lived data fed to the AI.
+Prefer these paths over library-specific PQ bindings written into MCP server code. **Do not invent MCP-specific cryptographic framings.**
 
-## Current Design Status
+### 2. Externalize crypto at the network edge (proxy / sidecar / gateway)
 
-As of 2026, the USA Federal Government and industry are transitioning to **NIST FIPS 203 (ML-KEM)** and **FIPS 204 (ML-DSA)**. Hybrid key exchanges—which combine a classical key with a quantum-resistant one—are the current "Gold Standard" for MCP implementation. The National Security Agency (NSA) has established a phased timeline for National Security Systems (NSS) to transition to Commercial National Security Algorithm Suite 2.0 (CNSA 2.0). 
-* January 1, 2027: The Procurement Inflection Point
-    Any NSS system acquired or deployed after this date must support CNSA 2.0 algorithms (ML-KEM and ML-DSA). This impacts current RFP and planning cycles, as systems designed today will likely be delivered after this cutoff.
-* January 2, 2030: TLS 1.3 (or successor) mandated across all federal systems (EO 14144).
-* December 31, 2030: Deadline for phasing out systems unable to support CNSA 2.0 (legacy systems).
-* December 31, 2033: Final System Deadline
-    All custom applications and legacy infrastructure are expected to reach exclusive use of CNSA 2.0 standards.
-* 2035: Full Quantum ResistanceThe ultimate deadline set by National Security Memorandum 10 (NSM-10) for complete migration across all federal national security systems.
+Rather than adding PQ-TLS support to every MCP tool, server, or agent, terminate TLS at a **proxy, gateway, or sidecar** and let the MCP process consume plain HTTP inside the trust boundary. This is the same pattern operators already use for mTLS, WAFs, and observability, and it lets platform teams roll out PQ transport changes independently of application code.
 
-Commercial & Commercial Cloud (AWS, Azure, GCP) Milestones:
- * 2025–2026: Hybrid PQC (combining classical and post-quantum) is currently being deployed by major CSPs.2025: Major cloud providers (e.g., AWS KMS) and web browsers aimed for PQC support in web services.
- * 2029: Targeted Q Date by major tech firms like [Google](https://blog.google/innovation-and-ai/technology/safety-security/cryptography-migration-timeline/) and [Cloudflare](https://blog.cloudflare.com/post-quantum-roadmap/) for full, non-hybrid post-quantum security implementation
+Concretely:
 
-Critical Infrastructure: Expected to comply with PQC regulations by 2026–2028. Hybrid Support: While hybrid implementations are a transitional step in 2025-2026, they do not satisfy long-term (2030+) requirements
+- **Server side.** A reverse proxy or sidecar (Envoy, nginx, Caddy, HAProxy — any TLS build with hybrid PQ key-exchange) fronts your MCP server and terminates the hybrid TLS handshake. The MCP server itself does not link a PQC library.
+- **Client / agent side.** Agent frameworks and MCP clients calling remote MCP servers can route through a forward proxy or egress gateway with PQ-capable outbound TLS.
+- **Managed API gateways and service meshes.** Treat these as first-class candidates as soon as they add PQ support; they are typically the cheapest place to upgrade.
 
-# Design Architecture: The PQC-MCP Server
+This pattern:
 
-The proposed design utilizes a **Hybrid KEM (Key Encapsulation Mechanism)** approach. This ensures that even if the PQC algorithm is later found to have a flaw, the classical encryption still provides a baseline level of security.
+- Isolates cryptographic implementation from MCP protocol code, so upgrades do not require touching every tool.
+- Gives you a single control point when defaults, hybrid choices, or standards shift.
+- Reduces the risk that MCP tool authors write ad-hoc cryptographic code.
 
-## Core Components
+### 3. Inventory cryptographic surfaces
 
-* **Transport:** TLS 1.3 with Hybrid Key Exchange (X25519 \+ ML-KEM-768).  
-* **Authentication:** Digital signatures using ML-DSA.  
-* **Payload:** Standard JSON-RPC 2.0.
+Enumerate the places cryptography touches your MCP surface so migration planning is bounded:
 
-# Build & Implementation (Code-Level)
+- **Transport.** MCP server ingress, MCP client egress, internal service-to-service links.
+- **Server / workload identity.** Certificate authorities, key formats, revocation channels, mTLS trust roots.
+- **Authorization tokens.** OAuth/OIDC, JWTs. Note that PQ-safe JOSE (RFC 9964 onward) is still emerging.
+- **Signed receipts and attestations.** Agent-credential receipts, tool-invocation attestations, audit trails.
+- **Data at rest.** Records whose sensitivity horizon exceeds Q-day estimates.
 
-This implementation uses **Python** and the **OQS (Open Quantum Safe)** library to wrap a standard MCP server.
+You do not need to *migrate* everything today. You need to *know where you would migrate* when standards land.
 
-## Environment Setup
+### 4. Watch third-party protocol progress; don't front-run it
 
-```bash
-pip install mcp liboqs-python
-```
+PQ signature protocols (JOSE, TUF/Sigstore, code-signing formats) are still moving. Track their release notes and adopt when your libraries do. Do not build MCP-specific PQ-signed variants of existing protocols — the threat on digital signatures is not active pre-Q-day, and premature implementations tend to age poorly.
 
-## Implementing a PQC-Enabled MCP Server
+### 5. Data at rest
 
-The following example demonstrates an MCP server that handles "Long-Lived" biometric data (Fingerprint templates) using a quantum-safe wrapper.
+For long-lived data traversing MCP, encrypt at rest with **AES-256** (satisfies CNSA 2.0; quantum-resistant with a wide margin under Grover's algorithm). AES-128 remains acceptable where CNSA 2.0 is not a binding requirement and performance matters.
 
-```python
-from mcp.server import Server  
-import oqs # Open Quantum Safe library  
-import json
+## Out of scope
 
-# Initialize MCP Server  
-app = Server("PQC-Secure-Biometric-Vault")
+- **Specific algorithm parameter choices** beyond the NIST FIPS 203 / 204 / 205 anchors and CNSA 2.0 constraints. Defer to your platform, TLS library, or regulator.
+- **Custom cryptographic protocols or hybrid schemes** not already present in a mainline TLS implementation or a NIST/IETF-standardized protocol.
+- **Symmetric primitives** — HMACs, ordinary hash-based constructions, hash-based state attestations. Shor's algorithm does not act on these; Grover halves the exponent on paper, but in practice only offers a modest speedup due to the inability to parallelize computation, which any 256-bit construction absorbs. Do not place these on the ML-KEM / ML-DSA migration timeline unless there is a specific reason.
 
-# 1. Setup Quantum-Safe Key Encapsulation (ML-KEM-768)  
-kem_name = "ML-KEM-768"
+## When to revisit this addendum
 
-@app.tool()  
-async def store_long_lived_data(data_type: str, encrypted_payload: str):  
-    """  
-    Handles storage of data types lasting >10 years.  
-    Expects payload already wrapped in a PQC envelope.  
-    """  
-    if data_type in ["dna", "fingerprint", "ssn"]:  
-        # Logic to store in a Post-Quantum hardened database  
-        return {"status": "success", "security": "ML-KEM-768 protected"}  
-    return {"status": "rejected", "reason": "Insufficient classification"}
+- ML-KEM and ML-DSA become *defaults* (not opt-in) in mainstream TLS libraries and managed platforms.
+- JOSE PQ variants stabilize sufficiently for MCP-adjacent JWT / OAuth flows.
+- Industry Q-day estimates shift materially — later or sooner.
+- New NIST selections (HQC follow-on, alternate signatures) begin landing in shipping software.
 
-@app.resource("vault://biometrics/{user_id}")  
-async def get_biometric(user_id: str):  
-    # ML-DSA Signature verification logic here  
-    return "Fingerprint_Template_PQC_Encrypted_Blob"
+## References
 
-if __name__ == "__main__":  
-    app.run_stdio()
-```
-
-## Client-Side Hybrid Handshake (Conceptual)
-
-To truly secure the transport, the client must initiate a hybrid handshake. Using a PQC-compatible library like BoringSSL:
-
-```c
-// Setting TLS groups to include ML-KEM  
-SSL_CTX_set1_groups_list(ctx, "X25519Kyber768Draft00:X25519");
-```
-
-
-# Implementation Roadmap
-
-1. **Inventory:** Identify all MCP resources handling DNA, fingerprints, or identity data.  
-
-2. **Agility Layer:** Deploy an MCP Proxy that supports TLS 1.3 Hybrid modes.   All HTTPS should use hybrid post-quantum TLS **X25519MLKEM768** — the hybrid key exchange that combines classical X25519 with NIST FIPS 203 ML-KEM-768. The handshake is protected as long as either component holds, so the system survives either a quantum attacker or a flaw in the new PQ algorithm.  For low power devices or simple workload NIST has also design and is testing other PQC algorithms that might be useful for MCP applications:
-    * FALCON (expected as FIPS 206): While not yet fully published, FALCON is designed for scenarios needing very small signatures, which is beneficial for limited bandwidth in IoT applications.
-    * HQC (Hamming Quasi-Cyclic): Selected by NIST in March 2025 as a 5th algorithm, HQC is a backup to ML-KEM. It is code-based and considered for its robustness and potential efficiency in specific hardware implementations.
-    * Ascon (Lightweight Cryptography Standard): Released in 2025 (NIST SP 800-232), Ascon is specifically for lightweight cryptography (LWC) in constrained devices. While technically symmetric lightweight crypto rather than post-quantum asymmetric crypto, it is the primary NIST standard for IoT security.
-Note that MCP server capacity will need to be tested as the PQC algorithms will require greater CPU cycles for encryption/decryption than the RSA algorithms. 
-    
- 
-3. **Signature Migration:** Transition from RSA/ECDSA to ML-DSA for server identity.  Note that many third party carry their own classical TLS configurations. Vendor PQ rollout is the only path forward for these. Track their respective release notes.
-
-4. **Audit:** Ensure "Long-Lived Data" is encrypted at rest using AES-256 (which remains quantum-resistant).
-
-
-# Conclusion
-
-The Model Context Protocol is the gateway to enterprise intelligence. By classifying information based on its lifespan and implementing **ML-KEM** and **ML-DSA**, organizations can ensure that today's AI interactions do not become tomorrow's data breaches. For data lasting over 10 years, PQC is no longer optional—it is a functional requirement.
+- NIST FIPS 203 — ML-KEM. https://csrc.nist.gov/pubs/fips/203/final
+- NIST FIPS 204 — ML-DSA. https://csrc.nist.gov/pubs/fips/204/final
+- NIST FIPS 205 — SLH-DSA. https://csrc.nist.gov/pubs/fips/205/final
+- NSA CNSA 2.0. https://media.defense.gov/2025/May/30/2003728741/-1/-1/0/CSA_CNSA_2.0_ALGORITHMS.PDF
+- UK NCSC — Preparing for Quantum-Safe Cryptography. https://www.ncsc.gov.uk/paper/preparing-for-quantum-safe-cryptography
+- Google — Cryptography Migration Timeline (2029 Q-day). https://blog.google/innovation-and-ai/technology/safety-security/cryptography-migration-timeline/
+- Cloudflare — Post-Quantum Roadmap. https://blog.cloudflare.com/post-quantum-roadmap/
+- IETF RFC 9964 — Composite ML-KEM constructions in JOSE (May 2026).
+- Executive Order 14144 — Strengthening and Promoting Innovation in the Nation's Cybersecurity.
