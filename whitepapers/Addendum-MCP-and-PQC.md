@@ -83,7 +83,7 @@ For long-lived data traversing MCP, encrypt at rest with **AES-256** (satisfies 
 
 - **Specific algorithm parameter choices** beyond the NIST FIPS 203 / 204 / 205 anchors and CNSA 2.0 constraints. Defer to your platform, TLS library, or regulator.
 - **Custom cryptographic protocols or hybrid schemes** not already present in a mainline TLS implementation or a NIST/IETF-standardized protocol.
-- **Symmetric primitives** — HMACs, ordinary hash-based constructions, hash-based state attestations. Shor's algorithm does not act on these; Grover halves the exponent on paper, but in practice only offers a modest speedup due to the inability to parallelize computation, which any 256-bit construction absorbs. Do not place these on the ML-KEM / ML-DSA migration timeline unless there is a specific reason.
+- **Symmetric primitives** — HMACs, ordinary hash-based constructions, hash-based state attestations. Shor's algorithm does not act on these; Grover halves the exponent on paper, but in practice only offers a modest speedup due to the limitations to parallelize computation, which any 256-bit construction absorbs. Do not place these on the ML-KEM / ML-DSA migration timeline unless there is a specific reason.
 
 ## When to revisit this addendum
 
