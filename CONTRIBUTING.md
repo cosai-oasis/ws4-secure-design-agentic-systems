@@ -39,6 +39,10 @@ All new work must be approved through the Request for Comments (RFC) process:
   
 - **Unlinked PRs**: Pull requests not addressing an RFC or issue may be marked and closed.
 
+## Working with WS4 tooling
+
+Repeatable PM tasks (meeting agendas, issue triage) are defined under [`skills/`](skills/) — one self-contained `<skill>/SKILL.md` folder per task, installable with the `skills` CLI and usable with any LLM assistant. Workstream specifics (repo, leads, cadence, recognised labels, milestones) live in tables inside each definition. Meeting minutes are synced out-of-band by `scripts/fetch_meeting_minutes.py` (setup in [`scripts/README.md`](scripts/README.md)); agenda drafts land in `agenda_drafts/` for chair review.
+
 ## Questions?
 
 If you have questions about the contribution process, please reach out through our Slack channel or mailing list.
