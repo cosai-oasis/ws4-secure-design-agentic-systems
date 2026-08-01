@@ -1,0 +1,125 @@
+# Contributor Reputation Check
+#
+# Runs once when a pull request or an issue is OPENED, and reports factual,
+# publicly-observable signals about the author's GitHub account so a human
+# maintainer can decide how much scrutiny the contribution needs.
+#
+# It does not block, close, or auto-reject anything. It posts a risk level
+# and a label. The decision stays with the maintainer.
+#
+# See .github/workflows/README-contributor-check.md for what it checks,
+# what it publishes, and its known limits.
+
+name: Contributor Reputation Check
+
+on:
+  pull_request_target:
+    types: [opened]
+  issues:
+    types: [opened]
+  workflow_dispatch:
+    inputs:
+      username:
+        description: "GitHub username to check"
+        required: true
+      run_cluster:
+        description: "Run cluster detection (API-heavy, opt-in)"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+
+concurrency:
+  group: contributor-check-${{ github.event.issue.number || github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  # Decide whether to run at all. Workstream maintainers and known automation
+  # are exempt. Maintainers are resolved from GitHub's own RBAC rather than a
+  # hardcoded list of handles, so there is no roster here to drift out of date
+  # as WS4 membership changes.
+  gate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      run_check: ${{ steps.decide.outputs.run_check }}
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.actor != 'dependabot[bot]' &&
+       github.actor != 'github-actions[bot]' &&
+       github.actor != 'copilot-swe-agent[bot]')
+    steps:
+      - id: decide
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            // workflow_dispatch checks an explicit username input, so always run.
+            if (context.eventName === 'workflow_dispatch') {
+              core.setOutput('run_check', 'true');
+              return;
+            }
+            // Exempt maintainers (Maintain or Admin). Fail safe: if permission
+            // cannot be resolved, run the check rather than skip it.
+            try {
+              const { data: perm } = await github.rest.repos.getCollaboratorPermissionLevel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                username: context.actor,
+              });
+              // Use role_name, not the legacy `permission` field (which collapses
+              // maintain -> write and would never match a Maintain-role maintainer).
+              const isMaintainer = perm.role_name === 'admin' || perm.role_name === 'maintain';
+              core.setOutput('run_check', isMaintainer ? 'false' : 'true');
+            } catch (e) {
+              core.info(`Could not resolve permission for ${context.actor}: ${e.message}. Running check.`);
+              core.setOutput('run_check', 'true');
+            }
+
+  check:
+    needs: gate
+    if: needs.gate.outputs.run_check == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write          # post the risk comment / label on issues
+      pull-requests: write   # post the risk comment / label on pull requests
+    steps:
+      # Pinned to a specific commit of microsoft/agent-governance-toolkit.
+      # This workflow runs on pull_request_target with a write-capable token,
+      # so the code it pulls in must not be a mutable ref. Bump this SHA
+      # deliberately, after review, when the upstream action changes.
+      - name: Checkout AGT contributor-check action
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          repository: microsoft/agent-governance-toolkit
+          ref: 359a6b8cf453f95d6bc9caf932057e1e78ccffd9 # main as of 2026-07-31
+          persist-credentials: false
+          sparse-checkout: |
+            scripts
+            .github/actions/contributor-check
+          path: _agt
+
+      - name: Run contributor reputation check
+        id: reputation
+        uses: ./_agt/.github/actions/contributor-check
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          # `cluster` is deliberately not run on open events: it is API-heavy
+          # and will hit secondary rate limits. Run it via workflow_dispatch
+          # when investigating a specific account.
+          checks: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.run_cluster == 'true' && 'profile,credential,cluster' || 'profile,credential' }}
+          risk-threshold: MEDIUM
+
+      - name: Log results
+        if: always()
+        run: |
+          echo "Overall risk:    ${{ steps.reputation.outputs.risk }}"
+          echo "Profile risk:    ${{ steps.reputation.outputs.profile-risk }}"
+          echo "Credential risk: ${{ steps.reputation.outputs.credential-risk }}"
+          echo "Cluster risk:    ${{ steps.reputation.outputs.cluster-risk }}"
