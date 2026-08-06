@@ -2,7 +2,8 @@
 title: Model Context Protocol (MCP) Security
 author: "Workstream 4: Secure Design Patterns for Agentic Systems"
 date: 8 January 2026
-last_updated: 29 May 2026
+last_updated: 28 July 2026
+version: 2.0
 revision_note: "Updated for the MCP 2026-07-28 release candidate"
 ---
 

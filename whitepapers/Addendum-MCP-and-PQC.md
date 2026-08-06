@@ -1,7 +1,7 @@
 ---
 title: "Addendum: Post-Quantum Cryptography Considerations for MCP"
 author: "Workstream 4: Secure Design Patterns for Agentic Systems"
-status: Draft
+status: Approved
 date: 15 July 2026
 ---
 
