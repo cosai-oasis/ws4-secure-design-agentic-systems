@@ -60,7 +60,7 @@ Last updated on 29 May 2026 for the MCP 2026-07-28 release candidate.
       - [MCP-T1: Improper Authentication and Identity Management](mcp-t1-improper-authentication-and-identity-management)
       - [MCP-T2: Missing or Improper Access Control](#mcp-t2-missing-or-improper-access-control)
       - [MCP-T3: Input Validation/Sanitization Failures](#mcp-t3-input-validationsanitization-failures)
-      - [MCP-T4: Input/Instruction Boundary Distinction Failure](#mcp-t4-inputinstruction-boundary-distinction-failure)
+      - [MCP-T4: Data/Controll Boundary Distinction Failure](#mcp-t4-datacode-boundary-distinction-failure)
       - [MCP-T5: Inadequate Data Protection and Confidentiality Controls](#mcp-t5-inadequate-data-protection-and-confidentiality-controls)
       - [MCP-T6: Missing Integrity/Verification Controls](#mcp-t6-missing-integrityverification-controls)
       - [MCP-T7: Session and Transport Security Failures](#mcp-t7-session-and-transport-security-failures)
@@ -729,7 +729,7 @@ With `stdio` transport, the MCP server runs as a subprocess of the host applicat
 * Use `stdio` to avoid DNS rebinding risks: `stdio` transport is strongly recommended for local MCP as this eliminates [DNS rebinding risks that can occur with HTTP-based transports on local servers](https://modelcontextprotocol.io/specification/2025-06-18/basic/transports#security-warning)
 * Use sandboxing to limit privilege escalation attacks: running MCP servers locally requires a sandbox to prevent privilege escalation attacks
 
-### 6.1.2 Deployment Pattern 2: Single-Tenant MCP Server
+### 6.1.2 Deployment Pattern 2: Single-Tenant Hybrid
 
 **MCP Client:** 	localhost<br>
 **MCP Server:** 	single-tenant remote host<br>
@@ -737,7 +737,7 @@ With `stdio` transport, the MCP server runs as a subprocess of the host applicat
 
 ```mermaid
 ---
-    title: "DP2: Single-Tenant"
+    title: "DP2: Single-Tenant Hybrid"
 ---
 graph LR
     subgraph Local["Local Device"]
@@ -764,7 +764,7 @@ Note: Authentication between client and server **is required** to establish the 
 * Authenticated and Encrypted: communication between local and cloud components must be authenticated and encrypted
 * Secure Servers and Discovery: enterprise clients should enforce authenticated server discovery and maintain explicit allowlists (ex. via MDM)
 
-### 6.1.3 Deployment Pattern 4: Multi-Tenant MCP Server
+### 6.1.3 Deployment Pattern 3: Multi-Tenant Cloud
 
 **MCP Client:** 	cloud-hosted or locally-hosted<br>
 **MCP Server:** 	PaaS or SaaS provided<br>
@@ -829,13 +829,13 @@ An MCP deployment model where a service provider runs an MCP server and provides
 
 **Vulnerability Examples**: Command injection, SQL injection, remote code execution (RCE), path traversal, LDAP injection, XML injection, deserialization vulnerabilities, unsafe file operations
 
-### MCP-T4: Input/Instruction Boundary Distinction Failure
+### MCP-T4: Data/Control Boundary Distinction Failure
 
 **Technical Description**: This design limitation enables the entire class of prompt injection vulnerabilities, including direct injection, indirect injection through tool / schema descriptions, and context manipulation attacks. LLMs lack syntactic or semantic mechanisms to differentiate between control instructions and data payloads. This fundamental limitation stems from the continuous token stream processing model, where both trusted system prompts and untrusted user data are processed within the same computational context without clear demarcation. The absence of a control plane/data plane separation at the architectural level means any adversary-controllable input—including tool responses, schema descriptions, and resource content—can potentially alter the execution flow of the AI system.
 
 **Architectural Impact**:  Attackers can embed malicious instructions in seemingly benign content (emails, documents, API responses) that, when processed by the LLM, execute unauthorized actions. The blurring of boundaries between viewing content and executing commands creates attack vectors where reading a document can trigger data exfiltration, system compromise, or unauthorized API calls through MCP tools.
 
-**Vulnerability Examples**: Prompt injection (direct and indirect), tool poisoning (TPA), full schema poisoning (FSP), advanced tool poisoning (ATPA), resource content poisoning, hidden prompt embedding (Unicode attacks), malicious message crafting
+**Vulnerability Examples**: Prompt injection (direct and indirect), tool poisoning attack (TPA), full schema poisoning (FSP), advanced tool poisoning attack (ATPA), resource content poisoning, hidden prompt embedding (Unicode attacks), malicious message crafting.
 
 ### MCP-T5: Inadequate Data Protection and Confidentiality Controls
 
@@ -942,7 +942,7 @@ tl;dr: CoSAI contributions are actions performed by humans, who are responsible 
 
 ## 6.6 Copyright Notice
 
-Copyright © OASIS Open 2025. All Rights Reserved. This document has been produced under the process and license terms stated in the OASIS Open Project rules: [https://www.oasis-open.org/policies-guidelines/open-projects-process](https://www.oasis-open.org/policies-guidelines/open-projects-process).
+Copyright © OASIS Open 2026. All Rights Reserved. This document has been produced under the process and license terms stated in the OASIS Open Project rules: [https://www.oasis-open.org/policies-guidelines/open-projects-process](https://www.oasis-open.org/policies-guidelines/open-projects-process).
 
 This document and translations of it may be copied and furnished to others, and derivative works that comment on or otherwise explain it or assist in its implementation may be prepared, copied, published, and distributed, in whole or in part, without restriction of any kind, provided that the above copyright notice and this section are included on all such copies and derivative works. The limited permissions granted above are perpetual and will not be revoked by OASIS or its successors or assigns. This document and the information contained herein is provided on an "AS IS" basis and OASIS DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE INFORMATION HEREIN WILL NOT INFRINGE ANY OWNERSHIP RIGHTS OR ANY IMPLIED WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE. OASIS AND ITS MEMBERS WILL NOT BE LIABLE FOR ANY DIRECT, INDIRECT, SPECIAL OR CONSEQUENTIAL DAMAGES ARISING OUT OF ANY USE OF THIS DOCUMENT OR ANY PART THEREOF. The name "OASIS" is a trademark of OASIS, the owner and developer of this document, and should be used only to refer to the organization and its official outputs. OASIS welcomes reference to, and implementation and use of, documents, while reserving the right to enforce its marks against misleading uses. Please see [https://www.oasis-open.org/policies-guidelines/trademark/](https://www.oasis-open.org/policies-guidelines/trademark/) for above guidance.
 
