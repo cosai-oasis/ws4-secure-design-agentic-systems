@@ -19,7 +19,6 @@ The goal of this workstream is to research and develop secure design patterns fo
 * Sarah Novotny 
 
 #### Supporting Leads
-* Alex Polyakov (Adversa)
 * Raghuram Yeluri (Intel)
 
 ### Published work from this workstream
