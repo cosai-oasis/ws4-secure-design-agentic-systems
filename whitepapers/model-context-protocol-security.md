@@ -785,7 +785,6 @@ Note: Authentication between client and server **is required** to establish the 
     title: "DP3: Multi-Tenant Cloud"
 ---
 graph LR
-  %%subgraph DP["DP4a: Multi-Tenant Cloud"]
     subgraph LocalA["Local Device (Org A)"]
       ClientA["MCP Client"]
     end
@@ -795,7 +794,6 @@ graph LR
     subgraph Cloud["Cloud Network"]
       Server["MCP Server"]
     end
-  %%end
 ClientA--http-->Server
 ClientB--http-->Server
 ```
