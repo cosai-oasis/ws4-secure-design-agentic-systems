@@ -34,7 +34,7 @@ This workstream has published and released the following whitepapers.
 - [Agentic Identity and Access Management](whitepapers/agentic-identity-and-access-control.md) and [PDF](whitepapers/agentic-identity-and-access-control.pdf)
 
 #### Runbooks
-Runbooks are practical guides, or "cookbooks" providing concrete examples, code snippets, Notebooks, and instantiations of the recomendations, best practices, and security requirements identified in the RFCs and Whitepapers. They are not indended as full solutions, but rather provide an illustration of how to turn the theory into practice.
+Runbooks are practical guides, or "cookbooks" providing concrete examples, code snippets, Notebooks, and instantiations of the recommendations, best practices, and security requirements identified in the RFCs and Whitepapers. They are not intended as full solutions, but rather provide an illustration of how to turn the theory into practice.
 
 1. [Tool Design for Secure Agentic Systems](practical-guides/mcp-secure-tool-design.md)
 1. [Input and Data Sanitization and Filtering](practical-guides/input-and-data-sanitization-and-filtering.md)
