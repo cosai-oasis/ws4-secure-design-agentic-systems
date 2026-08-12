@@ -4,14 +4,14 @@ author: "Workstream 4: Secure Design Patterns for Agentic Systems"
 date: 8 January 2026
 last_updated: 12 August 2026
 version: 2.0
-revision_note: "Updated for the MCP 2026-07-28 release candidate"
+revision_note: "Updated for the MCP 2026-07-28 release"
 ---
 
 # Model Context Protocol (MCP) Security
 
 Approved by the CoSAI Project Governing Board on 8 January 2026.
 
-Last updated on 12 August 2026 for the MCP 2026-07-28 release candidate.
+Last updated on 12 August 2026 for the MCP 2026-07-28 release.
 
 # Table of contents
   - [Abstract](#abstract)
@@ -85,7 +85,7 @@ Since its emergence a year ago, MCP has rapidly established itself as the protoc
 
 This paper focuses on the security aspects of MCP implementations, covering:
 
-* Security analysis of [the June](https://modelcontextprotocol.io/specification/2025-06-18) (2025-06-18), [November](https://modelcontextprotocol.io/specification/2025-11-25) (2025-11-25), and [2026-07-28 release candidate](https://blog.modelcontextprotocol.io/posts/2026-07-28-release-candidate/) MCP transport and protocol layers
+* Security analysis of [the June](https://modelcontextprotocol.io/specification/2025-06-18) (2025-06-18), [November](https://modelcontextprotocol.io/specification/2025-11-25) (2025-11-25), and [2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28) MCP transport and protocol layers
 * Threat modeling strategies for MCP-based agentic systems[^1]
 * Supply chain security considerations for MCP servers and tools
 * Identity and access management challenges in agentic architectures consuming MCP endpoints
@@ -127,9 +127,9 @@ MCP supports multiple transport mechanisms including standard I/O (stdio) for lo
 
 ## 1.1 MCP Architecture
 
-MCP follows a client-server architecture where host applications (such as AI assistants, IDEs, or workflow automation tools) use MCP clients to connect to local or remote MCP servers. Earlier MCP versions treated each client-server connection as a dedicated, stateful session that began with an `initialize` / `initialized` handshake and, for Streamable HTTP, carried an `Mcp-Session-Id` header. The 2026-07-28 release candidate removes that protocol-level session model: each request is self-contained, carries protocol version, client identity, and client capabilities in `_meta`, and can be routed to any compatible server instance. Servers that need cross-call state must expose explicit handles, task identifiers, resource URIs, or other ordinary parameters rather than relying on hidden transport session state.
+MCP follows a client-server architecture where host applications (such as AI assistants, IDEs, or workflow automation tools) use MCP clients to connect to local or remote MCP servers. Earlier MCP versions treated each client-server connection as a dedicated, stateful session that began with an `initialize` / `initialized` handshake and, for Streamable HTTP, carried an `Mcp-Session-Id` header. The 2026-07-28 release removes that protocol-level session model: each request is self-contained, carries protocol version, client identity, and client capabilities in `_meta`, and can be routed to any compatible server instance. Servers that need cross-call state must expose explicit handles, task identifiers, resource URIs, or other ordinary parameters rather than relying on hidden transport session state.
 
-Communication is built on JSON-RPC, which defines the message format and protocol semantics including lifecycle management and core primitives (tools, resources, prompts, and optional extensions). The transport layer handles the delivery of these JSON-RPC messages between clients and servers, supporting stdio for local processes and Streamable HTTP for remote servers. In the 2026-07-28 release candidate, `server/discover` replaces up-front initialization as the discovery mechanism for supported protocol versions, server identity, and capabilities, while extension support is negotiated through capability `extensions` maps.
+Communication is built on JSON-RPC, which defines the message format and protocol semantics including lifecycle management and core primitives (tools, resources, prompts, and optional extensions). The transport layer handles the delivery of these JSON-RPC messages between clients and servers, supporting stdio for local processes and Streamable HTTP for remote servers. In the 2026-07-28 release, `server/discover` replaces up-front initialization as the discovery mechanism for supported protocol versions, server identity, and capabilities, while extension support is negotiated through capability `extensions` maps.
 
 ```mermaid
 graph LR
@@ -289,7 +289,7 @@ A secure implementation of MCP requires strong data sanitization, input validati
 
 All inputs should be strictly validated using allowlists at every trust boundary, with particular attention to sanitizing file paths through canonicalization, employing parameterized queries for database operations, and applying context-aware output encoding appropriate to each execution context (SQL, shell, HTML). Tool developers can include cryptographic checks, such as message authentication codes, digital signatures and encryption to ensure the end-to-end integrity and confidentiality of tools and resources.
 
-LLM guardrails should treat all AI-generated content as untrusted input requiring the same rigorous validation as direct user input, deploying prompt injection detection systems that analyze patterns and structured formats (strict JSON schemas) to maintain clear boundaries between instructions and data. This includes all data returned from MCP servers including tool and resource definitions, resources, prompts, elicitation requests, MCP App UI resources, task state, and tool responses. Tool schemas in the 2026-07-28 release candidate support full JSON Schema 2020-12 features, including composition, conditionals, and `$ref`; implementations should bound validation depth and runtime, avoid automatic dereferencing of external references, and treat `x-mcp-header` schema annotations as security-sensitive because they influence HTTP headers visible to intermediaries.
+LLM guardrails should treat all AI-generated content as untrusted input requiring the same rigorous validation as direct user input, deploying prompt injection detection systems that analyze patterns and structured formats (strict JSON schemas) to maintain clear boundaries between instructions and data. This includes all data returned from MCP servers including tool and resource definitions, resources, prompts, elicitation requests, MCP App UI resources, task state, and tool responses. Tool schemas in the 2026-07-28 release support full JSON Schema 2020-12 features, including composition, conditionals, and `$ref`; implementations should bound validation depth and runtime, avoid automatic dereferencing of external references, and treat `x-mcp-header` schema annotations as security-sensitive because they influence HTTP headers visible to intermediaries.
 
 ### 3.2.4 Cryptographic Integrity and Remote Attestation
 
@@ -341,9 +341,9 @@ However, these transport and protocol layers, when improperly secured or configu
 | Secure Descriptor Handling | stdio Transport | Hijacking via inherited descriptors |
 | Integrity Checks | All Transports | Replay, spoofing, poisoned responses |
 
-Implementing the above controls across transport and protocol layers significantly reduces the attack surface of MCP deployments. For implementations targeting the 2026-07-28 release candidate, gateways and servers should validate that `MCP-Protocol-Version`, `Mcp-Method`, and `Mcp-Name` agree with the JSON-RPC body before routing, authorization, rate limiting, or logging decisions are made. The new request headers improve operability because intermediaries no longer need to parse the full body to route `tools/call`, `resources/read`, and `prompts/get`, but they also create a split-brain risk if the intermediary trusts headers and the server trusts the body. Header mismatch must be treated as a security-relevant failure.
+Implementing the above controls across transport and protocol layers significantly reduces the attack surface of MCP deployments. For implementations targeting the 2026-07-28 release, gateways and servers should validate that `MCP-Protocol-Version`, `Mcp-Method`, and `Mcp-Name` agree with the JSON-RPC body before routing, authorization, rate limiting, or logging decisions are made. The new request headers improve operability because intermediaries no longer need to parse the full body to route `tools/call`, `resources/read`, and `prompts/get`, but they also create a split-brain risk if the intermediary trusts headers and the server trusts the body. Header mismatch must be treated as a security-relevant failure.
 
-Protocol-level sessions and the `Mcp-Session-Id` header are removed in the release candidate. This simplifies horizontal scaling because remote servers no longer need sticky sessions or shared protocol session stores, but it moves state management into application-visible references and `_meta`. Server-held references such as task IDs and continuation handles must be unguessable, opaque, scoped, tenant-bound, logged, expiring, and revocable. Client-held sealed state such as `requestState` is a different case: the server retains no copy to revoke, so it must be integrity-protected and rejected when verification fails. In both cases a client must not be able to read meaning out of the value, nor alter it and have the server honor the result. Named references such as resource URIs stay predictable and readable by design, and must be authorized on every read instead. None of these may become a bearer token that bypasses normal authorization checks. Section [3.2.12](#mcp-protocol-version-transition) defines the three classes and the properties each requires.
+Protocol-level sessions and the `Mcp-Session-Id` header are removed in the 2026-07-28 release. This simplifies horizontal scaling because remote servers no longer need sticky sessions or shared protocol session stores, but it moves state management into application-visible references and `_meta`. Server-held references such as task IDs and continuation handles must be unguessable, opaque, scoped, tenant-bound, logged, expiring, and revocable. Client-held sealed state such as `requestState` is a different case: the server retains no copy to revoke, so it must be integrity-protected and rejected when verification fails. In both cases a client must not be able to read meaning out of the value, nor alter it and have the server honor the result. Named references such as resource URIs stay predictable and readable by design, and must be authorized on every read instead. None of these may become a bearer token that bypasses normal authorization checks. Section [3.2.12](#mcp-protocol-version-transition) defines the three classes and the properties each requires.
 
 `_meta` now carries protocol version, client identity, and client capabilities on every request. Identity and capability claims arriving in `_meta` are untrusted input, because they record what a caller asserts about itself and carry no proof of it. Servers must reconcile them against the principal authenticated by the access token, mutual TLS peer certificate, or workload identity, and must treat a mismatch as a security-relevant failure rather than resolving it in favor of the claim.
 
@@ -366,7 +366,7 @@ There is the possibility that a large language model, legit or poisoned, decides
 * enforce the use of MCP hosts and clients with a configuration that unprivileged users cannot change and that keeps the confirmation prompt enabled.
 * use [elicitation](https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation) on the MCP server side to request the user confirmation of actions.
 
-In the 2026-07-28 release candidate, server-to-client requests such as elicitation are no longer an open-ended bidirectional channel. They are request-scoped: a server may ask for additional input only while processing a client-initiated request, and the Multi Round-Trip Requests pattern returns an `InputRequiredResult` containing `inputRequests` and `requestState`. This is a useful security tightening because every prompt can be traced to a user- or agent-initiated action. Implementations should preserve that causality in audit logs, validate returned `inputResponses` against the original request and policy decision, and avoid presenting server-supplied text as trusted UI copy. The `requestState` is server-sealed state carried by the client, not a reference the server can look up. Servers must treat a returned value as attacker-controlled, verify its integrity before acting on it, and bind it to the authenticated principal and the originating request.
+In the 2026-07-28 release, server-to-client requests such as elicitation are no longer an open-ended bidirectional channel. They are request-scoped: a server may ask for additional input only while processing a client-initiated request, and the Multi Round-Trip Requests pattern returns an `InputRequiredResult` containing `inputRequests` and `requestState`. This is a useful security tightening because every prompt can be traced to a user- or agent-initiated action. Implementations should preserve that causality in audit logs, validate returned `inputResponses` against the original request and policy decision, and avoid presenting server-supplied text as trusted UI copy. The `requestState` is server-sealed state carried by the client, not a reference the server can look up. Servers must treat a returned value as attacker-controlled, verify its integrity before acting on it, and bind it to the authenticated principal and the originating request.
 
 ### 3.2.10 Logging
 <a id="logging"></a>
@@ -374,7 +374,7 @@ Implement at all layers (MCP host, client and server) the capability to store a 
 
 Leverage the use of centralization tools like MCP gateways or proxies, for example, between the MCP clients and the MCP servers, to centralize there key functionality (e.g. logging) and avoid the need to implement it on each component.
 
-The MCP Logging feature is deprecated in the 2026-07-28 release candidate; new implementations should not depend on protocol-level logging methods for security telemetry. For stdio transports, diagnostic logs should use `stderr`; for structured observability, use OpenTelemetry and propagate W3C Trace Context in `_meta` using the specified `traceparent`, `tracestate`, and `baggage` keys. Logs should capture request headers (`MCP-Protocol-Version`, `Mcp-Method`, `Mcp-Name`), request IDs, task IDs, explicit state handles, authorization issuer/audience/scope decisions, cache decisions, and extension identifiers while redacting tool arguments and results according to data classification.
+The MCP Logging feature is deprecated in the 2026-07-28 release; new implementations should not depend on protocol-level logging methods for security telemetry. For stdio transports, diagnostic logs should use `stderr`; for structured observability, use OpenTelemetry and propagate W3C Trace Context in `_meta` using the specified `traceparent`, `tracestate`, and `baggage` keys. Logs should capture request headers (`MCP-Protocol-Version`, `Mcp-Method`, `Mcp-Name`), request IDs, task IDs, explicit state handles, authorization issuer/audience/scope decisions, cache decisions, and extension identifiers while redacting tool arguments and results according to data classification.
 
 ### 3.2.11 Lifecycle and Governance
 <a id="lifecycle-and-governance"></a>
@@ -415,14 +415,14 @@ Operational practices include:
 * decommissioning procedures that ensure complete removal of deprecated servers,
 * and version tracking with forced upgrade policies for servers with known vulnerabilities.
 
-The formal Extensions Framework in the 2026-07-28 release candidate adds another lifecycle dimension. Extensions use reverse-DNS identifiers, are versioned independently from the core specification, may live in separate `ext-*` repositories with delegated maintainers, and progress through an Extensions Track in the SEP process. Organizations should manage extensions like protocol-level dependencies: require ownership, version pinning, security review, compatibility testing, and explicit approval before an MCP client or server advertises support.
+The formal Extensions Framework in the 2026-07-28 release adds another lifecycle dimension. Extensions use reverse-DNS identifiers, are versioned independently from the core specification, may live in separate `ext-*` repositories with delegated maintainers, and progress through an Extensions Track in the SEP process. Organizations should manage extensions like protocol-level dependencies: require ownership, version pinning, security review, compatibility testing, and explicit approval before an MCP client or server advertises support.
 
 And, lastly, proper observability should be implemented across the stack to provide sufficient visibility to ensure compliance and enable developer debugging and incident investigation. Immutable records of actions and authorizations, such as token exchange implemented by an IDP (identity provider), provides accountability pertaining to who requested an action and how it was authorized. All interactions with the agent, tools, prompts, and models should be logged. OpenTelemetry provides end-to-end linkability of actions and is being widely adopted and integrated into many agentic tools and MCP servers and provides a consistent set of APIs and schemas.
 
 ### 3.2.12 MCP Protocol Version Transition
 <a id="mcp-protocol-version-transition"></a>
 
-The 2026-07-28 release candidate changes enough protocol assumptions that organizations should treat migration as a security review, not only a compatibility update. The most important impacts are:
+The 2026-07-28 release changes enough protocol assumptions that organizations should treat migration as a security review, not only a compatibility update. The most important impacts are:
 
 * **Stateless core:** Remove dependencies on `initialize`, `notifications/initialized`, and `Mcp-Session-Id` for new implementations. Use `server/discover` for server capabilities and put protocol version, client identity, and client capabilities in per-request `_meta`.
 * **Explicit state:** Replace hidden protocol session state with explicit references passed as ordinary parameters. Capability-bearing references are the ones a holder can use to reach state, and they divide by where that state lives. Named references carry no capability at all. Conflating the three applies the wrong control:
@@ -643,7 +643,7 @@ The agent identity and authorization landscape is evolving rapidly. The followin
 
 4. **Evidence-per-level annex.** A one-page reference showing expected verification artifacts at each level (server discovery response, Protected Resource Metadata endpoint, token audience validation test, issuer validation test, tool-definition hash manifest, sandbox config, egress policy, sample audit record, extension inventory entry, SBOM attestation, decommissioning proof) would make the profiles more actionable for audit teams. Deferred to a follow-up.
 
-5. **Extension risk taxonomy.** The 2026-07-28 release candidate formalizes Extensions and includes MCP Apps and Tasks. The profiles now include baseline extension controls, but a future annex should define extension-specific review depth for sandboxed UI, durable task handles, extension versioning, delegated maintainers, and experimental extensions.
+5. **Extension risk taxonomy.** The 2026-07-28 release formalizes Extensions and includes MCP Apps and Tasks. The profiles now include baseline extension controls, but a future annex should define extension-specific review depth for sandboxed UI, durable task handles, extension versioning, delegated maintainers, and experimental extensions.
 
 # 4. Conclusion
 
@@ -825,7 +825,7 @@ An MCP deployment model where a service provider runs an MCP server and provides
 
 ### MCP-T2: Missing or Improper Access Control
 
-**Technical Description**: Absence of authorization mechanisms, improper enforcement of object-level permissions, and insufficient capability-based access control within MCP deployments. MCP servers commonly request and receive overly broad permission scopes to maximize flexibility, while implementations fail to verify user permissions for individual objects, resources, tools, extension capabilities, or operations. The release candidate's explicit scope challenge and step-up procedures reduce some overbroad consent pressure, but only when clients preserve prior scopes correctly and servers issue precise `WWW-Authenticate` challenges.
+**Technical Description**: Absence of authorization mechanisms, improper enforcement of object-level permissions, and insufficient capability-based access control within MCP deployments. MCP servers commonly request and receive overly broad permission scopes to maximize flexibility, while implementations fail to verify user permissions for individual objects, resources, tools, extension capabilities, or operations. The 2026-07-28 release's explicit scope challenge and step-up procedures reduce some overbroad consent pressure, but only when clients preserve prior scopes correctly and servers issue precise `WWW-Authenticate` challenges.
 
 **Architectural Impact**: Enables unauthorized data access, privilege escalation, and lateral movement across connected services. The optional nature of authorization combined with developers' tendency to grant excessive permissions leads to inconsistent security postures
 
@@ -865,7 +865,7 @@ An MCP deployment model where a service provider runs an MCP server and provides
 
 ### MCP-T7: Session and Transport Security Failures
 
-**Technical Description**: Systematic weaknesses in state lifecycle management and transport security. In legacy MCP versions this included insecure `Mcp-Session-Id` transmission, weak session binding, insecure session storage, and inadequate session termination controls. In the 2026-07-28 release candidate, protocol-level sessions are removed, shifting the risk to capability-bearing references (task IDs, continuation handles, `requestState`), cache entries, and per-request `_meta` validation. Two failures are specific to this shift. Durable task execution can outlive the grant that authorized it, because the server continues the work between client polls and no request gates it. Separately, a server that accepts both the legacy and stateless models exposes a downgrade path to the legacy authorization flow, which established authorization once at `initialize` rather than per request. The transport layer still requires strong encryption, origin protections, header/body consistency checks, and robust cancellation behavior.
+**Technical Description**: Systematic weaknesses in state lifecycle management and transport security. In legacy MCP versions this included insecure `Mcp-Session-Id` transmission, weak session binding, insecure session storage, and inadequate session termination controls. In the 2026-07-28 release, protocol-level sessions are removed, shifting the risk to capability-bearing references (task IDs, continuation handles, `requestState`), cache entries, and per-request `_meta` validation. Two failures are specific to this shift. Durable task execution can outlive the grant that authorized it, because the server continues the work between client polls and no request gates it. Separately, a server that accepts both the legacy and stateless models exposes a downgrade path to the legacy authorization flow, which established authorization once at `initialize` rather than per request. The transport layer still requires strong encryption, origin protections, header/body consistency checks, and robust cancellation behavior.
 
 **Architectural Impact**: Enables state-handle hijacking, replay attacks, stale-cache use, man-in-the-middle attacks, header/body confusion, and cross-site request forgery.
 
@@ -961,4 +961,4 @@ This is a Non-Standards Track Work Product. The patent provisions of the OASIS I
 
 [^1]:  Agentic System Definition \- An agentic system is an AI-powered solution that autonomously handles one or more tasks within a business workflow, replacing human decision-making nodes with automated processes that can range from simple single-task agents to complex networks of interconnected AI agents working together. The scope and sophistication of an agentic system directly correlates with both its potential economic value and operational risk, as organizations can choose to automate anything from individual yes/no decisions to entire business functions depending on their risk tolerance and automation goals.
 
-[^2]:  Server-Sent Events (SSE) over HTTP was deprecated in the 2025-06-18 revision of MCP. The 2026-07-28 release candidate uses Streamable HTTP response streams for request-scoped events and `subscriptions/listen` for opted-in change notifications.
+[^2]:  Server-Sent Events (SSE) over HTTP was deprecated in the 2025-06-18 revision of MCP. The 2026-07-28 release uses Streamable HTTP response streams for request-scoped events and `subscriptions/listen` for opted-in change notifications.
