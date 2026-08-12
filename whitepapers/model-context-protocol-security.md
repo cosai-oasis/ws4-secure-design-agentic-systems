@@ -16,7 +16,7 @@ Last updated on 29 May 2026 for the MCP 2026-07-28 release candidate.
 # Table of contents
   - [Abstract](#abstract)
     - [Scope](#scope)
-    - [Anti-scope](#anti-scope)
+    - [Anti-Scope](#anti-scope)
     - [Target Audience](#target-audience)
   - [1. MCP Overview](#1-mcp-overview)
     - [1.1 MCP Architecture](#11-mcp-architecture)
@@ -54,13 +54,13 @@ Last updated on 29 May 2026 for the MCP 2026-07-28 release candidate.
 - [6. Appendix](#6-appendix)
   - [6.1 Deployment Pattern (DP) Security Considerations](#61-deployment-pattern-dp-security-considerations)
     - [6.1.1 Deployment Pattern 1: All-Local](#611-deployment-pattern-1-all-local)
-    - [6.1.2 Deployment Pattern 2: Single-Tenant MCP Server](#612-deployment-pattern-2-single-tenant-mcp-server)
-    - [6.1.3 Deployment Pattern 4: Multi-Tenant MCP Server](#613-deployment-pattern-4-multi-tenant-mcp-server)
+    - [6.1.2 Deployment Pattern 2: Single-Tenant Hybrid](#612-deployment-pattern-2-single-tenant-hybrid)
+    - [6.1.3 Deployment Pattern 3: Multi-Tenant Cloud](#613-deployment-pattern-3-multi-tenant-cloud)
     - [6.2 Threat Details](#62-threat-details)
-      - [MCP-T1: Improper Authentication and Identity Management](mcp-t1-improper-authentication-and-identity-management)
+      - [MCP-T1: Improper Authentication and Identity Management](#mcp-t1-improper-authentication-and-identity-management)
       - [MCP-T2: Missing or Improper Access Control](#mcp-t2-missing-or-improper-access-control)
       - [MCP-T3: Input Validation/Sanitization Failures](#mcp-t3-input-validationsanitization-failures)
-      - [MCP-T4: Data/Controll Boundary Distinction Failure](#mcp-t4-datacode-boundary-distinction-failure)
+      - [MCP-T4: Data/Control Boundary Distinction Failure](#mcp-t4-datacontrol-boundary-distinction-failure)
       - [MCP-T5: Inadequate Data Protection and Confidentiality Controls](#mcp-t5-inadequate-data-protection-and-confidentiality-controls)
       - [MCP-T6: Missing Integrity/Verification Controls](#mcp-t6-missing-integrityverification-controls)
       - [MCP-T7: Session and Transport Security Failures](#mcp-t7-session-and-transport-security-failures)
@@ -79,7 +79,7 @@ Last updated on 29 May 2026 for the MCP 2026-07-28 release candidate.
 
 # Abstract
 
-Since its emergence a year ago, MCP has rapidly established itself as the protocol for transmitting structured context between AI agents and services. Given the growing importance and attack surface of MCP and agentic systems, it is imperative that deployment specific security threats are identified and improvements are made to address the challenges and ambiguities inherent in MCP implementations. Our primary goal is to share actionable security guidance for today's MCP implementations while identifying areas where the protocol and ecosystem may need to evolve to address emerging threats. We introduce short and medium-term security implications related to MCP through the introduction of twelve core threat categories and almost forty threats. Our taxonomy distinguishes between traditional security threats amplified by AI and MCP, and novel attack vectors. For each threat and category, we propose mitigations, defenses, and best practices for using MCP across multiple deployment scenarios including enterprise use cases. Multiple critical CVEs have been reported and incidents such as data leakage have already occurred across MCP/agentic deployments. Several examples are mentioned with links in section 2.1.
+Since its emergence a year ago, MCP has rapidly established itself as the protocol for transmitting structured context between AI agents and services. Given the growing importance and attack surface of MCP and agentic systems, it is imperative that deployment specific security threats are identified and improvements are made to address the challenges and ambiguities inherent in MCP implementations. Our primary goal is to share actionable security guidance for today's MCP implementations while identifying areas where the protocol and ecosystem may need to evolve to address emerging threats. We introduce short and medium-term security implications related to MCP through the introduction of twelve core threat categories and thirty-four threats. Our taxonomy distinguishes between traditional security threats amplified by AI and MCP, and novel attack vectors. For each threat and category, we propose mitigations, defenses, and best practices for using MCP across multiple deployment scenarios including enterprise use cases. Multiple critical CVEs have been reported and incidents such as data leakage have already occurred across MCP/agentic deployments. Several examples are mentioned with links in section 2.1.
 
 ## Scope
 
@@ -176,7 +176,7 @@ Each deployment pattern creates distinct trust boundaries that fundamentally sha
 3. **Multi-Tenant Cloud**: MCP clients from multiple tenants connect to a shared MCP server.
 
 
-These deployment patterns each carry a distinct threat model based on the trust boundaries between client and server. Threat models differ by which components are trusted or untrusted, single- vs. multi-tenant setups, and local vs. remote deployments.A deeper analysis of the security implications of each is presented in the Appendix.
+These deployment patterns each carry a distinct threat model based on the trust boundaries between client and server. Threat models differ by which components are trusted or untrusted, single- vs. multi-tenant setups, and local vs. remote deployments. A deeper analysis of the security implications of each is presented in the Appendix.
 
 # 2. MCP Threat Model
 
@@ -203,7 +203,7 @@ Though existing frameworks are designed to assess complex multi-component system
 
 # 3. MCP Threats
 
-This framework organizes nearly forty threats to MCP deployments across twelve distinct categories, spanning the full technology stack—from foundational identity and access controls through AI-specific boundary failures to supply chain and operational visibility requirements. This model enables security teams to prioritize defenses based on the specific threats and attack surfaces relevant to their deployment. The taxonomy distinguishes between traditional security concerns amplified by AI mediation and novel attack vectors unique to LLM-tool interactions, providing clear guidance for implementing defense-in-depth strategies across the MCP ecosystem.
+This framework organizes thirty-four threats to MCP deployments across twelve distinct categories, spanning the full technology stack—from foundational identity and access controls through AI-specific boundary failures to supply chain and operational visibility requirements. This model enables security teams to prioritize defenses based on the specific threats and attack surfaces relevant to their deployment. The taxonomy distinguishes between traditional security concerns amplified by AI mediation and novel attack vectors unique to LLM-tool interactions, providing clear guidance for implementing defense-in-depth strategies across the MCP ecosystem.
 
 ![Threats](assets/risk-triangle.svg)
 
@@ -215,7 +215,7 @@ The broad applicability and diverse deployment models and supported transports r
 
 * **Tier 1 \- MCP Specific Threats (7 Threats)**: Novel risks and threats due to MCP’s architecture and design decisions.
 * **Tier 2 \- MCP Contextualized Threats (8 Threats)**: known threats that manifest differently in MCP contexts or are amplified in MCP deployments
-* **Tier 3 \- Conventional Threats (19 Threats)**: security threats are are broadly applicable or derive from legacy, infrastructure, or transport implementation decisions
+* **Tier 3 \- Conventional Threats (19 Threats)**: security threats are broadly applicable or derive from legacy, infrastructure, or transport implementation decisions
 
 The table below organizes the threats by category and provides a mapping to controls and mitigations, discussed next.
 
@@ -224,7 +224,7 @@ The table below organizes the threats by category and provides a mapping to cont
 | [MCP-T1](#mcp-t1-improper-authentication-and-identity-management) | Improper Authentication and Identity Management  | [1. Identity Spoofing](#identity-spoofing) | [8. Confused Deputy (OAuth Proxy)](#privilege-escalation) | [16. Credential Theft/Token Theft](#credential-theft) </br> [17. Replay Attacks/Session or Handle Hijacking](#replay-attacks) </br>[18. OAuth/Legacy Auth Weaknesses](#auth-weakness) </br>[19. Session, Token, or Handle Leakage](#token-leakage) | [Agent Identity](#agent-identity) </br>[Secure Delegation (i.e. OAuth delegation)](#secure-delegation-and-access-control)  |
 | [MCP-T2](#mcp-t2-missing-or-improper-access-control) | Missing or Improper Access Control  |  | [9. Insecure Human-in-the-Loop](#hil) [10. Improper Multitenancy](#improper-multitenancy) | [8. Privilege Escalation](#privilege-escalation) </br> [20. Excessive Permissions/Overexposure](#excessive-permissions) | [Secure Delegation Access Control](#secure-delegation-and-access-control)  |
 | [MCP-T3](#mcp-t3-input-validationsanitization-failures) | Input Validation/Sanitization Failures |  |  | [21. Command Injection](#command-injection) </br> [22. File System Exposure/Path Traversal](#path-traversal) </br> [23. Insufficient Integrity Checks](#insufficient-integrity-checks) | [Data Sanitization Guardrails](#input-and-data-sanitization-and-filtering) </br>[Sandboxing and Isolation](#sandboxing-and-isolation) </br>Explicit tool parameters, resource URIs, or server configuration replacing deprecated Roots  |
-| [MCP-T4](#mcp-t4-data-control-boundary-distinction-failure) | Data/Control Boundary Distinction Failure  | [2. Tool Poisoning](#tool-poisoning) </br> [3. Full Schema Poisoning](#fsp) </br> [4. Resource Content Poisoning](#resource-content-poisoning) | [11. Prompt Injection](#prompt-injection)  | [21. Command Injection](#command-injection) | [Input Sanitization, Guardrails Context Isolation](#input-and-data-sanitization-and-filtering) |
+| [MCP-T4](#mcp-t4-datacontrol-boundary-distinction-failure) | Data/Control Boundary Distinction Failure  | [2. Tool Poisoning](#tool-poisoning) </br> [3. Full Schema Poisoning](#fsp) </br> [4. Resource Content Poisoning](#resource-content-poisoning) | [11. Prompt Injection](#prompt-injection)  | [21. Command Injection](#command-injection) | [Input Sanitization, Guardrails Context Isolation](#input-and-data-sanitization-and-filtering) |
 | [MCP-T5](#mcp-t5-inadequate-data-protection-and-confidentiality-controls) | Inadequate Data Protection and Confidentiality Controls |  |  | [24. Data Exfiltration & Corruption](#data-exfiltration) </br> [22. File System Exposure/Path Traversal](#path-traversal) | [Sandboxing and Isolation](#sandboxing-and-isolation) </br> [Access Control](#secure-delegation-and-access-control) </br> [Guardrails](#input-and-data-sanitization-and-filtering) |
 | [MCP-T6](#mcp-t6-missing-integrityverification-controls) | Missing Integrity/Verification Controls | [4. Resource Content Poisoning](#resource-content-poisoning) </br> [5. Typosquatting/Confusion Attacks](#typosquatting) </br> [6. Shadow MCP Servers](#shadow-mcp) |  | [25. Supply Chain Compromise and Privileged host-base Attacks](#supply-chain)  | [Cryptographic Integrity Remote Attestation MCP server integrity](#cryptographic-verification-of-resources) |
 | [MCP-T7](#mcp-t7-session-and-transport-security-failures) | Session and Transport Security Failures |  | [12. Man-in-the-Middle (MITM)](#mitm) | [17. Replay Attacks/Session or Handle Hijacking](#replay-attacks) </br> [19. Session, Token, or Handle Leakage](#token-leakage) </br> [26. Unrestricted Network Access](#unrestricted-network) </br> [27. Protocol Security Gaps](#protocol-security) </br> [28. Insecure Descriptor Handling](#insecure-descriptor) </br> [23. Insufficient Integrity Checks](#insufficient-integrity-checks) </br> [29. CSRF Protection Missing](#csrf) </br> [30. CORS/Origin Policy Bypass](#cors) | [Network and Transport Security](#transport-layer-security) |
@@ -782,7 +782,7 @@ Note: Authentication between client and server **is required** to establish the 
 
 ```mermaid
 ---
-    title: "DP3: Multi-Tenant Server"
+    title: "DP3: Multi-Tenant Cloud"
 ---
 graph LR
   %%subgraph DP["DP4a: Multi-Tenant Cloud"]
