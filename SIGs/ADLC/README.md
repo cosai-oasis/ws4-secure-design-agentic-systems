@@ -8,7 +8,6 @@ The goal of this SIG is to research and develop secure lifecycle practices for A
 ### SIG Leads
 * Emrick Donadei (Google)
 * Jennings Aske (SailPoint)
-* Kathleen Goeschel (Red Hat)
 * Parul Singh (Red Hat)
 
 ### Deliverables
