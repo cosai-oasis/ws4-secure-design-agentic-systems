@@ -1,0 +1,669 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-ui-server
+  namespace: agents
+data:
+  server.py: |
+    import base64
+    import hashlib
+    import http.server
+    import json
+    import os
+    import secrets
+    import uuid
+    import urllib.error
+    import urllib.parse
+    import urllib.request
+
+    ORCHESTRATOR_URL = os.environ.get(
+        "ORCHESTRATOR_URL",
+        "http://orchestrator-agent.agents.svc.cluster.local:8080",
+    )
+    PROXY_TIMEOUT = 120
+
+    KEYCLOAK_URL = os.environ.get(
+        "KEYCLOAK_URL",
+        "http://keycloak.localtest.me:8080",
+    )
+    KEYCLOAK_INTERNAL_URL = os.environ.get(
+        "KEYCLOAK_INTERNAL_URL",
+        "http://keycloak-service.keycloak.svc.cluster.local:8080",
+    )
+    KEYCLOAK_REALM = os.environ.get("KEYCLOAK_REALM", "rossoctl")
+    KEYCLOAK_CLIENT_ID = os.environ.get("KEYCLOAK_CLIENT_ID", "demo-ui")
+    REDIRECT_URI = os.environ.get(
+        "REDIRECT_URI",
+        "http://demo-ui.localtest.me:8080/",
+    )
+    CALLBACK_PATH = "/auth/callback"
+
+    _auth_states = {}
+
+    HTML_PAGE = r"""<!DOCTYPE html>
+    <html lang="en">
+    <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Alice's Dashboard — Rossoctl</title>
+    <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --sidebar-bg: #0f1923;
+      --sidebar-w: 240px;
+      --accent: #4cc9f0;
+      --accent-dark: #3a9fbf;
+      --chat-bg: #f4f5f7;
+      --msg-user: #4cc9f0;
+      --msg-agent: #ffffff;
+      --header-bg: #ffffff;
+      --input-bg: #ffffff;
+      --text: #1a1a2e;
+      --text-light: #6b7280;
+      --text-sidebar: #94a3b8;
+      --border: #e5e7eb;
+    }
+    html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { display: flex; background: var(--chat-bg); color: var(--text); }
+
+    /* Sidebar */
+    .sidebar {
+      width: var(--sidebar-w); min-width: var(--sidebar-w);
+      background: var(--sidebar-bg); display: flex; flex-direction: column;
+      padding: 24px 0; color: var(--text-sidebar);
+    }
+    .sidebar-brand {
+      padding: 0 20px 24px; font-size: 15px; font-weight: 700;
+      color: var(--accent); letter-spacing: 0.5px;
+    }
+    .sidebar-brand span { opacity: 0.6; font-weight: 400; font-size: 12px; display: block; margin-top: 2px; }
+    .nav-item {
+      padding: 12px 20px; cursor: pointer; font-size: 14px;
+      display: flex; align-items: center; gap: 10px;
+      transition: background 0.15s;
+    }
+    .nav-item:hover { background: rgba(255,255,255,0.05); }
+    .nav-item.active { background: rgba(76,201,240,0.12); color: var(--accent); border-right: 3px solid var(--accent); }
+    .nav-item.disabled { opacity: 0.35; cursor: not-allowed; }
+    .nav-item.disabled:hover { background: none; }
+    .nav-label { display: flex; flex-direction: column; }
+    .nav-sub { font-size: 11px; opacity: 0.6; margin-top: 1px; }
+    .nav-icon { font-size: 18px; width: 24px; text-align: center; }
+    .sidebar-footer { margin-top: auto; padding: 16px 20px; font-size: 11px; opacity: 0.4; }
+
+    /* Main */
+    .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .header {
+      background: var(--header-bg); border-bottom: 1px solid var(--border);
+      padding: 16px 24px; display: flex; align-items: center; gap: 12px;
+    }
+    .header h1 { font-size: 18px; font-weight: 600; }
+    .header .subtitle { font-size: 13px; color: var(--text-light); }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; }
+    .header-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+    .user-badge { font-size: 13px; font-weight: 500; color: var(--accent); }
+    .logout-btn {
+      padding: 6px 14px; font-size: 12px; background: transparent;
+      border: 1px solid var(--border); border-radius: 16px; cursor: pointer;
+      color: var(--text-light); transition: all 0.15s;
+    }
+    .logout-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* Chat */
+    .chat-area { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+    .msg { max-width: 72%; display: flex; flex-direction: column; gap: 4px; animation: fadeIn 0.2s ease; }
+    .msg.user { align-self: flex-end; }
+    .msg.agent { align-self: flex-start; }
+    .msg-bubble {
+      padding: 10px 16px; border-radius: 16px; font-size: 14px;
+      line-height: 1.5; word-wrap: break-word;
+    }
+    .msg.user .msg-bubble { background: var(--msg-user); color: #fff; border-bottom-right-radius: 4px; }
+    .msg.agent .msg-bubble { background: var(--msg-agent); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+    .msg-sender { font-size: 11px; color: var(--text-light); padding: 0 4px; }
+    .msg.user .msg-sender { text-align: right; }
+
+    /* Typing indicator */
+    .typing { display: flex; align-items: center; gap: 4px; padding: 12px 16px; }
+    .typing span {
+      width: 8px; height: 8px; border-radius: 50%; background: var(--text-light);
+      animation: bounce 1.4s infinite ease-in-out;
+    }
+    .typing span:nth-child(2) { animation-delay: 0.2s; }
+    .typing span:nth-child(3) { animation-delay: 0.4s; }
+
+    /* Input */
+    .input-bar {
+      padding: 16px 24px; background: var(--header-bg);
+      border-top: 1px solid var(--border); display: flex; gap: 12px;
+    }
+    .input-bar input {
+      flex: 1; padding: 10px 16px; border: 1px solid var(--border);
+      border-radius: 24px; font-size: 14px; outline: none;
+      transition: border-color 0.15s;
+    }
+    .input-bar input:focus { border-color: var(--accent); }
+    .input-bar button {
+      padding: 10px 24px; background: var(--accent); color: #fff;
+      border: none; border-radius: 24px; font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: background 0.15s;
+    }
+    .input-bar button:hover { background: var(--accent-dark); }
+    .input-bar button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Login */
+    .login-screen {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      flex-direction: column; gap: 16px;
+    }
+    .login-screen h2 { font-size: 20px; font-weight: 600; }
+    .login-screen p { font-size: 14px; color: var(--text-light); }
+    .login-btn {
+      padding: 12px 32px; background: var(--accent); color: #fff;
+      border: none; border-radius: 24px; font-size: 15px; font-weight: 600;
+      cursor: pointer; transition: background 0.15s;
+    }
+    .login-btn:hover { background: var(--accent-dark); }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    @keyframes bounce {
+      0%, 80%, 100% { transform: scale(0); }
+      40% { transform: scale(1); }
+    }
+    </style>
+    </head>
+    <body>
+    <aside class="sidebar">
+      <div class="sidebar-brand">ROSSOCTL <span>Agent Identity Platform</span></div>
+      <div class="nav-item active" data-page="chat">
+        <span class="nav-icon">&#128172;</span>
+        <span class="nav-label">Chat</span>
+      </div>
+      <div class="nav-item disabled">
+        <span class="nav-icon">&#128203;</span>
+        <span class="nav-label">Workflow History<span class="nav-sub">coming soon</span></span>
+      </div>
+      <div class="nav-item disabled">
+        <span class="nav-icon">&#128279;</span>
+        <span class="nav-label">Trust Graph<span class="nav-sub">coming soon</span></span>
+      </div>
+      <a class="nav-item" href="http://phoenix.localtest.me:8080" target="_blank" style="text-decoration:none;color:inherit;">
+        <span class="nav-icon">&#128200;</span>
+        <span class="nav-label">Phoenix Traces<span class="nav-sub">OpenTelemetry UI</span></span>
+      </a>
+      <div class="sidebar-footer">Rossoctl SPIRE Demo</div>
+    </aside>
+
+    <div class="main">
+      <header class="header">
+        <div class="status-dot" id="status-dot"></div>
+        <div>
+          <h1 id="header-title">Rossoctl Demo</h1>
+          <div class="subtitle" id="header-subtitle">Sign in to connect</div>
+        </div>
+        <div class="header-right" id="header-right"></div>
+      </header>
+
+      <div id="login-screen" class="login-screen" style="display:none;">
+        <h2>Welcome to Rossoctl</h2>
+        <p>Sign in with your Keycloak account to chat with the orchestrator agent.</p>
+        <button class="login-btn" onclick="startLogin()">Sign in</button>
+      </div>
+
+      <div id="chat-container" style="display:none; flex:1; display:flex; flex-direction:column;">
+        <div class="chat-area" id="chat"></div>
+        <div class="input-bar">
+          <input type="text" id="input" placeholder="Ask the orchestrator anything..." autofocus>
+          <button id="send" onclick="sendMessage()">Send</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+    const LOGOUT_URL = "KC_LOGOUT_URL_PLACEHOLDER";
+    const CLIENT_ID = "KC_CLIENT_ID_PLACEHOLDER";
+    const REDIRECT_URI = "KC_REDIRECT_URI_PLACEHOLDER";
+
+    let accessToken = null;
+    let userName = null;
+
+    function parseJwt(token) {
+      try {
+        const b = token.split(".")[1].replace(/-/g,"+").replace(/_/g,"/");
+        return JSON.parse(atob(b));
+      } catch(e) { return null; }
+    }
+
+    function isTokenExpired(token) {
+      const claims = parseJwt(token);
+      if (!claims || !claims.exp) return true;
+      return claims.exp * 1000 < Date.now() + 30000;
+    }
+
+    function startLogin() {
+      window.location.href = "/auth/login";
+    }
+
+    function logout() {
+      sessionStorage.removeItem("access_token");
+      accessToken = null;
+      userName = null;
+      window.location.href = LOGOUT_URL + "?" + new URLSearchParams({
+        client_id: CLIENT_ID,
+        post_logout_redirect_uri: REDIRECT_URI,
+      }).toString();
+    }
+
+    function showChat() {
+      document.getElementById("login-screen").style.display = "none";
+      const cc = document.getElementById("chat-container");
+      cc.style.display = "flex";
+      cc.style.flex = "1";
+      cc.style.flexDirection = "column";
+      document.getElementById("status-dot").style.background = "#22c55e";
+      document.getElementById("header-title").textContent = (userName || "User") + "'s Dashboard";
+      document.getElementById("header-subtitle").textContent = "Connected to Orchestrator Agent";
+      document.getElementById("header-right").innerHTML =
+        '<span class="user-badge">' + (userName || "User") + '</span>' +
+        '<button class="logout-btn" onclick="logout()">Sign out</button>';
+      addMessage("Welcome, " + (userName || "User") + "! I'm connected to the orchestrator agent. Try asking about the weather in any city.", "agent");
+      document.getElementById("input").focus();
+    }
+
+    function showLogin() {
+      document.getElementById("login-screen").style.display = "flex";
+      document.getElementById("chat-container").style.display = "none";
+      document.getElementById("status-dot").style.background = "#94a3b8";
+      document.getElementById("header-title").textContent = "Rossoctl Demo";
+      document.getElementById("header-subtitle").textContent = "Sign in to connect";
+      document.getElementById("header-right").innerHTML = "";
+    }
+
+    const chat = document.getElementById("chat");
+    const input = document.getElementById("input");
+    const sendBtn = document.getElementById("send");
+
+    function addMessage(text, role) {
+      const wrapper = document.createElement("div");
+      wrapper.className = "msg " + role;
+      const sender = document.createElement("div");
+      sender.className = "msg-sender";
+      sender.textContent = role === "user" ? (userName || "User") : "Orchestrator";
+      const bubble = document.createElement("div");
+      bubble.className = "msg-bubble";
+      bubble.textContent = text;
+      if (role === "agent") { wrapper.appendChild(sender); wrapper.appendChild(bubble); }
+      else { wrapper.appendChild(bubble); wrapper.appendChild(sender); }
+      chat.appendChild(wrapper);
+      chat.scrollTop = chat.scrollHeight;
+      return wrapper;
+    }
+
+    function showTyping() {
+      const el = document.createElement("div");
+      el.className = "msg agent";
+      el.id = "typing";
+      el.innerHTML = '<div class="msg-sender">Orchestrator</div><div class="typing"><span></span><span></span><span></span></div>';
+      chat.appendChild(el);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function hideTyping() {
+      const el = document.getElementById("typing");
+      if (el) el.remove();
+    }
+
+    async function sendMessage() {
+      const text = input.value.trim();
+      if (!text) return;
+      if (!accessToken || isTokenExpired(accessToken)) {
+        addMessage("Session expired. Redirecting to login...", "agent");
+        setTimeout(startLogin, 1000);
+        return;
+      }
+      input.value = "";
+      addMessage(text, "user");
+      sendBtn.disabled = true;
+      input.disabled = true;
+      showTyping();
+      try {
+        const resp = await fetch("/api/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + accessToken,
+          },
+          body: JSON.stringify({message: text}),
+        });
+        const data = await resp.json();
+        hideTyping();
+        if (data.error) { addMessage("Error: " + data.error, "agent"); }
+        else { addMessage(data.response, "agent"); }
+      } catch (e) {
+        hideTyping();
+        addMessage("Connection error: " + e.message, "agent");
+      }
+      sendBtn.disabled = false;
+      input.disabled = false;
+      input.focus();
+    }
+
+    input.addEventListener("keydown", function(e) {
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+    });
+
+    (function init() {
+      const hash = new URLSearchParams(window.location.hash.substring(1));
+      const token = hash.get("token");
+      if (token) {
+        window.location.hash = "";
+        accessToken = token;
+        sessionStorage.setItem("access_token", token);
+        const claims = parseJwt(token);
+        userName = (claims && (claims.preferred_username || claims.name)) || "User";
+        showChat();
+        return;
+      }
+      const stored = sessionStorage.getItem("access_token");
+      if (stored && !isTokenExpired(stored)) {
+        accessToken = stored;
+        const claims = parseJwt(stored);
+        userName = (claims && (claims.preferred_username || claims.name)) || "User";
+        showChat();
+        return;
+      }
+      showLogin();
+    })();
+    </script>
+    </body>
+    </html>"""
+
+
+    class DemoUIHandler(http.server.BaseHTTPRequestHandler):
+        def log_message(self, fmt, *args):
+            print(f"[demo-ui] {fmt % args}", flush=True)
+
+        def do_GET(self):
+            if self.path == "/health":
+                self.send_response(200)
+                self.send_header("Content-Type", "text/plain")
+                self.end_headers()
+                self.wfile.write(b"ok")
+            elif self.path == "/auth/login":
+                self._handle_login()
+            elif self.path.startswith("/auth/callback"):
+                self._handle_callback()
+            elif self.path == "/" or self.path.startswith("/?"):
+                base = f"{KEYCLOAK_URL}/realms/{KEYCLOAK_REALM}/protocol/openid-connect"
+                page = HTML_PAGE \
+                    .replace("KC_LOGOUT_URL_PLACEHOLDER", f"{base}/logout") \
+                    .replace("KC_CLIENT_ID_PLACEHOLDER", KEYCLOAK_CLIENT_ID) \
+                    .replace("KC_REDIRECT_URI_PLACEHOLDER", REDIRECT_URI)
+                data = page.encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(data)))
+                self.end_headers()
+                self.wfile.write(data)
+            else:
+                self.send_error(404)
+
+        def do_POST(self):
+            if self.path != "/api/chat":
+                self.send_error(404)
+                return
+
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length)
+            try:
+                payload = json.loads(body)
+            except json.JSONDecodeError:
+                self._send_json({"error": "Invalid JSON"}, 400)
+                return
+
+            user_text = payload.get("message", "").strip()
+            if not user_text:
+                self._send_json({"error": "Empty message"}, 400)
+                return
+
+            rpc_request = {
+                "jsonrpc": "2.0",
+                "id": str(uuid.uuid4()),
+                "method": "message/send",
+                "params": {
+                    "message": {
+                        "role": "user",
+                        "messageId": f"m-{uuid.uuid4().hex[:8]}",
+                        "parts": [{"type": "text", "text": user_text}],
+                    }
+                },
+            }
+
+            auth_header = self.headers.get("Authorization", "")
+
+            try:
+                hdrs = {"Content-Type": "application/json"}
+                if auth_header:
+                    hdrs["Authorization"] = auth_header
+                req = urllib.request.Request(
+                    ORCHESTRATOR_URL,
+                    data=json.dumps(rpc_request).encode(),
+                    headers=hdrs,
+                )
+                resp = urllib.request.urlopen(req, timeout=PROXY_TIMEOUT)
+                rpc_resp = json.loads(resp.read())
+            except Exception as exc:
+                self.log_message("proxy error: %s", exc)
+                self._send_json({"error": f"Orchestrator unreachable: {exc}"})
+                return
+
+            if "error" in rpc_resp:
+                self._send_json({"error": rpc_resp["error"].get("message", "RPC error")})
+                return
+
+            result = rpc_resp.get("result", {})
+            try:
+                text = result["artifacts"][0]["parts"][0]["text"]
+            except (KeyError, IndexError):
+                text = json.dumps(result)
+
+            self._send_json({
+                "response": text,
+                "taskId": result.get("id", ""),
+                "state": result.get("status", {}).get("state", ""),
+            })
+
+        def _handle_login(self):
+            verifier = secrets.token_urlsafe(32)
+            challenge = base64.urlsafe_b64encode(
+                hashlib.sha256(verifier.encode()).digest()
+            ).rstrip(b"=").decode()
+            state = secrets.token_urlsafe(16)
+            _auth_states[state] = verifier
+
+            callback_uri = REDIRECT_URI.rstrip("/") + CALLBACK_PATH
+            params = urllib.parse.urlencode({
+                "client_id": KEYCLOAK_CLIENT_ID,
+                "response_type": "code",
+                "redirect_uri": callback_uri,
+                "scope": "openid profile email",
+                "state": state,
+                "code_challenge": challenge,
+                "code_challenge_method": "S256",
+            })
+            auth_url = (
+                f"{KEYCLOAK_URL}/realms/{KEYCLOAK_REALM}"
+                f"/protocol/openid-connect/auth?{params}"
+            )
+            self.log_message("PKCE login: state=%s challenge=%s", state, challenge[:16])
+            self.send_response(302)
+            self.send_header("Location", auth_url)
+            self.end_headers()
+
+        def _handle_callback(self):
+            query = urllib.parse.urlparse(self.path).query
+            params = urllib.parse.parse_qs(query)
+            code = params.get("code", [None])[0]
+            state = params.get("state", [None])[0]
+
+            if not code or not state or state not in _auth_states:
+                self.log_message("callback error: missing code/state or unknown state")
+                self.send_response(302)
+                self.send_header("Location", "/#error=invalid_callback")
+                self.end_headers()
+                return
+
+            verifier = _auth_states.pop(state)
+            callback_uri = REDIRECT_URI.rstrip("/") + CALLBACK_PATH
+            token_url = (
+                f"{KEYCLOAK_INTERNAL_URL}/realms/{KEYCLOAK_REALM}"
+                f"/protocol/openid-connect/token"
+            )
+            form_data = urllib.parse.urlencode({
+                "grant_type": "authorization_code",
+                "client_id": KEYCLOAK_CLIENT_ID,
+                "code": code,
+                "redirect_uri": callback_uri,
+                "code_verifier": verifier,
+            }).encode()
+
+            try:
+                req = urllib.request.Request(
+                    token_url,
+                    data=form_data,
+                    headers={"Content-Type": "application/x-www-form-urlencoded"},
+                )
+                resp = urllib.request.urlopen(req, timeout=10)
+                tokens = json.loads(resp.read())
+                access_token = tokens.get("access_token", "")
+                self.log_message("token exchange success, token length=%d", len(access_token))
+                self.send_response(302)
+                self.send_header("Location", f"/#token={access_token}")
+                self.end_headers()
+            except urllib.error.HTTPError as exc:
+                body = exc.read().decode()
+                self.log_message("token exchange error: %s — %s", exc, body)
+                self.send_response(302)
+                self.send_header("Location", "/#error=token_exchange_failed")
+                self.end_headers()
+            except Exception as exc:
+                self.log_message("token exchange error: %s", exc)
+                self.send_response(302)
+                self.send_header("Location", "/#error=token_exchange_failed")
+                self.end_headers()
+
+        def _send_json(self, obj, status=200):
+            data = json.dumps(obj).encode()
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+
+
+    if __name__ == "__main__":
+        server = http.server.HTTPServer(("0.0.0.0", 8080), DemoUIHandler)
+        print("[demo-ui] serving on :8080", flush=True)
+        server.serve_forever()
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-ui
+  namespace: agents
+  labels:
+    app.kubernetes.io/name: demo-ui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: demo-ui
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: demo-ui
+        istio.io/dataplane-mode: none
+    spec:
+      containers:
+        - name: ui
+          image: docker.io/python:3.11-slim
+          command: ["python3", "/app/server.py"]
+          ports:
+            - containerPort: 8080
+          env:
+            - name: ORCHESTRATOR_URL
+              value: "http://orchestrator-agent.agents.svc.cluster.local:8080"
+          volumeMounts:
+            - name: server-script
+              mountPath: /app/server.py
+              subPath: server.py
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+      volumes:
+        - name: server-script
+          configMap:
+            name: demo-ui-server
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-ui
+  namespace: agents
+spec:
+  selector:
+    app.kubernetes.io/name: demo-ui
+  ports:
+    - port: 8080
+      targetPort: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: demo-ui-to-orchestrator
+  namespace: agents
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: orchestrator-agent
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: demo-ui
+      ports:
+        - port: 8080
+          protocol: TCP
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: demo-ui
+  namespace: agents
+spec:
+  parentRefs:
+    - name: http
+      namespace: rossoctl-system
+  hostnames:
+    - "demo-ui.localtest.me"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: demo-ui
+          port: 8080

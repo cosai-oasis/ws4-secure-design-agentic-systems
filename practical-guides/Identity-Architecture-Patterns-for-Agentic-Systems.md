@@ -12,11 +12,10 @@
 - [How to Read This Playbook](#how-to-read-this-playbook)
 - [Capability-Risk Classification: When to Use This Playbook](#capability-risk-classification-when-to-use-this-playbook)
 - [Layer 1: Cryptographic Identity Foundation](#layer-1-cryptographic-identity-foundation)
-- [Layer 2: Verifiable Agent Credentials](#layer-2-verifiable-agent-credentials)
-- [Layer 3: Federated Identity Bridge](#layer-3-federated-identity-bridge)
-- [Layer 4: Transparent Authorization Proxy](#layer-4-transparent-authorization-proxy)
-- [Layer 5: Delegation Chain Preservation](#layer-5-delegation-chain-preservation)
-- [Layer 6: Observable Trust](#layer-6-observable-trust)
+- [Layer 2: Federated Identity Bridge](#layer-3-federated-identity-bridge)
+- [Layer 3: Transparent Authorization Proxy](#layer-4-transparent-authorization-proxy)
+- [Layer 4: Delegation Chain Preservation](#layer-5-delegation-chain-preservation)
+- [Layer 5: Observable Trust](#layer-6-observable-trust)
 - [Implementation Verification Checklist](#implementation-verification-checklist)
 - [Putting It All Together: End-to-End Request Flow](#putting-it-all-together-end-to-end-request-flow)
 - [Migration Strategy: Phased Adoption](#migration-strategy-phased-adoption)
@@ -289,10 +288,6 @@ Not all agents require the full 6-layer architecture. The appropriate identity c
 
 **Use cryptographic identities (SPIFFE) instead of shared secrets for agent identity.**
 
-> **Pattern (tool-agnostic):** Every agent must receive a cryptographic identity from a trusted authority, with short-lived credentials that rotate automatically. The authority must attest the workload's identity (e.g., via platform metadata) before issuing credentials. No long-lived secrets should exist in agent configuration.
->
-> *This playbook uses SPIFFE/SPIRE. Alternatives: HashiCorp Vault workload identity, cloud-native workload identity (GCP/AWS/Azure IAM), Istio built-in identity.*
-
 ### Why This Matters
 
 Traditional service accounts use static passwords or API keys. These have fundamental problems:
@@ -302,29 +297,32 @@ Traditional service accounts use static passwords or API keys. These have fundam
 
 **❌ AVOID: Static API Keys**
 ```yaml
-# API key stored in environment variable — long-lived, shared across replicas
+# Long-lived secret in environment variable
 env:
-  - name: WEATHER_API_KEY
+  - name: AGENT_API_KEY
+    value: "sk-abc123..."  # Rotated manually, shared across instances
+  - name: CLIENT_SECRET
     valueFrom:
       secretKeyRef:
-        name: agent-secrets
-        key: api-key  # Rotated manually, if ever
+        name: agent-credentials
+        key: secret  # Same secret for all replicas
 ```
 
 Problems:
-- Key is the same across all agent replicas
-- Rotation requires redeploying every agent that uses it
-- If leaked in logs or memory dumps, attacker has indefinite access
+- Secret must be rotated manually across all agent instances
+- Same credential reused across environments
+- Visible in pod spec, logs, memory dumps
 
 **✅ RECOMMENDED: Cryptographic Identity (SPIFFE)**
 ```yaml
-# Certificate auto-mounted by SPIRE — short-lived, unique per workload, no secrets
+# No secrets — certificate auto-issued and rotated by SPIRE
 volumes:
   - name: spire-agent-socket
     csi:
-      driver: csi.spiffe.io
+      driver: csi.spiffe.io   # SPIRE CSI driver mounts X.509-SVID
       readOnly: true
-# Agent reads X.509-SVID from volume. Rotated automatically every few hours.
+# Agent gets unique identity: spiffe://trustdomain.com/ns/agents/sa/weather-agent
+# Certificate rotates every few hours without restart
 ```
 
 SPIFFE (Secure Production Identity Framework for Everyone) issues **short-lived X.509 certificates** automatically rotated by a trusted SPIRE server. Each agent gets a unique SPIFFE ID like `spiffe://trustdomain.com/ns/agents/sa/weather-agent`.
@@ -368,34 +366,50 @@ spec:
     - "k8s:sa:{{ .PodSpec.ServiceAccountName }}"
 ```
 
-### CoSAI Risk Mapping
+The certificate is automatically rotated every few hours without agent restart.
 
-**Mitigates:**
-- **MCP-T7** (Credential Compromise) — No long-lived secrets to leak
-- **MCP-T2** (Agent Impersonation) — Cryptographic proof of identity
+### Identity-Bound Capability Claims
 
-**Control:** `enforceWorkloadIdentity` — Require cryptographic identity for all agents
-
----
-
-## Layer 2: Verifiable Agent Credentials
-
-**Sign agent capabilities with SPIFFE identity to create tamper-proof credentials.**
-
-> **Pattern (tool-agnostic):** Each agent's capabilities must be explicitly declared and cryptographically bound to its identity. A verifier must be able to confirm that an agent's claimed capabilities are authentic and untampered, without trusting the agent itself.
->
-> *This playbook uses Kagenti AgentCards (Kubernetes CRDs). Alternatives: W3C Verifiable Credentials, signed JWTs with custom capability claims, OPA policy bundles bound to identity.*
-
-### Why This Matters
-
-SPIFFE provides **identity** ("I am weather-agent"), but not **capabilities** ("I can fetch weather data for Boston"). Without verifiable credentials:
+SPIFFE provides **identity** ("I am weather-agent"), but not **capabilities** ("I can fetch weather data for Boston"). To complete the identity picture, agents need a way to bind their cryptographic identity to a declaration of what they can do — without this:
 - Agents could claim capabilities they don't have
 - No way to prove an agent's purpose or scope at runtime
 - Authorization decisions rely solely on network policies
 
-The [Agent2Agent (A2A) Protocol](https://agent2agent.info/docs/concepts/agentcard/) defines **AgentCard** as a standard format for describing agent capabilities. This playbook uses the **Kagenti implementation**: a cryptographically signed AgentCard that binds SPIFFE identity to capabilities using digital signatures, creating a tamper-proof credential.
+**❌ AVOID: Unsigned Capability Declarations**
+```json
+// Self-reported agent metadata — anyone can edit this
+{
+  "name": "weather-agent",
+  "capabilities": ["weather-data"],
+  "endpoint": "http://weather-agent:8080"
+}
+// No signature, no binding to identity, no tamper detection
+```
 
-### How It Works
+Problems:
+- Any agent can claim any capability
+- No way to detect if the declaration was modified in transit
+- No binding between the identity and the claimed capabilities
+
+**✅ RECOMMENDED: SPIFFE-Signed AgentCard**
+```json
+// Signed with agent's SPIFFE private key — tamper-proof
+{
+  "sub": "spiffe://localtest.me/ns/agents/sa/weather-agent-sa",
+  "agentId": "weather-agent",
+  "capabilities": ["weather-data"],
+  "iat": 1716300000,
+  "exp": 1716386400,
+  "signature": "..." // Verifiable against SPIRE trust bundle
+}
+// Served at /.well-known/agent-card.json per A2A protocol
+```
+
+The [Agent2Agent (A2A) Protocol](https://agent2agent.info/docs/concepts/agentcard/) defines **AgentCard** as a standard format for describing agent capabilities. An AgentCard is a JSON file served at `/.well-known/agent-card.json` that other agents discover and consume. In a Kubernetes environment, a platform operator can use a CRD as input to generate and sign the A2A AgentCard automatically.
+
+**The signed AgentCard proves that the capability claim is tamper-proof — it does not prove the agent is authorized to act on those capabilities.** Authorization is a separate concern addressed in subsequent layers.
+
+**How signing works:**
 
 ```
 Agent pod starts
@@ -408,20 +422,23 @@ Agent pod starts
     │               │
     │               └─> Signs AgentCard with agent's private key
     │
-    └─> Agent presents signed AgentCard to peers or operator
+    └─> Signed A2A AgentCard served at /.well-known/agent-card.json
             │
-            └─> Peer verifies signature using SPIRE trust bundle
+            └─> Peers verify signature using SPIRE trust bundle
 ```
 
 **AgentCard contains:**
 - Agent identity (SPIFFE ID)
-- Capabilities (what it can do)
-- Policies (when it can do it)
-- Signature (cryptographic proof)
+- Capabilities (what it claims it can do)
+- Policies (constraints on when it can do it)
+- Signature (cryptographic proof of integrity)
 
-### Example AgentCard
+**Example: Kubernetes CRD (operator input) → A2A AgentCard (signed output)**
+
+The platform operator reads an AgentCard CRD and generates the signed A2A AgentCard:
 
 ```yaml
+# AgentCard CRD — operator input, NOT the A2A AgentCard itself
 apiVersion: agents.kagenti.io/v1alpha1
 kind: AgentCard
 metadata:
@@ -439,51 +456,27 @@ spec:
       allow: ["api.weather.gov"]
 ```
 
-The signer creates a JWT:
-```json
-{
-  "sub": "spiffe://localtest.me/ns/agents/sa/weather-agent-sa",
-  "agentId": "weather-agent",
-  "capabilities": [...],
-  "iat": 1716300000,
-  "exp": 1716386400
-}
-```
+**Verification Modes:**
 
-Signed with the agent's SPIFFE private key, this becomes a **verifiable credential**.
-
-### Verification Modes
-
-**Audit Mode** (recommended for rollout):
-- Log verification failures but allow requests
-- Monitor for unexpected cards or signature failures
-- Tune policies before enforcement
-
-**Enforce Mode** (production):
-- Reject requests with invalid signatures
-- Block agents without valid cards
-
-### Practical Example
-
-For a complete working implementation of AgentCard signing with SPIRE identities, see the **Kagenti SPIRE Signing Demo**: https://github.com/kagenti/kagenti-operator/blob/main/kagenti-operator/demos/agentcard-spire-signing/demo.md
-
-The implementation demonstrates:
-- AgentCard Custom Resource Definition (CRD)
-- agentcard-signer sidecar injected via mutating webhook
-- Signature verification in audit mode
-- Integration with Kubernetes RBAC and SPIRE ClusterSPIFFEID
+- **Audit Mode** (recommended for rollout) — Log verification failures but allow requests. Monitor for unexpected cards or signature failures. Tune policies before enforcement.
+- **Enforce Mode** (production) — Reject requests with invalid signatures. Block agents without valid cards.
 
 ### CoSAI Risk Mapping
 
 **Mitigates:**
+- **MCP-T7** (Credential Compromise) — No long-lived secrets to leak
+- **MCP-T2** (Agent Impersonation) — Cryptographic proof of identity
 - **MCP-T1** (Unauthorized Actions) — Capabilities explicitly listed and verified
 - **MCP-T3** (Privilege Escalation) — Signed credentials prevent tampering
 
-**Control:** `verifyAgentCredentials` — Validate AgentCard signatures before authorizing actions
+**Controls:**
+- `enforceWorkloadIdentity` — Require cryptographic identity for all agents
+- `verifyAgentCredentials` — Validate AgentCard signatures before authorizing actions
+
 
 ---
 
-## Layer 3: Federated Identity Bridge
+## Layer 2: Federated Identity Bridge
 
 **Bridge SPIFFE identity to OAuth 2.0 using federated authentication instead of client secrets.**
 
@@ -572,7 +565,7 @@ Agent needs OAuth token
 
 ---
 
-## Layer 4: Transparent Authorization Proxy
+## Layer 3: Transparent Authorization Proxy
 
 **Inject authorization enforcement as a sidecar proxy, not in application code.**
 
@@ -703,7 +696,7 @@ Webhook injects `authbridge-proxy` sidecar into the deployment, modifying:
 
 ---
 
-## Layer 5: Delegation Chain Preservation
+## Layer 4: Delegation Chain Preservation
 
 **Preserve the full delegation chain (User → Agent A → Agent B) using RFC 8693 token exchange with actor claims.**
 
@@ -839,7 +832,7 @@ def authorize_weather_request(jwt):
 
 ---
 
-## Layer 6: Observable Trust
+## Layer 5: Observable Trust
 
 **Make delegation chains and authorization decisions visible in traces and logs.**
 
@@ -1464,13 +1457,15 @@ Test audit queries: who requested, which agents involved, what scopes used
 Code examples demonstrating the patterns in this playbook are available in [`examples/identity-architecture/`](examples/identity-architecture/). 
 
 The examples include:
-- **SPIRE configuration** — ClusterSPIFFEID CRDs, trust domain setup, CSI driver configuration (Layer 1)
-- **AgentCard manifests** — Kubernetes CRDs with capability definitions and signing configuration (Layer 2)
-- **Keycloak setup** — Realm configuration, federated-jwt client registration, trust bundle loading (Layer 3)
-- **AuthBridge configuration** — AgentRuntime CRs, sidecar injection, token exchange routes (Layer 4)
-- **Token exchange examples** — JWT payloads showing actor claims and delegation chains (Layer 5)
-- **Tracing instrumentation** — OpenTelemetry setup with JWT attribute extraction (Layer 6)
+- **`k8s/`** — Kubernetes manifests: agent deployments (`orchestrator-deployment.yaml`, `weather-agent-deployment.yaml`), AgentRuntime CR (`agentruntime.yaml`), AgentCard CRD
+  (`orchestrator-agentcard.yaml`), AuthBridge outbound routes (`authproxy-routes.yaml`), OTel collector and tracing (`otel-tracing.yaml`), demo UI (`demo-ui.yaml`), and Ollama LLM backend
+  (`ollama-deployment.yaml`)
+- **`keycloak-spi/`** — Custom Keycloak SPI that adds RFC 8693 `act` claims to exchanged tokens (`AgenticTokenExchangeProvider.java`), enabling delegation chain preservation
+- **`orchestrator/`** — Python A2A agent that routes user requests via Ollama, forwards to peer agents through AuthBridge, and extracts JWT claims into OpenTelemetry spans (`server.py`)
+- **`scripts/`** — Automated cluster lifecycle: local image registry (`registry.sh`), full kind cluster setup with SPIRE, Keycloak, and operator (`setup.sh`), and teardown (`teardown.sh`)
+- **`Helm values`** — Configuration for Keycloak (`keycloak-values.yaml`), Phoenix tracing UI (`phoenix-values.yaml`), and the operator (`operator-values.yaml`)
 
+Instruction for running the setup is [`examples/identity-architecture/README.md`](examples/identity-architecture/README.md)
 
 ---
 
