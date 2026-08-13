@@ -12,10 +12,10 @@
 - [How to Read This Playbook](#how-to-read-this-playbook)
 - [Capability-Risk Classification: When to Use This Playbook](#capability-risk-classification-when-to-use-this-playbook)
 - [Layer 1: Cryptographic Identity Foundation](#layer-1-cryptographic-identity-foundation)
-- [Layer 2: Federated Identity Bridge](#layer-3-federated-identity-bridge)
-- [Layer 3: Transparent Authorization Proxy](#layer-4-transparent-authorization-proxy)
-- [Layer 4: Delegation Chain Preservation](#layer-5-delegation-chain-preservation)
-- [Layer 5: Observable Trust](#layer-6-observable-trust)
+- [Layer 2: Federated Identity Bridge](#layer-2-federated-identity-bridge)
+- [Layer 3: Transparent Authorization Proxy](#layer-3-transparent-authorization-proxy)
+- [Layer 4: Delegation Chain Preservation](#layer-4-delegation-chain-preservation)
+- [Layer 5: Observable Trust](#layer-5-observable-trust)
 - [Implementation Verification Checklist](#implementation-verification-checklist)
 - [Putting It All Together: End-to-End Request Flow](#putting-it-all-together-end-to-end-request-flow)
 - [Migration Strategy: Phased Adoption](#migration-strategy-phased-adoption)
@@ -54,31 +54,28 @@ Traditional identity patterns (API keys, service accounts with static passwords)
 3. **Audit requirements are strict** — "Which agent did what on behalf of whom?" must be answerable
 4. **Zero-trust is essential** — Agents cannot be trusted by default, even within your infrastructure
 
-This playbook presents a **6-layer identity architecture** that addresses these challenges through cryptographic identity, verifiable credentials, and transparent authorization proxies. The pattern is based on a working implementation combining SPIFFE/SPIRE, OAuth 2.0 token exchange (RFC 8693), and sidecar-based authorization enforcement.
+This playbook presents a **5-layer identity architecture** that addresses these challenges through cryptographic identity, verifiable credentials, and transparent authorization proxies. The pattern is based on a working implementation combining SPIFFE/SPIRE, OAuth 2.0 token exchange (RFC 8693), and sidecar-based authorization enforcement.
 
 ### Architecture Overview
 
 <table>
 <thead>
 <tr>
-<th width="100%" style="text-align: center;">6-Layer Identity Architecture</th>
+<th width="100%" style="text-align: center;">5-Layer Identity Architecture</th>
 </tr>
 </thead>
 <tbody>
 <tr style="background-color: #f0f8ff;">
-<td style="text-align: center;"><strong>Layer 6: Observable Trust</strong><br>OpenTelemetry integration with JWT authentication attributes in trace spans</td>
+<td style="text-align: center;"><strong>Layer 5: Observable Trust</strong><br>OpenTelemetry integration with JWT authentication attributes in trace spans</td>
 </tr>
 <tr style="background-color: #f5f5f5;">
-<td style="text-align: center;"><strong>Layer 5: Delegation Chain Preservation</strong><br>RFC 8693 token exchange with actor claims to preserve "who did what on whose behalf"</td>
+<td style="text-align: center;"><strong>Layer 4: Delegation Chain Preservation</strong><br>RFC 8693 token exchange with actor claims to preserve "who did what on whose behalf"</td>
 </tr>
 <tr style="background-color: #f0f8ff;">
-<td style="text-align: center;"><strong>Layer 4: Transparent Authorization Proxy</strong><br>Sidecar-based authorization enforcement (AuthBridge pattern) without modifying agent code</td>
-</tr>
-<tr style="background-color: #f5f5f5;">
-<td style="text-align: center;"><strong>Layer 3: Federated Identity Bridge</strong><br>SPIFFE identity bridged to OAuth 2.0 via federated JWT authentication</td>
+<td style="text-align: center;"><strong>Layer 3: Transparent Authorization Proxy</strong><br>Sidecar-based authorization enforcement (AuthBridge pattern) without modifying agent code</td>
 </tr>
 <tr style="background-color: #f0f8ff;">
-<td style="text-align: center;"><strong>Layer 2: Verifiable Agent Credentials</strong><br>Cryptographically signed credentials binding identity to capabilities</td>
+<td style="text-align: center;"><strong>Layer 2: Federated Identity Bridge</strong><br>SPIFFE identity bridged to OAuth 2.0 via federated JWT authentication</td>
 </tr>
 <tr style="background-color: #f5f5f5;">
 <td style="text-align: center;"><strong>Layer 1: Cryptographic Identity Foundation</strong><br>SPIFFE/SPIRE for short-lived X.509 and JWT certificates with automatic rotation</td>
@@ -154,8 +151,8 @@ This playbook serves different audiences with different needs. Use this guide to
 <td>Design the architecture, understand tradeoffs, select components</td>
 <td>
 <ol>
-<li><strong>Architecture Overview</strong> — 6-layer pattern and how layers interact</li>
-<li><strong>All 6 Layers</strong> — Deep dive on each layer's purpose and controls</li>
+<li><strong>Architecture Overview</strong> — 5-layer pattern and how layers interact</li>
+<li><strong>All 5 Layers</strong> — Deep dive on each layer's purpose and controls</li>
 <li><strong>Migration Strategy</strong> — Phased adoption approach</li>
 <li><strong>Real-World Example</strong> — Reference implementation details</li>
 <li><strong>CoSAI Risk Mapping</strong> — Defense-in-depth coverage</li>
@@ -180,8 +177,8 @@ This playbook serves different audiences with different needs. Use this guide to
 <td>Understand how to build agents that work with this architecture</td>
 <td>
 <ol>
-<li><strong>Layer 4: Transparent Authorization Proxy</strong> — How auth works without code changes</li>
-<li><strong>Layer 6: Observable Trust</strong> — How to add tracing instrumentation</li>
+<li><strong>Layer 3: Transparent Authorization Proxy</strong> — How auth works without code changes</li>
+<li><strong>Layer 5: Observable Trust</strong> — How to add tracing instrumentation</li>
 <li><strong>Real-World Example</strong> — Agent code patterns</li>
 <li><strong>Common Pitfalls</strong> — Avoid hardcoding auth logic</li>
 </ol>
@@ -192,7 +189,7 @@ This playbook serves different audiences with different needs. Use this guide to
 <td>Verify controls, audit trails, and regulatory alignment</td>
 <td>
 <ol>
-<li><strong>Layer 6: Observable Trust</strong> — Audit trail and delegation chain visibility</li>
+<li><strong>Layer 5: Observable Trust</strong> — Audit trail and delegation chain visibility</li>
 <li><strong>Implementation Verification Checklist</strong> — Required controls per layer</li>
 <li><strong>Measuring Success</strong> — Observable metrics and KPIs</li>
 <li><strong>CoSAI Threat Taxonomy</strong> (References) — Control-to-threat mapping</li>
@@ -206,7 +203,7 @@ Before diving into the architecture layers, it's important to understand which a
 
 ### Capability-Risk Classification: When to Use This Playbook
 
-Not all agents require the full 6-layer architecture. The appropriate identity controls depend on the **capability** (what the agent can do) and **risk** (impact if compromised) profile. **Capability** ranges from simple Q&A to multi-step, state-changing planners. **Risk** depends on the sensitivity of resources accessed (public data → PII/financial systems) and blast radius of actions (read-only → write/execute/control planes).
+Not all agents require the full 5-layer architecture. The appropriate identity controls depend on the **capability** (what the agent can do) and **risk** (impact if compromised) profile. **Capability** ranges from simple Q&A to multi-step, state-changing planners. **Risk** depends on the sensitivity of resources accessed (public data → PII/financial systems) and blast radius of actions (read-only → write/execute/control planes).
 
 <table align="center">
 <thead>
@@ -360,7 +357,7 @@ spec:
   spiffeIDTemplate: "spiffe://{{ .TrustDomain }}/ns/{{ .PodMeta.Namespace }}/sa/{{ .PodSpec.ServiceAccountName }}"
   podSelector:
     matchLabels:
-      kagenti.io/agent: "true"
+      rossoctl.io/agent: "true"
   workloadSelectorTemplates:
     - "k8s:ns:{{ .PodMeta.Namespace }}"
     - "k8s:sa:{{ .PodSpec.ServiceAccountName }}"
@@ -439,7 +436,7 @@ The platform operator reads an AgentCard CRD and generates the signed A2A AgentC
 
 ```yaml
 # AgentCard CRD — operator input, NOT the A2A AgentCard itself
-apiVersion: agents.kagenti.io/v1alpha1
+apiVersion: agents.rossoctl.dev/v1alpha1
 kind: AgentCard
 metadata:
   name: weather-agent-card
@@ -571,7 +568,7 @@ Agent needs OAuth token
 
 > **Pattern (tool-agnostic):** Authorization enforcement must be external to agent application code. A proxy intercepts all inbound and outbound agent traffic, validating credentials on ingress and performing token exchange on egress. Agent code remains identity-agnostic — it never sees or handles auth logic.
 >
-> *This playbook uses Kagenti AuthBridge sidecar. Alternatives: Envoy with ext_authz filter, Istio authorization policies, API gateway-based enforcement (Kong, Ambassador), or service mesh sidecar injection.*
+> *This playbook uses Rossoctl AuthBridge sidecar. Alternatives: Envoy with ext_authz filter, Istio authorization policies, API gateway-based enforcement (Kong, Ambassador), or service mesh sidecar injection.*
 
 ### Why This Matters
 
@@ -662,7 +659,7 @@ The **sidecar pattern** enforces authorization **transparently** by intercepting
 
 ```yaml
 # AgentRuntime CR triggers mutating webhook
-apiVersion: agents.kagenti.io/v1alpha1
+apiVersion: agents.rossoctl.dev/v1alpha1
 kind: AgentRuntime
 metadata:
   name: weather-agent-runtime
@@ -854,14 +851,22 @@ Without observability:
 
 ### OpenTelemetry Integration
 
-Extract JWT claims into span attributes:
+Observable trust requires two things from each agent:
+
+1. **Trace propagation** — connecting spans across agents into a single trace. This is handled automatically by the OpenTelemetry SDK via W3C `traceparent` headers. It shows *which* agents were involved in a request.
+
+2. **Auth context enrichment** — extracting identity claims from the already-validated token into span attributes. Trace propagation alone doesn't carry auth context. Without enrichment, the trace shows "orchestrator called weather-agent" but not "on behalf of Alice, at delegation depth 1."
+
+By standardizing the auth context attributes that agents emit (`auth.subject`, `auth.actor`, `auth.delegation_depth`), observable trust extends beyond a single cluster. If every agent in a trust domain — whether running in your infrastructure or hosted by a third-party provider — emits the same attributes, a single trace captures the full delegation chain across organizational boundaries: which services were hit in your environment, which agents and tools were invoked by the provider, and who authorized each hop.
+
+The following code runs inside the **agent application** (not the platform or proxy) to perform auth context enrichment. The authorization proxy (Layer 3) has already validated the token — this code only reads the claims for observability:
 
 ```python
 import json, base64
-from urllib.parse import parse_qs
 
 def parse_jwt_claims(jwt_token):
-    """Decode JWT payload (no signature verification - AuthBridge already did it)"""
+    """Decode JWT payload. Signature verification is handled by the authorization
+    proxy (Layer 3) — by the time this code runs, the token is already validated."""
     if not jwt_token or not jwt_token.startswith("Bearer "):
         return {}
     token = jwt_token.split(" ")[1]
@@ -898,22 +903,22 @@ def set_auth_attributes(span, auth_header):
 
 ### Trace Example
 
-Alice → Orchestrator → Weather Agent produces a trace like:
+Alice -> Orchestrator -> Weather Agent produces a trace like:
 
 ```
 Trace ID: abc123
-├─ Span: orchestrator.route_request
-│   auth.subject: alice-uuid
-│   auth.username: alice
-│   http.method: POST
-│   ├─ Span: orchestrator.llm_call (Ollama)
-│   └─ Span: orchestrator.forward_to_peer
-│       http.url: http://weather-agent:8080
-│       └─ Span: weather-agent.handle_request
-│           auth.subject: alice-uuid
-│           auth.actor: spiffe://localtest.me/ns/agents/sa/orchestrator-agent-sa
-│           auth.delegation_depth: 1
-│           weather.location: Boston
+|- Span: orchestrator.route_request
+|   auth.subject: alice-uuid
+|   auth.username: alice
+|   http.method: POST
+|   |- Span: orchestrator.llm_call (Ollama)
+|   +- Span: orchestrator.forward_to_peer
+|       http.url: http://weather-agent:8080
+|       +- Span: weather-agent.handle_request
+|           auth.subject: alice-uuid
+|           auth.actor: spiffe://localtest.me/ns/agents/sa/orchestrator-agent-sa
+|           auth.delegation_depth: 1
+|           weather.location: Boston
 ```
 
 **Key observations:**
@@ -922,6 +927,22 @@ Trace ID: abc123
 - Orchestrator appears as `auth.actor` in weather-agent span
 - Delegation depth increments at each hop
 
+### Toward a Standardized Observability Contract
+
+The auth context attributes in this playbook (`auth.subject`, `auth.actor`, `auth.delegation_depth`) demonstrate the pattern that needs to be standardized across the industry for cross-boundary observable trust.
+
+Two collaborative efforts that would be helpful in working toward this:
+
+- **OCSF Schema** — defining a standard schema for identity, delegation, and trust attributes across agentic security telemetry/logging
+- **OpenTelemetry GenAI semantic conventions** — incorporating standardized attributes for AI/agent workloads into OTel's semantic conventions
+
+Traces alone are necessary but not sufficient for full audit. Spans are sampled, retention-limited, and not integrity-protected. A stronger guarantee requires **signed evidence**, integrity-protected audit records that allow a verifier to check claimed capabilities against observed behavior without trusting the agent or the platform. This is an area where we can work with industry standardization like OCSF to define integrity-protected audit schemas that the industry can adopt uniformly.
+
+
+The goal: when any provider, your infrastructure, a hosted AI service, a third-party agent, emits the same standardized attributes, a single trace captures the full delegation chain across organizational boundaries. Which services were hit in your environment, which agents and tools were invoked by the provider, who authorized each hop, all queryable from one trace.
+
+The identity layers in this playbook (cryptographic identity, delegation chain preservation) provide the foundation. A standardized observability contract is the last piece that makes cross-boundary trust auditable.
+
 ### CoSAI Risk Mapping
 
 **Mitigates:**
@@ -929,6 +950,7 @@ Trace ID: abc123
 - **MCP-T1** (Unauthorized Actions) — Audit trail for forensics
 
 **Control:** `logDelegationChains` — Capture auth attributes in all traces
+
 
 ---
 
@@ -943,9 +965,6 @@ Use this checklist to verify each layer as you implement it. Each item maps to a
 - [ ] Identity-to-workload mapping defined (namespace, service account, or other selector → unique identity)
 - [ ] Trust bundle published (root CA certificates available for all components that verify agent identities)
 - [ ] Automatic certificate/token rotation verified (credentials refresh without manual intervention or downtime)
-- [ ] **Production-ready:** Identity provider recovers from infrastructure restarts, credentials rotate without manual intervention
-
-### Layer 2: Verifiable Agent Credentials *(AgentCard with Kagenti in this playbook)*
 - [ ] Credential schema defined (binding identity to capabilities, policies, and code version)
 - [ ] Signing infrastructure deployed (cryptographically binds SPIFFE identity to credential)
 - [ ] Verifiable credentials created for each agent with explicit capability grants
@@ -954,7 +973,7 @@ Use this checklist to verify each layer as you implement it. Each item maps to a
 - [ ] Tune capability policies based on audit data, then switch to enforce mode (reject invalid signatures)
 - [ ] **Production-ready:** All agent credentials are verified and signed, signing infrastructure reconciles automatically
 
-### Layer 3: Federated Identity Bridge *(Keycloak with federated-jwt in this playbook)*
+### Layer 2: Federated Identity Bridge *(Keycloak with federated-jwt in this playbook)*
 - [ ] Identity provider trust bundle loaded into OAuth/OIDC server (enables validation of workload identity tokens)
 - [ ] OAuth server configured to accept federated identity authentication (e.g., JWT bearer assertion, workload identity federation)
 - [ ] Agents registered as OAuth clients using cryptographic identity instead of static secrets (e.g., JWT assertion, certificate-based auth)
@@ -962,7 +981,7 @@ Use this checklist to verify each layer as you implement it. Each item maps to a
 - [ ] Verify: No static secrets (client secrets, API keys, passwords) stored in agent configuration or environment
 - [ ] **Production-ready:** Agents authenticate to OAuth/OIDC provider using cryptographic identity, no static secrets in use
 
-### Layer 4: Transparent Authorization Proxy *(AuthBridge sidecar with Kagenti in this playbook)*
+### Layer 3: Transparent Authorization Proxy *(AuthBridge sidecar with Rossoctl in this playbook)*
 - [ ] Scope defined for which agents require authorization enforcement (e.g., high-risk agents, cross-tenant communication)
 - [ ] Authorization proxy infrastructure deployed and configured (sidecar, service mesh, or API gateway pattern)
 - [ ] Proxy intercepts all agent traffic (both inbound requests and outbound calls) before reaching application logic
@@ -974,7 +993,7 @@ Use this checklist to verify each layer as you implement it. Each item maps to a
 - [ ] Test: Agent cannot be accessed by bypassing the authorization proxy
 - [ ] **Production-ready:** All target agents have authorization proxy deployed, direct access to agent application port fails
 
-### Layer 5: Delegation Chain Preservation *(Keycloak with custom RFC 8693 SPI in this playbook)*
+### Layer 4: Delegation Chain Preservation *(Keycloak with custom RFC 8693 SPI in this playbook)*
 - [ ] OAuth server configured to support RFC 8693 token exchange with actor claim preservation
 - [ ] Token exchange endpoint supports actor chain (nested `act` claims) in delegated tokens
 - [ ] Delegation routing configured (maps target agents to their required token audience/scope)
@@ -985,7 +1004,7 @@ Use this checklist to verify each layer as you implement it. Each item maps to a
 - [ ] Verify: Authorization policies can enforce delegation depth limits and subject/actor restrictions
 - [ ] **Production-ready:** Multi-hop delegation chains preserve full actor history, delegation depth limits enforced
 
-### Layer 6: Observable Trust *(OpenTelemetry with Phoenix in this playbook)*
+### Layer 5: Observable Trust *(OpenTelemetry with Phoenix in this playbook)*
 - [ ] Distributed tracing infrastructure deployed (trace collector and storage backend)
 - [ ] Trace backend supports querying by custom attributes (enables filtering by identity, delegation, scope)
 - [ ] Agents instrumented with distributed tracing (propagate trace context across agent-to-agent calls)
@@ -1000,7 +1019,7 @@ Use this checklist to verify each layer as you implement it. Each item maps to a
 
 ## Putting It All Together: End-to-End Request Flow
 
-The 6 layers work together on every request. This section traces a single request — Alice asks the orchestrator for Boston's weather — through all layers to show how they compose.
+The 5 layers work together on every request. This section traces a single request — Alice asks the orchestrator for Boston's weather — through all layers to show how they compose.
 
 ```
 Alice (user) ──POST /ask "What's the weather in Boston?"──▶ Orchestrator Agent ──▶ Weather Agent
@@ -1010,35 +1029,33 @@ Alice (user) ──POST /ask "What's the weather in Boston?"──▶ Orchestrat
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ 1. IDENTITY (Layer 1)                                                       │
+│ 1. IDENTITY + CREDENTIALS (Layer 1)                                         │
 │    Both agents already have SPIFFE identities issued by SPIRE:              │
 │      Orchestrator: spiffe://trust.domain/ns/agents/sa/orchestrator-sa       │
 │      Weather:      spiffe://trust.domain/ns/agents/sa/weather-agent-sa      │
 │    X.509-SVIDs auto-rotated every few hours. No secrets in env vars.        │
-├─────────────────────────────────────────────────────────────────────────────┤
-│ 2. CREDENTIALS (Layer 2)                                                    │
 │    Each agent has a signed AgentCard binding its SPIFFE ID to capabilities:  │
 │      Orchestrator → can route requests, call peer agents                    │
 │      Weather      → can fetch weather data, scope: read, egress: weather API│
 │    Signatures verified against SPIRE trust bundle.                          │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│ 3. FEDERATED BRIDGE (Layer 3)                                               │
+│ 2. FEDERATED BRIDGE (Layer 2)                                               │
 │    Alice's request arrives with an OAuth token (from Keycloak).              │
 │    Orchestrator authenticates to Keycloak using its SPIFFE JWT-SVID          │
 │    (no client secret) to obtain an OAuth access token.                       │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│ 4. AUTHORIZATION PROXY (Layer 4)                                            │
+│ 3. AUTHORIZATION PROXY (Layer 3)                                            │
 │    a) INBOUND to Orchestrator:                                              │
 │       AuthBridge sidecar on port 8080 validates Alice's JWT.                │
 │       ✓ Valid → forwards to orchestrator app on port 8081.                  │
 │    b) OUTBOUND from Orchestrator to Weather Agent:                          │
 │       Orchestrator calls localhost:8082 (outbound proxy).                   │
-│       AuthBridge performs token exchange (→ Layer 5) and forwards.          │
+│       AuthBridge performs token exchange (→ Layer 4) and forwards.          │
 │    c) INBOUND to Weather Agent:                                             │
 │       AuthBridge sidecar validates the delegated token.                     │
 │       ✓ Valid → forwards to weather app on port 8081.                      │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│ 5. DELEGATION CHAIN (Layer 5)                                               │
+│ 4. DELEGATION CHAIN (Layer 4)                                               │
 │    The outbound proxy exchanges Alice's token via RFC 8693:                  │
 │      subject_token = Alice's JWT                                            │
 │      audience      = spiffe://trust.domain/ns/agents/sa/weather-agent-sa    │
@@ -1048,7 +1065,7 @@ Alice (user) ──POST /ask "What's the weather in Boston?"──▶ Orchestrat
 │        "delegation_depth": 1 }                                              │
 │    Weather Agent sees: Alice requested it, Orchestrator is acting for her.  │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│ 6. OBSERVABLE TRUST (Layer 6)                                               │
+│ 5. OBSERVABLE TRUST (Layer 5)                                               │
 │    A single trace (ID: abc123) spans both agents:                           │
 │      orchestrator.route_request                                             │
 │        auth.subject: alice-uuid                                             │
@@ -1065,18 +1082,17 @@ Alice (user) ──POST /ask "What's the weather in Boston?"──▶ Orchestrat
 
 | If this layer were missing... | What could go wrong |
 |---|---|
-| **Layer 1** (Identity) | Orchestrator uses a static API key. Key leaks in logs → any attacker can impersonate it. |
-| **Layer 2** (Credentials) | A rogue agent claims weather capabilities it doesn't have. No way to verify at runtime. |
-| **Layer 3** (Federated Bridge) | Client secret stored in orchestrator's env var. Rotated manually, shared across replicas. |
-| **Layer 4** (Auth Proxy) | Developer adds a new endpoint to weather agent but forgets the auth check → open to unauthenticated access. |
-| **Layer 5** (Delegation) | Weather agent sees "orchestrator requested weather data" but can't tell if Alice or Bob asked, or if orchestrator acted on its own. |
-| **Layer 6** (Observability) | Incident responders grep through scattered logs across agents to reconstruct what happened. Takes hours instead of one query. |
+| **Layer 1** (Identity + Credentials) | Orchestrator uses a static API key. Key leaks in logs → any attacker can impersonate it. A rogue agent claims weather capabilities it doesn't have. No way to verify at runtime. |
+| **Layer 2** (Federated Bridge) | Client secret stored in orchestrator's env var. Rotated manually, shared across replicas. |
+| **Layer 3** (Auth Proxy) | Developer adds a new endpoint to weather agent but forgets the auth check → open to unauthenticated access. |
+| **Layer 4** (Delegation) | Weather agent sees "orchestrator requested weather data" but can't tell if Alice or Bob asked, or if orchestrator acted on its own. |
+| **Layer 5** (Observability) | Incident responders grep through scattered logs across agents to reconstruct what happened. Takes hours instead of one query. |
 
 ---
 
 ## Migration Strategy: Phased Adoption
 
-Now that you understand the 6-layer architecture, here's how to adopt it safely in an existing environment. Implementing all 6 layers at once is risky. This section provides a phased approach to adopt Agentic IAM incrementally while maintaining production stability.
+Now that you understand the 5-layer architecture, here's how to adopt it safely in an existing environment. Implementing all 5 layers at once is risky. This section provides a phased approach to adopt Agentic IAM incrementally while maintaining production stability.
 
 ### Phase 1: Foundation
 
@@ -1130,7 +1146,7 @@ Now that you understand the 6-layer architecture, here's how to adopt it safely 
 <tr>
 <td>
 <ul>
-<li>Define credential schema (Layer 2)</li>
+<li>Define credential schema (Layer 1)</li>
 <li>Deploy signing infrastructure</li>
 <li>Create verifiable credentials for each agent</li>
 <li>Enable signature verification in <strong>audit mode</strong></li>
@@ -1166,9 +1182,9 @@ Now that you understand the 6-layer architecture, here's how to adopt it safely 
 <tr>
 <td>
 <ul>
-<li>Load trust bundle into OAuth server (Layer 3)</li>
+<li>Load trust bundle into OAuth server (Layer 2)</li>
 <li>Register agents as OAuth clients with federated auth</li>
-<li>Deploy authorization proxy infrastructure (Layer 4)</li>
+<li>Deploy authorization proxy infrastructure (Layer 3)</li>
 <li>Enable proxy for pilot agents (10-20% of fleet)</li>
 </ul>
 </td>
@@ -1202,9 +1218,9 @@ Now that you understand the 6-layer architecture, here's how to adopt it safely 
 <tr>
 <td>
 <ul>
-<li>Configure RFC 8693 token exchange (Layer 5)</li>
+<li>Configure RFC 8693 token exchange (Layer 4)</li>
 <li>Implement actor claim preservation</li>
-<li>Deploy distributed tracing (Layer 6)</li>
+<li>Deploy distributed tracing (Layer 5)</li>
 <li>Instrument agents with trace context</li>
 <li>Extract auth attributes into spans</li>
 </ul>
@@ -1224,7 +1240,7 @@ Now that you understand the 6-layer architecture, here's how to adopt it safely 
 
 ### Phase 5: Enforce + Expand
 
-**Goal:** Switch Layer 2 to enforce mode and migrate remaining agents.
+**Goal:** Switch Layer 1 credential verification to enforce mode and migrate remaining agents.
 
 <table>
 <thead>
@@ -1284,46 +1300,35 @@ This section provides observable metrics and KPIs for each layer. Use these to v
 </thead>
 <tbody>
 <tr>
-<td><strong>Layer 1:<br/>Cryptographic Identity</strong></td>
+<td><strong>Layer 1:<br/>Cryptographic Identity + Credentials</strong></td>
 <td>
 • Certificate/token rotation success rate<br/>
 • Identity issuance latency<br/>
 • Trust bundle propagation time<br/>
-• Agent registration failures
-</td>
-<td>
-• 100% rotation success<br/>
-• 0 registration failures
-</td>
-<td>
-Query identity provider logs for rotation events<br/>
-Monitor identity provider metrics for issuance latency<br/>
-Track trust bundle distribution lag across components<br/>
-Alert on failed workload attestation
-</td>
-</tr>
-<tr>
-<td><strong>Layer 2:<br/>Verifiable Credentials</strong></td>
-<td>
+• Agent registration failures<br/>
 • Credential verification success rate<br/>
 • Signature validation failures<br/>
-• Credential staleness (time since last refresh)<br/>
 • Signing infrastructure readiness
 </td>
 <td>
+• 100% rotation success<br/>
+• 0 registration failures<br/>
 • 100% valid credentials<br/>
 • 0 signature failures<br/>
 • All agents verified and bound
 </td>
 <td>
+Query identity provider logs for rotation events<br/>
+Monitor identity provider metrics for issuance latency<br/>
+Track trust bundle distribution lag across components<br/>
+Alert on failed workload attestation<br/>
 Query credential store for verification status across agents<br/>
 Monitor signing infrastructure logs for errors<br/>
-Alert on credentials in failed or unverified state<br/>
-Track time between credential issuance and expiry
+Alert on credentials in failed or unverified state
 </td>
 </tr>
 <tr>
-<td><strong>Layer 3:<br/>Federated Bridge</strong></td>
+<td><strong>Layer 2:<br/>Federated Bridge</strong></td>
 <td>
 • OAuth client registration success<br/>
 • Federated authentication failures<br/>
@@ -1342,7 +1347,7 @@ Measure token validation latency at the OAuth server
 </td>
 </tr>
 <tr>
-<td><strong>Layer 4:<br/>Authorization Proxy</strong></td>
+<td><strong>Layer 3:<br/>Authorization Proxy</strong></td>
 <td>
 • Proxy deployment coverage<br/>
 • Request validation failures (401/403 rate)<br/>
@@ -1362,7 +1367,7 @@ Test direct access to agent application port (should fail)
 </td>
 </tr>
 <tr>
-<td><strong>Layer 5:<br/>Delegation Chain</strong></td>
+<td><strong>Layer 4:<br/>Delegation Chain</strong></td>
 <td>
 • Token exchange success rate<br/>
 • Actor claim presence in delegated tokens<br/>
@@ -1382,7 +1387,7 @@ Test multi-hop flows and verify full chain visibility
 </td>
 </tr>
 <tr>
-<td><strong>Layer 6:<br/>Observable Trust</strong></td>
+<td><strong>Layer 5:<br/>Observable Trust</strong></td>
 <td>
 • Trace completion rate (all spans present)<br/>
 • Auth attribute presence in traces<br/>
@@ -1487,15 +1492,15 @@ Tool-specific terms used throughout this playbook. Each term is introduced in co
 </tr>
 <tr>
 <td><strong>X.509-SVID / JWT-SVID</strong></td>
-<td>SPIFFE Verifiable Identity Documents. X.509-SVIDs are short-lived certificates for mTLS. JWT-SVIDs are signed JSON Web Tokens for API authentication. Used in <strong>Layers 1, 3</strong>.</td>
+<td>SPIFFE Verifiable Identity Documents. X.509-SVIDs are short-lived certificates for mTLS. JWT-SVIDs are signed JSON Web Tokens for API authentication. Used in <strong>Layers 1, 2</strong>.</td>
 </tr>
 <tr>
 <td><strong>AgentCard</strong></td>
-<td>A verifiable credential describing an agent's capabilities. The <a href="https://agent2agent.info/docs/concepts/agentcard/">A2A Protocol specification</a> defines AgentCard as a JSON "business card" for agent discovery. This playbook uses the <strong>Kagenti implementation</strong>: a Kubernetes CRD that cryptographically binds an agent's SPIFFE identity to its capabilities, policies, and code hash using digital signatures — creating a tamper-proof "passport" for agents. Used in <strong>Layer 2</strong>.</td>
+<td>A verifiable credential describing an agent's capabilities. The <a href="https://agent2agent.info/docs/concepts/agentcard/">A2A Protocol specification</a> defines AgentCard as a JSON "business card" for agent discovery. This playbook uses the <strong>Rossoctl implementation</strong>: a Kubernetes CRD that cryptographically binds an agent's SPIFFE identity to its capabilities, policies, and code hash using digital signatures — creating a tamper-proof "passport" for agents. Used in <strong>Layer 1</strong>.</td>
 </tr>
 <tr>
 <td><strong>AuthBridge</strong></td>
-<td>A sidecar proxy pattern that enforces authentication and authorization transparently for agent workloads. Part of the <a href="https://github.com/kagenti/kagenti-operator">Kagenti operator</a>, AuthBridge is injected via mutating webhook and intercepts traffic on three ports: <strong>inbound (8080)</strong> for JWT validation, <strong>agent (8081)</strong> for application logic, and <strong>outbound (8082)</strong> for token exchange. This "port stealing" pattern ensures all agent communication passes through authorization enforcement without modifying agent code. Used in <strong>Layer 4</strong>.</td>
+<td>A sidecar proxy pattern that enforces authentication and authorization transparently for agent workloads. Part of the <a href="https://github.com/rossoctl/operator">Rossoctl operator</a>, AuthBridge is injected via mutating webhook and intercepts traffic on three ports: <strong>inbound (8080)</strong> for JWT validation, <strong>agent (8081)</strong> for application logic, and <strong>outbound (8082)</strong> for token exchange. This "port stealing" pattern ensures all agent communication passes through authorization enforcement without modifying agent code. Used in <strong>Layer 3</strong>.</td>
 </tr>
 </tbody>
 </table>
@@ -1539,37 +1544,37 @@ This playbook addresses the following threat categories from the MCP Security wh
 <tr>
 <td><strong>MCP-T1</strong></td>
 <td>Unauthorized agent actions — agents perform operations beyond authorized scope</td>
-<td><strong>Layers 2, 4, 5:</strong> AgentCards define explicit capabilities; AuthBridge enforces at every hop; delegation chains preserve scope limits</td>
+<td><strong>Layers 1, 3, 4:</strong> AgentCards define explicit capabilities; AuthBridge enforces at every hop; delegation chains preserve scope limits</td>
 </tr>
 <tr>
 <td><strong>MCP-T2</strong></td>
 <td>Agent impersonation — malicious actors spawn unauthorized agents or masquerade as legitimate ones</td>
-<td><strong>Layers 1, 3:</strong> SPIFFE cryptographic identity prevents spoofing; federated JWT auth requires valid SPIRE certificate</td>
+<td><strong>Layers 1, 2:</strong> SPIFFE cryptographic identity prevents spoofing; federated JWT auth requires valid SPIRE certificate</td>
 </tr>
 <tr>
 <td><strong>MCP-T3</strong></td>
 <td>Privilege escalation — agents exploit weak boundaries to gain elevated access</td>
-<td><strong>Layers 2, 4, 5:</strong> Signed capabilities prevent tampering; sidecar enforcement prevents bypass; delegation depth limits prevent chain abuse</td>
+<td><strong>Layers 1, 3, 4:</strong> Signed capabilities prevent tampering; sidecar enforcement prevents bypass; delegation depth limits prevent chain abuse</td>
 </tr>
 <tr>
 <td><strong>MCP-T7</strong></td>
 <td>Credential compromise — long-lived secrets leaked through agent memory, logs, or prompts</td>
-<td><strong>Layers 1, 3:</strong> Short-lived X.509/JWT-SVIDs auto-rotated; no static secrets in environment variables</td>
+<td><strong>Layers 1, 2:</strong> Short-lived X.509/JWT-SVIDs auto-rotated; no static secrets in environment variables</td>
 </tr>
 <tr>
 <td><strong>MCP-T9</strong></td>
 <td>Insufficient logging/audit — inability to reconstruct "which agent did what on whose behalf"</td>
-<td><strong>Layer 6:</strong> Observable trust with delegation chains in traces; immutable audit logs with correlation IDs</td>
+<td><strong>Layer 5:</strong> Observable trust with delegation chains in traces; immutable audit logs with correlation IDs</td>
 </tr>
 </tbody>
 </table>
 
 **Additional threat themes addressed:**
-- **Over-permissioning:** ZSP (Layer 2) and just-in-time credentials
-- **Loss of actor clarity:** OBO tokens preserve full delegation chain (Layer 5)
-- **Shadow/unknown agents:** Explicit registration and AgentCard requirement (Layer 2)
-- **Broken delegation chains:** RFC 8693 with act claims (Layer 5)
-- **Agent collusion & proxy chaining:** Delegation depth limits and ABAC policies (Layer 5)
+- **Over-permissioning:** ZSP (Layer 1) and just-in-time credentials
+- **Loss of actor clarity:** OBO tokens preserve full delegation chain (Layer 4)
+- **Shadow/unknown agents:** Explicit registration and AgentCard requirement (Layer 1)
+- **Broken delegation chains:** RFC 8693 with act claims (Layer 4)
+- **Agent collusion & proxy chaining:** Delegation depth limits and ABAC policies (Layer 4)
 
 ### Tools
 - **SPIRE:** https://spiffe.io/docs/latest/spire-about/
@@ -1578,6 +1583,6 @@ This playbook addresses the following threat categories from the MCP Security wh
 - **Envoy Proxy:** https://www.envoyproxy.io/ (alternative to custom AuthBridge sidecar)
 
 ### Implementation Examples
-- **Kagenti SPIRE Signing Demo:** https://github.com/kagenti/kagenti-operator/blob/main/kagenti-operator/demos/agentcard-spire-signing/demo.md  
+- **Rossoctl SPIRE Signing Demo:** https://github.com/rossoctl/operator/blob/main/demos/agentcard-spire-signing/demo.md  
   *Complete reference implementation demonstrating SPIRE-signed AgentCards, AuthBridge sidecar injection with federated-jwt authentication, RFC 8693 token exchange delegation, and end-to-end observability on Kubernetes. Includes automated setup scripts and verification steps.*
 

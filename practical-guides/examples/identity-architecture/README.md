@@ -6,12 +6,13 @@ Secure agent-to-agent communication on a local kind cluster with podman. Two age
 ## Repository Layout
 
 ```
-agents-identity/
+Identity-Architecture-Patterns-for-Agentic-Systems/
 ├── keycloak-spi/                      # Custom Keycloak SPI (RFC 8693 actor claims)
 │   ├── Dockerfile, pom.xml
 │   └── src/.../AgenticTokenExchangeProvider.java
 ├── keycloak-values.yaml               # Helm override for custom Keycloak image
 ├── phoenix-values.yaml                # OTel Collector + Phoenix + PostgreSQL
+├── operator-values.yaml               
 ├── orchestrator/
 │   ├── Dockerfile
 │   └── server.py                      # A2A JSON-RPC handler with Ollama routing
