@@ -55,6 +55,10 @@ tl;dr: CoSAI contributions are actions performed by humans, who are responsible 
 * Human-edited content and quality control: CoSAI mandates human-reviewed or \-edited results for any final outputs. A robust quality control process should be in place, involving careful review of the generated content for accuracy, relevance, and alignment with CoSAI's goals and principles. Human experts should scrutinize the output of AI systems to identify any errors, inconsistencies, or potential biases.  
 * Iterative refinement: The use of AI systems in drafting standards should be seen as an iterative process, with the generated content serving as a starting point for further refinement and improvement by human experts. Multiple rounds of review and editing may be necessary to ensure the final standards meet the required quality and reliability thresholds.
 
+### Disclaimer
+
+The views represented in this paper do not necessarily represent the views of all CoSAI members, including reviewers and their organizations. 
+
 ### **Copyright Notice** 
 
 Copyright © OASIS Open 2025\. All Rights Reserved. This document has been produced under the process and license terms stated in the OASIS Open Project rules: [https://www.oasis-open.org/policies-guidelines/open-projects-process](https://www.oasis-open.org/policies-guidelines/open-projects-process).
