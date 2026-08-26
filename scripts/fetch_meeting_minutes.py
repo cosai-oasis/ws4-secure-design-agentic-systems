@@ -5,13 +5,15 @@ Fetch CoSAI meeting minutes from Google Drive and GitHub, save as markdown.
 Drive sources: Reads Gemini-generated meeting notes from shared Drive
 folders, exports them as markdown. Drive access goes through the Google
 Workspace CLI (`gws`, https://github.com/googleworkspace/cli). See
-scripts/README.md for one-time gws + gcloud + OAuth setup. Currently covers WS4, the
-ADLC SIG (under WS4), WS3, the Code-Development SIG (under WS3), the
-Risk Management SIG (under WS3), and the Agent Credentials group.
+scripts/README.md for one-time gws + gcloud + OAuth setup. Currently covers
+WS1, WS2, WS3, WS4, the ADLC SIG and the Multimodal Agentic Security group
+(both under WS4), the Code-Development SIG (under WS3), the Risk Management
+SIG (under WS3), and the Agent Credentials group.
 
-GitHub sources (TSC): Reads markdown meeting minutes committed to a public
-GitHub repo directory. Uses the unauthenticated GitHub Contents API; honors
-GITHUB_TOKEN env var if set to raise the rate limit.
+GitHub sources: Reads markdown meeting minutes committed to public GitHub
+repo directories. Covers TSC minutes and PGB minutes. Uses the
+unauthenticated GitHub Contents API; honors GITHUB_TOKEN env var if set to
+raise the rate limit.
 
 Output goes under meeting_minutes/<subdir>/ in the WS4 repo.
 
@@ -50,7 +52,7 @@ SOURCES = [
         "shared_name_contains": "CoSAI WS4 recurring meeting",
         "shared_title_pattern": (
             r"^CoSAI WS4 recurring meeting - "
-            r"(?P<y>\d{4})/(?P<m>\d{2})/(?P<d>\d{2}) .* Notes by Gemini$"
+            r"(?P<y>\d{4})/(?P<m>\d{2})/(?P<d>\d{2})"
         ),
         "shared_folder_name_template": "WS4 {y}{m}{d}",
     },
@@ -62,9 +64,51 @@ SOURCES = [
         "shared_name_contains": "WS4 SIG Security of Agent Development Lifecycle",
         "shared_title_pattern": (
             r"^WS4 SIG Security of Agent Development Lifecycle - "
-            r"(?P<y>\d{4})/(?P<m>\d{2})/(?P<d>\d{2}) .* Notes by Gemini$"
+            r"(?P<y>\d{4})/(?P<m>\d{2})/(?P<d>\d{2})"
         ),
         "shared_folder_name_template": "{y}-{m}-{d}",
+    },
+    {
+        "name": "Multimodal",
+        "type": "drive",
+        "folder_id": "1JI89V3NrSQnEzcE6nlNUed2Huv114FD4",
+        "subdir": "multimodal",
+        # WS4 sub-group (Shriti Priya). Mixed layout: June/July meetings are
+        # filed in per-date subfolders; from August the Gemini notes sit loose
+        # in the parent, so the shared-with-me fallback carries those.
+        "shared_name_contains": "WS4 Multimodal Agentic Security Weekly Meeting",
+        "shared_title_pattern": (
+            r"^WS4 Multimodal Agentic Security Weekly Meeting - "
+            r"(?P<y>\d{4})/(?P<m>\d{2})/(?P<d>\d{2})"
+        ),
+        "shared_folder_name_template": "{y}-{m}-{d}",
+    },
+    {
+        "name": "WS1",
+        "type": "drive",
+        "folder_id": "1L7A46unF12D3Tk68_QVP53M9cGjJUMA3",
+        "subdir": "ws1",
+        # Prefix match — works whether or not "Notes by Gemini" is appended.
+        "shared_name_contains": "CoSAI WS1 Weekly Meeting",
+        "shared_title_pattern": (
+            r"^CoSAI WS1 Weekly Meeting - "
+            r"(?P<y>\d{4})/(?P<m>\d{2})/(?P<d>\d{2})"
+        ),
+        "shared_folder_name_template": "WS1-{y}{m}{d}",
+    },
+    {
+        "name": "WS2",
+        "type": "drive",
+        "folder_id": "1zmeLjxAp8UJdu99LM3qAhHf-CH9JGR32",
+        "subdir": "ws2",
+        # Prefix match — WS2 titles end after the date, with no
+        # "Notes by Gemini" suffix, so the pattern must not require one.
+        "shared_name_contains": "CoSAI WS2 Defenders meeting",
+        "shared_title_pattern": (
+            r"^CoSAI WS2 Defenders meeting - "
+            r"(?P<y>\d{4})/(?P<m>\d{2})/(?P<d>\d{2})"
+        ),
+        "shared_folder_name_template": "WS2-{y}{m}{d}",
     },
     {
         "name": "WS3",
@@ -84,7 +128,7 @@ SOURCES = [
         "shared_name_contains": "CoSAI WS3 SIG: Security of AI-Assisted Code Development",
         "shared_title_pattern": (
             r"^CoSAI WS3 SIG: Security of AI-Assisted Code Development - "
-            r"(?P<y>\d{4})/(?P<m>\d{2})/(?P<d>\d{2}) .* Notes by Gemini$"
+            r"(?P<y>\d{4})/(?P<m>\d{2})/(?P<d>\d{2})"
         ),
         "shared_folder_name_template": "{y}-{m}-{d}",
     },
@@ -96,7 +140,7 @@ SOURCES = [
         "shared_name_contains": "CoSAI WS3 CoSAI-RM SIG weekly meeting",
         "shared_title_pattern": (
             r"^CoSAI WS3 CoSAI-RM SIG weekly meeting - "
-            r"(?P<y>\d{4})/(?P<m>\d{2})/(?P<d>\d{2}) .* Notes by Gemini$"
+            r"(?P<y>\d{4})/(?P<m>\d{2})/(?P<d>\d{2})"
         ),
         "shared_folder_name_template": "WS3 CoSAI-RM SIG {y}{m}{d}",
     },
@@ -108,7 +152,7 @@ SOURCES = [
         "shared_name_contains": "CoSAI WS4: Agent Credentials",
         "shared_title_pattern": (
             r"^CoSAI WS4: Agent Credentials - "
-            r"(?P<y>\d{4})/(?P<m>\d{2})/(?P<d>\d{2}) .* Notes by Gemini$"
+            r"(?P<y>\d{4})/(?P<m>\d{2})/(?P<d>\d{2})"
         ),
         "shared_folder_name_template": "{y}-{m}-{d}",
     },
@@ -118,6 +162,13 @@ SOURCES = [
         "repo": "cosai-oasis/cosai-tsc",
         "path": "tsc-meeting-minutes",
         "subdir": "tsc",
+    },
+    {
+        "name": "PGB",
+        "type": "github",
+        "repo": "cosai-oasis/oasis-open-project",
+        "path": "pgb-meeting-minutes",
+        "subdir": "pgb",
     },
 ]
 
@@ -311,6 +362,79 @@ def fetch_drive_source(source, output_dir, skip_existing):
     return fetched, skipped, no_notes, errors
 
 
+def _notes_doc_first(f):
+    """Sort key preferring Gemini notes over any other doc sharing a meeting's
+    title prefix (transcripts, recaps). The title patterns match on the prefix
+    alone, so several docs can map to one output filename; notes should win.
+    """
+    return (0 if "Notes by Gemini" in f["name"] else 1, f["name"])
+
+
+def fetch_drive_loose_docs(source, output_dir, skip_existing):
+    """Catch Gemini notes that sit loose in the source's parent folder rather
+    than inside a per-meeting subfolder.
+
+    The shared-with-me pass cannot see these: when a folder is shared, Drive
+    sets sharedWithMe only on the folder, not on the documents inside it, so
+    docs filed directly in the parent fall through both other passes. Matches
+    by title pattern and writes the same canonical filename the folder pass
+    would produce.
+
+    Returns (fetched, skipped, errors).
+    """
+    pattern = source.get("shared_title_pattern")
+    template = source.get("shared_folder_name_template")
+    if not (pattern and template):
+        return 0, 0, 0
+
+    fetched = skipped = errors = 0
+    pat = re.compile(pattern)
+
+    print(f"\n[{source['name']}] Scanning parent folder for loose notes...")
+    files = drive_list({
+        "q": (
+            f"'{source['folder_id']}' in parents and trashed = false and "
+            "mimeType = 'application/vnd.google-apps.document'"
+        ),
+        "fields": "nextPageToken, files(id, name, mimeType)",
+        "pageSize": 100,
+        "supportsAllDrives": True,
+        "includeItemsFromAllDrives": True,
+    })
+
+    claimed = set()
+    for f in sorted(files, key=_notes_doc_first):
+        m = pat.match(f["name"])
+        if not m:
+            continue
+        synthetic = template.format(**m.groupdict())
+        if synthetic in claimed:
+            continue
+        claimed.add(synthetic)
+        output_path = output_dir / folder_name_to_filename(synthetic)
+
+        if skip_existing and output_path.exists():
+            skipped += 1
+            continue
+
+        print(f"  [loose] {synthetic}: fetching '{f['name']}'...")
+        try:
+            content = export_doc_as_markdown(f["id"], output_dir)
+        except GwsError as e:
+            print(f"  [loose] {synthetic}: export failed ({e}); skipping", file=sys.stderr)
+            errors += 1
+            continue
+        header = (
+            f"# {synthetic}\n\n"
+            f"**Source:** {f['name']} (loose in parent folder)\n\n---\n\n"
+        )
+        with open(output_path, "w") as out:
+            out.write(header + content)
+        fetched += 1
+
+    return fetched, skipped, errors
+
+
 def fetch_drive_shared_fallback(source, output_dir, skip_existing):
     """Catch Gemini notes that are shared with the user but not yet filed
     into a per-meeting subfolder. Matches by title pattern; writes to the
@@ -343,11 +467,15 @@ def fetch_drive_shared_fallback(source, output_dir, skip_existing):
         "includeItemsFromAllDrives": True,
     })
 
-    for f in candidates:
+    claimed = set()
+    for f in sorted(candidates, key=_notes_doc_first):
         m = pat.match(f["name"])
         if not m:
             continue
         synthetic = template.format(**m.groupdict())
+        if synthetic in claimed:
+            continue
+        claimed.add(synthetic)
         output_path = output_dir / folder_name_to_filename(synthetic)
 
         if skip_existing and output_path.exists():
@@ -452,12 +580,18 @@ def main():
             )
             total_no_notes += no_notes
             total_errors += errors
-            f2, s2, e2 = fetch_drive_shared_fallback(
+            f2, s2, e2 = fetch_drive_loose_docs(
                 source, output_dir, args.skip_existing
             )
             fetched += f2
             skipped += s2
             total_errors += e2
+            f3, s3, e3 = fetch_drive_shared_fallback(
+                source, output_dir, args.skip_existing
+            )
+            fetched += f3
+            skipped += s3
+            total_errors += e3
         elif source["type"] == "github":
             fetched, skipped, errors = fetch_github_source(
                 source, output_dir, args.skip_existing
