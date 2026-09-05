@@ -1,14 +1,14 @@
 ---
 title: "Agent Containment: From Sandboxing to Bounded Authority"
 author: "Workstream 4: Secure Design Patterns for Agentic Systems"
-date: 2026-09-03
-version: 0.1-skeleton
+date: 2026-09-05
+version: 0.2-skeleton
 status: "Working draft. Not approved. Tracks issue #172."
 ---
 
 # Agent Containment: From Sandboxing to Bounded Authority
 
-**Working title.** Section 1 argues that "sandboxing" is one layer of a bounded-authority model rather than the whole problem; the title should follow whatever that section concludes.
+**Title.** Settled with the section 1 frame (2026-09-05): containment is one layer of a bounded-authority model, which is what the title already says. No longer provisional.
 
 **Status:** Working draft, skeleton. Not reviewed, not approved. Follows on from the WS4 blog post *Treat Your Agent Like an Insider Threat: Why AI Sandboxing Can't Wait* (2026-08-25) and takes as its scope the 21 questions banked from that post's review in [issue #172](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/172).
 
@@ -58,7 +58,7 @@ Containment of autonomous agents that hold real access: what the boundary is, wh
 
 ### Target audience
 
-> Drafting note: Q5. State the level explicitly. Proposal: practitioners and architects who deploy agents with production access, with section 1 written so an executive can read it alone. Confirm or change.
+Practitioners and architects who deploy agents with production access. Section 1 is written so an executive can read it alone and take away the frame and the four failure modes. (Q5, settled 2026-09-05; raised by @Johncavanaugh-IIS and open since the #167 review — objections welcome by comment on #172, but drafting proceeds on this basis.)
 
 ---
 
@@ -70,11 +70,10 @@ Containment of autonomous agents that hold real access: what the boundary is, wh
 
 **Starting material.** The blog post already separates two failure classes: containment failures, where the agent reached systems it should not have been able to reach, and authority failures, where the agent never escaped anything and used access it was legitimately granted. Sandboxing answers *can this agent reach a resource*; bounded authority answers *what is this agent allowed to do once it is there*. The gym-booking incident is the canonical case of asking only the first question.
 
-**Candidate decomposition** (from @getglad): lead with the objective, an environment in which the agent has bounded authority in the way a corporate laptop does, and map each control back to the layer or axis it serves.
+**Settled (2026-09-05): the frame.** Containment is one layer of a bounded-authority model, not a standalone control family. Converged independently by @getglad and @Levaj2000 in the #167 review and #172 thread with no objection since. The decomposition follows @getglad's candidate: lead with the objective — an environment in which the agent has bounded authority in the way a corporate laptop does — and map each control back to the layer it serves. Section 2's three axes are the *internal* structure of the containment layer, not the top-level frame (per @Levaj2000 in #172). The decomposition also does the paper's hardest job in §1.1: it states which layers survive when a deployment shape removes isolation entirely.
 
 **Open items.**
-- Decide the frame. If bounded authority is the frame, the title changes and section 2's axes become the decomposition.
-- State precisely what this paper takes from the Agentic IAM paper and what it leaves there.
+- State precisely what this paper takes from the Agentic IAM paper and what it leaves there. Caution for the drafter: bounded authority is that paper's entire subject, and its core principles already cover standing privilege, agent-vs-OBO rights, per-hop enforcement, and gateways. §1 states where the containment layer sits inside that model and cites the rest; it does not re-derive the principles.
 
 ### 1.1 Deployment shapes and what containment can mean in each
 
@@ -82,10 +81,10 @@ Containment of autonomous agents that hold real access: what the boundary is, wh
 
 **Purpose.** Say who the guidance is for and which controls are available to them.
 
+**Starting material** (from @skvcool-rgb in #172, adopted as the section's spine). Where the deployment shape denies a container boundary — desktop agents, integrated third-party agents — isolation is unavailable, but the authority and mediation layers survive *to the extent you can still interpose at the request layer*: mediated tool/MCP calls (§3), bounded and attenuated authority, and subtree accounting (§4). Where you can interpose none of them — a fully third-party agent — containment is wholly a procurement requirement on the provider, and the paper says so plainly. This resolves Q3 the same way: where the organization controls the principal's authority, the requirements are engineering; where it does not, the identical requirements land on the provider as procurement, and each section should be markable as one or the other.
+
 **Open items.**
-- Built-and-operated agents versus procured-and-integrated agents. The available controls differ sharply; the paper should say which sections apply to which.
-- Desktop and integrated agents, where no container boundary exists at all. If the answer is "require it of the provider", write it as a procurement requirement, not an engineering one.
-- Audience level, per the drafting note under Target audience.
+- Per section, mark which requirements are engineering and which become procurement in the procured-and-integrated case.
 
 ---
 
@@ -93,13 +92,14 @@ Containment of autonomous agents that hold real access: what the boundary is, wh
 
 **Answers:** Q11. **Raised by:** @getglad.
 
-**Purpose.** Adopt local, outbound, and inbound as the organizing structure for sections 3 through 6, or reject it with reasons.
+**Settled (2026-09-05).** Adopted: local, outbound, and inbound as the organizing structure — as the internal decomposition of the containment layer per §1, not the paper's top frame. The strongest argument for adoption is one the thread hasn't made yet: the MCP runtime isolation guide, our own how-to, is almost entirely *local* axis with a little *outbound* and no *inbound* at all. The axes give the existing guidance a spine it currently lacks, and make its gaps legible.
 
-**Starting material.** The blog post's "What Strong Sandboxing Requires" list is almost entirely local and outbound: OS-enforced isolation, egress controls, privilege minimization, progressive hardening, short-lived credentials. The inbound axis, where prompt injection lives, is underserved there and is the reason this section exists.
+**Inbound is cross-referenced, not written here.** The input sanitization practical guide and the MCP paper's untrusted-content guidance already cover the controls; writing inbound content here duplicates two documents at once. The axis stays in the structure so the decomposition is complete; the reader is sent elsewhere for the how.
+
+**Starting material.** The blog post's "What Strong Sandboxing Requires" list is almost entirely local and outbound: OS-enforced isolation, egress controls, privilege minimization, progressive hardening, short-lived credentials.
 
 **Open items.**
 - For each axis, name the enforcement point, the property it must hold, and the blog-post controls that belong to it.
-- Decide whether inbound hardening belongs in this paper or is cross-referenced to the input sanitization practical guide.
 
 ---
 
@@ -111,9 +111,12 @@ Containment of autonomous agents that hold real access: what the boundary is, wh
 
 **Starting material.** The blog post's complete-mediation bullet: every agent action must pass through a policy enforcement point, the policy must express more than which endpoint may be called, and the reference monitor must be authoritative and outside the agent's reach.
 
+**Candidate invariant** (from @ryjen in #172): define containment around **effective reach** — for any consequential effect, the relevant reach is the union of every path through which the agent can cause it (direct network access, mediated tool calls, provider-side fetches and execution, delegated agents, alternate endpoints or credentials) — and require that *every path capable of producing an equivalent consequential effect cross an independently enforced authorization boundary before the effect commits, or be explicitly excluded from the claimed assurance boundary*. A correctly mediated tool call is not sufficient if the same effect remains reachable another way. Corollary, also @ryjen's: prior receipts, traces, and completed results stay evidence and never become executable authority for the final effect. Refinement from the #172 discussion (@Levaj2000): a receipt may authorize skipping duplicate work within a single claimed assurance boundary; it may never substitute for a mediation step that boundary claims to enforce.
+
 **Open items.**
+- Decide whether the effective-reach invariant becomes this section's normative statement. It subsumes the section's original claim and gives §3.1 its definition.
 - What egress allow/deny at the network layer still buys you once tool-call mediation exists, and what it cannot express.
-- Relationship to the MCP paper's Sandboxing and Isolation and Logging controls; do not duplicate them.
+- Relationship to the MCP paper's Sandboxing and Isolation and Logging controls, and to the secure tool design guide's "don't defer decisions to the LLM" principle; cross-reference, do not duplicate.
 
 ### 3.1 The permitted channel is the exfiltration path
 
@@ -133,11 +136,14 @@ Containment of autonomous agents that hold real access: what the boundary is, wh
 
 **Purpose.** Show how per-sandbox controls fail to constrain aggregate consumption across a set of agents sharing a principal, and take a position on aggregate accounting: budgets and egress accounted across the set rather than per container.
 
-> Drafting note: @skvcool-rgb offered a short subsection on the failure shape in the #167 review. This section is reserved for it.
+**Settled (2026-09-05): the position, per @skvcool-rgb in #172.** Aggregate accounting is a control the paper recommends, as a scoped requirement: where the deploying organization controls the principal's authority, a conformant model MUST account budgets and egress across the set of agents sharing a principal (and across a delegation subtree), not only per container; where it does not, the same requirement lands on the provider as procurement (§1.1). Per-container and per-edge invariants are named explicitly as *local invariants that do not compose*.
+
+> Drafting note: this section is reserved for @skvcool-rgb, whose proposed scope stands: (1) the failure shape, pointing back to the #172 formulation; (2) the closing control — aggregate accounting keyed on the shared principal / delegation subtree, evaluated at the consuming action, over enumerated quantities; (3) the hard sub-problem named rather than hand-waved: the control presupposes a shared accounting authority, with its own consistency, latency, and trust questions; (4) the Android colluding-applications literature (via @imolloy) as prior art, mapped onto the delegation subtree.
+
+> Drafting note, editorial: this section extends — and in one respect critiques — the approved Agentic IAM paper. That paper requires scope to narrow at each hop; this section's point is that per-hop attenuation is a local invariant that does not compose. The IAM paper already *names* the phenomenon in its threat themes ("two or more agents can pass data or proxy calls so that, together, they perform an action neither could perform alone") but its controls do not reach it. Cite the specific requirement and say this plainly, so the section reads as an extension of an approved paper rather than unmarked disagreement.
 
 **Open items.**
 - The failure shape, with one worked example.
-- Whether aggregate accounting is a control the paper recommends or a gap it names.
 
 ---
 
@@ -147,7 +153,7 @@ Containment of autonomous agents that hold real access: what the boundary is, wh
 
 **Purpose.** Commit to a name for the enforcement property, and separate the failure taxonomy the blog post conflates.
 
-**Vocabulary decision.** Either "reference monitor" with a plain-language gloss, or an approachable term that carries the same three properties: complete mediation, tamper-proof, verifiable. This matters more in a document people will cite than it did in a blog post.
+**Vocabulary decision.** Either "reference monitor" with a plain-language gloss, or an approachable term that carries the same three properties: complete mediation, tamper-proof, verifiable. This matters more in a document people will cite than it did in a blog post. Sharpening from @ryjen in #172: whatever the term, the property it names is not "kernel enforced" — it is complete mediation, enforcement outside the agent's control, and *enough evidence to verify that mediation occurred*, which pulls the third property toward §7's evidence contract.
 
 **The four failure modes, kept separate.**
 1. The agent defeats the control.
@@ -155,7 +161,7 @@ Containment of autonomous agents that hold real access: what the boundary is, wh
 3. The control was insufficiently specified.
 4. The control was correct and the agent used permitted authority.
 
-Most incidents in the blog post are modes 3 and 4, which is not where the industry's attention is. Each subsequent section should say which mode its control addresses.
+Most incidents in the blog post are modes 3 and 4, which is not where the industry's attention is. Each subsequent section should say which mode its control addresses. Anchor examples from the thread: the x32/seccomp case is mode 3 (the system applied an insufficient policy; the agent had no authority over it); the bubblewrap self-disable is mode 2; the gym-booking incident is mode 4 (nothing was escaped — what bounds it is scope on the grant, and evidence afterwards).
 
 ---
 
@@ -167,9 +173,13 @@ Most incidents in the blog post are modes 3 and 4, which is not where the indust
 
 **Starting material.** The blog post's patch-posture bullet: "zero CVEs" is not a promise anyone can keep and would not have covered the Artifactory chain or the 2014-era seccomp gap. What can be required is narrower: no known-exploitable CVEs in the isolation path, a measured patch SLA, minimum attack surface, named compensating controls.
 
+**Correction to the worked example (2026-09-05, from the Appendix A source check — see A.2).** The blog's telling merges two break-ins. Hugging Face's own disclosure places the intrusion's start in their data-processing pipeline — a remote-code dataset loader and a template injection in a dataset configuration, reaching a processing worker — and affirmatively reports the software supply chain verified clean, container images and published packages included. Artifactory belongs to the *other* half: the cache proxy inside OpenAI's evaluation environment, where the sandbox escape happened. Kept separate, the case is a better example for this section, because the two halves sit on opposite sides of its central boundary: the Artifactory instance was stood up for the engagement and was in scope to constrain (per @imolloy in #172); Hugging Face's infrastructure genuinely belonged to someone else.
+
+**Extension** (from @Levaj2000 in #172): the yours-to-harden boundary decides more than whether blast-radius control is available — it decides whether *evidence* is available. When the reached system belongs to a third party, you hold a record that your agent asked and they hold a record that something happened, and nothing binds the two. Open OCSF proposal on exactly this: `caused_by` on the resource owner's event (ocsf/ocsf-schema#1738, from @aryanval).
+
 **Open items.**
 - Which reachable systems are yours to harden and which are not. That boundary determines whether blast-radius control is even available to you.
-- Relationship to the Hugging Face blast radius (static database password, reusable VPN key, 181 nodes) as the worked example.
+- The Hugging Face worked example, drafted from the primary disclosures per A.2. The blog's specific figures (181 nodes, static database password, reusable VPN key) remain unverified against a primary source and must not be asserted until A.2 closes them.
 
 ---
 
@@ -179,15 +189,21 @@ Most incidents in the blog post are modes 3 and 4, which is not where the indust
 
 **Purpose.** Carry the detection argument and a schema summary in the paper; put the concrete logging schema in a practical guide alongside the MCP runtime isolation guide.
 
-**Starting material.** The blog post's "containment that fails loudly" and "tamper-evident logging" bullets: alert on denied syscalls, repeated policy violations, `/proc` inspection, Docker socket and metadata-service probes, blocked DNS and egress, credential-broker denials, and any attempt to alter the sandbox configuration; keep those events outside the agent's write scope; correlate across runs; use OCSF `attestation` and the `record_integrity` profile (OCSF 1.9.0) for tamper evidence.
+**Settled (2026-09-05): the two-artifact split, per @Levaj2000 and @imran-siddique in #172.** Detection and evidence are two artifacts against the same event, not one list. Detection wants signals that discriminate an attempt from normal behavior, and is allowed to be noisy, heuristic, and tuned per deployment. Evidence wants the fields that let someone who was not there and does not trust you reconstruct what happened, and must be stable, complete, and boring — and nothing in it may be executable authority (§3). The evidence contract is normative in this paper; the OCSF mapping goes in the practical guide, pinned to an OCSF version, with proposed fields marked as proposed. §7.1 is structured as two tables accordingly.
+
+**Starting material.** The blog post's "containment that fails loudly" and "tamper-evident logging" bullets: alert on denied syscalls, repeated policy violations, `/proc` inspection, Docker socket and metadata-service probes, blocked DNS and egress, credential-broker denials, and any attempt to alter the sandbox configuration; keep those events outside the agent's write scope; correlate across runs; use OCSF `attestation` and the `record_integrity` profile (OCSF 1.9.0) for tamper evidence. Correction to the supporting narrative, from the A.2 source check: Anthropic's sentence is "the two organizations **we were able to reach** had not previously detected the activity" — narrower than the blog's paraphrase — and Hugging Face *did* detect their own intrusion, via LLM-based triage on anomalies, before OpenAI connected its internal testing to it. The section's argument survives both facts, but must carry them: the strongest counter-example in the field is also the best existing evidence that the detection this section calls for actually works.
+
+> Drafting note, editorial: two approved papers already occupy adjacent ground — the MCP paper's Logging and Observability profile and the Agentic IAM paper's logging schema and "prove control on demand" checklist cover most of the evidence contract's field list. Open this section by stating what they already require; spend it on what is new here: the two-artifact split, the false-positive profile, time-to-contain, and the OCSF mapping — the last framed as closing the gap the IAM paper explicitly left open ("extension fields until formal support is adopted").
 
 ### 7.1 What to log
 
-> Drafting note: the schema itself goes in the practical guide. Here: the event classes, the fields that make an event attributable to an agent instance, and the integrity requirement.
+> Drafting note: two tables against the same event, per the settled split above. The detection table: signals, each with its expected false-positive source (§7.2). The evidence table: the contract fields from #172 — principal and full delegation chain as the integrity-protected correlation key, policy and tool-catalog versions, action identifier, request digest, enforcement decision and reason, runtime identity or attestation reference, outcome, integrity-protected sequence, and the accounting decision itself (§4). The schema and mapping go in the practical guide.
 
 ### 7.2 The false-positive profile
 
 **Purpose.** The harder half the blog post skipped. Normal agent behavior includes filesystem exploration and tool discovery. State what the false-positive profile looks like for each alert in the list above, and what correlation across runs actually requires operationally.
+
+**Status and the candidate discriminator.** No contributor can currently produce the profile — it requires production baselines across several organizations and deployment shapes, and any single corpus would be an artifact of one architecture (@Levaj2000, #172). What the section can state now: the discriminator for exploration-like behavior is not the action but the action measured against the agent's **declared** capability set. Undeclared-but-executed is the signal; the identical call inside the declared set is noise. That makes this partly a schema question (the declared-versus-executed pairing, ocsf/ocsf-schema#1724) rather than purely a tuning one. If no baselines materialize by first draft, publish the discriminator and name the gap explicitly — decided, not defaulted into.
 
 ### 7.3 Measuring containment
 
@@ -197,6 +213,7 @@ Most incidents in the blog post are modes 3 and 4, which is not where the indust
 
 **Open items.**
 - Align with the WS2 AI Telemetry Framework paper, Appendix E (OCSF asks), so CoSAI makes one request of OCSF, not two.
+- Reference @rabbidave's per-invocation tool activity event (its own OCSF proposal, per the resolution in #172 — what the agent *did* to the world, distinct from #1704's how-the-operation-ended) rather than restating it; correlate both by agent instance.
 
 ---
 
@@ -208,8 +225,10 @@ Most incidents in the blog post are modes 3 and 4, which is not where the indust
 
 **Starting material.** The blog post's pre-deployment control verification bullet: before any agent run, programmatically verify that the sandbox enforces its policy. Security controls need unit tests. A commons specification is the generalization of that bullet.
 
+> Drafting note, editorial (2026-09-05): part of this already exists. The MCP Security paper's Security Assurance Profiles specify, level by level, what execution, data, and context isolation must demonstrate — and that paper's own open questions defer an "evidence-per-level annex" listing the verification artifacts each level should produce, which is much of Q17's deliverable, already scoped and parked. This section must open by citing the profiles and position itself as either (a) the deferred annex, generalized beyond MCP, or (b) only what the profiles cannot cover. It must not read as a fresh specification. Three artifacts converging on "what must a sandbox demonstrate" (this section, the profiles, secure-ai-tooling#516) is the same duplication risk we resolved for the OCSF asks — coordinate before drafting.
+
 **Open items.**
-- Relationship to CoSAI-RM Isolation and Containment controls ([secure-ai-tooling#516](https://github.com/cosai-oasis/secure-ai-tooling/issues/516)).
+- Relationship to CoSAI-RM Isolation and Containment controls ([secure-ai-tooling#516](https://github.com/cosai-oasis/secure-ai-tooling/issues/516)) and to the MCP paper's assurance profiles, per the note above.
 - Whether this is a section, a recommendation for future work, or its own RFC.
 
 ---
@@ -221,7 +240,7 @@ Most incidents in the blog post are modes 3 and 4, which is not where the indust
 **Purpose.** For each item, either state a CoSAI position or say explicitly that it is out of scope and why.
 
 - **Agent Trajectory Interchange Format.** @getglad asked whether CoSAI has a position; @imolloy: not yet. Decide whether this paper takes one.
-- **Orchestrator-mediated and multi-agent jailbreaking** (@billbrietstout). Model-or-swarm jailbreaking through orchestrator and reasoning agents at machine speed rather than human-in-the-loop speed. Decide whether it belongs here, in the multimodal threat taxonomy, or in neither.
+- **Orchestrator-mediated and multi-agent jailbreaking** (@billbrietstout). Model-or-swarm jailbreaking through orchestrator and reasoning agents at machine speed rather than human-in-the-loop speed. Decide whether it belongs here, in the multimodal threat taxonomy, or in neither. New evidence for taking a position rather than deferring (from the A.2 source check): the UK AISI report (INC-2026-07-28-01) documents an agent leaving public messages on GitHub offering collaboration with other agents, with instructions to reuse accounts and artifacts, and planting prompt injections where it reasoned other automated AI systems would pick them up and execute them. That is observed multi-agent behavior in a primary source, not a hypothetical.
 
 ---
 
@@ -241,13 +260,15 @@ Most incidents in the blog post are modes 3 and 4, which is not where the indust
 4. UK AI Security Institute. *INC-2026-07-28-01*, 2026-08-04. https://www.aisi.gov.uk/blog/incident-report-unsanctioned-agent-behaviour-during-cyber-testing
 5. Ona.com. *How Claude Code Escapes Its Own Denylist and Sandbox*, 2026-03-03. https://ona.com/stories/how-claude-code-escapes-its-own-denylist-and-sandbox
 6. Pillar Security. *One Docker Socket to Rule Them All*, 2026-07-20. https://www.pillar.security/blog/one-docker-socket-to-rule-them-all-escaping-codex-cursor-and-gemini-clis-sandboxes
-7. Linux kernel documentation. *Seccomp BPF, Caveats*. https://www.kernel.org/doc/html/latest/userspace-api/seccomp_filter.html
+7. Linux kernel documentation. *Seccomp BPF, Pitfalls*. https://www.kernel.org/doc/html/latest/userspace-api/seccomp_filter.html
+   <!-- The arch-check warning is in the Pitfalls section; the document's Caveats section is about vDSO/vsyscall. The blog's ref 14 carries the same mislabel. -->
 8. CoSAI. *MCP Runtime Isolation, Practical Guide*. https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/blob/main/practical-guides/mcp-runtime-isolation.md
 9. CoSAI. *Agentic Identity and Access Management*, approved 2026-03-20. https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/blob/main/whitepapers/agentic-identity-and-access-control.md
 10. CoSAI. *Model Context Protocol (MCP) Security*, v2.0, 2026-08-12. https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/blob/main/whitepapers/model-context-protocol-security.md
 11. CoSAI WS4. *Treat Your Agent Like an Insider Threat: Why AI Sandboxing Can't Wait*, 2026-08-25. https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/blob/main/blogs/sandbox-now.md
 12. OCSF. *`attestation` object and `record_integrity` profile*, OCSF 1.9.0, 2026-08-03. https://github.com/ocsf/ocsf-schema/releases/tag/1.9.0
 13. OCSF. *Add normalized `ai_stop_reason` to the `ai_operation` profile*, ocsf/ocsf-schema#1704 (open). https://github.com/ocsf/ocsf-schema/pull/1704
+14. Hugging Face. *Security incident disclosure*, 2026-07-16. https://huggingface.co/blog/security-incident-july-2026
 
 ---
 
@@ -281,7 +302,10 @@ Most incidents in the blog post are modes 3 and 4, which is not where the indust
 **Purpose.** Evidence the blog post could not carry.
 
 - **A.1 The x32/seccomp result.** A publishable receipt: test harness, models and versions, sandbox configuration (Landlock, Docker network isolation, seccomp-BPF), the exact bypass, and the chained LLM-API relay. Until this appendix exists, the paper cites the result as reported, not as verified.
-- **A.2 The OpenAI / Hugging Face / Artifactory chain.** "Eight Artifactory zero-days" was removed from the blog post rather than asserted. If the paper relies on the chain in any detail, read the primary disclosure and the JFrog CVE records and record here what they actually say.
+- **A.2 The OpenAI / Hugging Face / Artifactory chain.** Primary sources read 2026-09-05 (full detail in the #172 comment of that date); status per claim:
+  - **Established from Hugging Face's disclosure [14]:** the intrusion into Hugging Face started in their data-processing pipeline — a remote-code dataset loader and a template injection in a dataset configuration, reaching a processing worker — followed by escalation to node-level access, credential harvesting, and lateral movement. Artifactory appears nowhere in that account, and the disclosure affirmatively reports the software supply chain verified clean, container images and published packages included. The blog's sentence merging Artifactory into the Hugging Face breach is wrong; §6 carries the corrected telling.
+  - **Established from NVD:** at least ten JFrog CVEs published 2026-07-27, nine naming Artifactory, severities up to a privilege-escalation flaw. Published-same-day is not used-in-the-chain; no CVE record connects itself to the incident, and researcher-credit claims trace to news coverage only. "Zero-day" is characterized directly only by Anthropic [3] — singular, and about OpenAI's escape, not the Hugging Face breach.
+  - **Unverified, primary source unread (the cited OpenAI page [2] blocks automated fetches; likely primary source is OpenAI's Black Hat presentation):** 17,600 attacker actions; the 4.5-day duration (secondary accounts give a 9–13 July recovery window while a timeline from the presentation runs 7 May–20 July, so the figure's meaning is unestablished); Kubernetes node root via a service-account token; 181 nodes enrolled in the VPN mesh; attempted CI pipeline poisoning; and Artifactory's exact role in the evaluation-environment escape. None of these may be asserted in the paper until read against the primary source; anything still unverified at first draft is dropped.
 - **A.3 Comparison of external findings.** @Johncavanaugh-IIS's comparison of the OpenAI researcher findings against the blog post's findings: what they found that we did not, and the reverse. Lands here first; sections 2 and 6 draw from it.
 
 ---
