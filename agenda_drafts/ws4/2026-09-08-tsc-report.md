@@ -60,8 +60,9 @@ report were never added.
 > **Accuracy flag on the published blog.** Working Q21 of the containment scope questions,
 > Jeff Leva read the primary disclosures and found the post conflates two separate intrusions:
 > the JFrog Artifactory CVEs and the Hugging Face data-pipeline compromise are different events
-> with different vulnerability sets. This affects §6 of the follow-on paper and probably warrants
-> a correction to the live post. Detail in [#172](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/172).
+> with different vulnerability sets. **Decision: this is corrected in the follow-on paper, not by
+> amending the live post.** The blog stands as published; §6 of the follow-on carries the accurate
+> account of both intrusions. Detail in [#172](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/172).
 
 ---
 
@@ -146,7 +147,7 @@ artifacts across three deliverables. That is the concrete version of ask 4.2 and
   of **2026-09-15**. Document: [`ws2-defenders/telemetry/CoSAI-AI-Telemetry-RFC.md`](https://github.com/cosai-oasis/ws2-defenders/blob/main/telemetry/CoSAI-AI-Telemetry-RFC.md). Anyone doing OCSF or OpenTelemetry work must align to **Appendices D and E**.
   Worth the TSC's attention: WS4's MCP decomposition **shrank that paper's ask on the CoSAI-RM to
   three risks and one control** — the two workstreams' outputs are already interlocking as intended.
-  This discharges my open TSC action on the telemetry documentation request; I can close the issue.
+  The TSC action behind this ([cosai-tsc#45](https://github.com/cosai-oasis/cosai-tsc/issues/45)) is **already closed** — J.R. Rao (@jrrao) closed it 2026-09-08 citing my Sep 1 confirmation. Nothing outstanding.
 - **WS2 [Zero Trust for AI Systems](https://github.com/cosai-oasis/ws2-defenders/blob/main/zero-trust/Zero%20Trust%20for%20AI%20Systems.md)** — Josiah flagged it in chat as required reading for the
   containment authors; it was pending PGB approval on 2026-09-03 and publishes imminently.
   Vocabulary alignment between it and the containment paper is cheaper now than after both ship.
