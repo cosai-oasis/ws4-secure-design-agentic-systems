@@ -207,8 +207,9 @@ roadmap's own legend — blocked states are described in Next Milestone rather t
 | 9 | Agent Credentials Paper | WS4 — Agent Credentials Group | 🔵 In Progress | 2026-10-31 | Early draft skeleton for broader review (October; day not fixed) |
 | 10 | Multimodal Threat Taxonomy | WS4 — Multimodal Agentic Security Group | 🔵 In Progress | 2026-10-31 | Refined modality-agnostic taxonomy draft for review |
 | 11 | MCP Risk Map Decomposition Review | WS4 — Secure Design Patterns for Agentic Systems | 🔵 In Progress | TBD | SME review of secure-ai-tooling#507 (76 entries); needs volunteers (#178) |
-| 12 | ADLC Lifecycle Definitional Paper | WS4 — SIG ADLC | 🔵 Planned | TBD | Blocked: paper has no author (SIG lead ≠ paper owner) |
-| 13 | ADLC Risks and Controls | WS4 — SIG ADLC | 🔵 In Progress | Overdue (end of Aug) | Blocked on SIG leadership and the Definitional Paper |
+| 12 | Observability CoSAI-RM Component | WS4 — SIG ADLC | 🔵 In Progress | TBD | Blocked: confirm RFC #175 withdrawal and refile the behavioural half as a control |
+| 13 | ADLC Lifecycle Definitional Paper | WS4 — SIG ADLC | 🔵 Planned | TBD | Blocked: paper has no author (SIG lead ≠ paper owner) |
+| 14 | ADLC Risks and Controls | WS4 — SIG ADLC | 🔵 In Progress | Overdue (end of Aug) | Blocked on SIG leadership, the definitional paper, and the observability reframe |
 
 ### Papers & Points of View
 
