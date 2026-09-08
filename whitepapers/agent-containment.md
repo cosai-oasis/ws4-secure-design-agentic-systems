@@ -263,6 +263,18 @@ cannot express the constraint, because the constraint is over a set.
 - Cross-reference the IAM paper's per-hop narrowing requirement by section number once its final
   numbering is confirmed.
 - Worked example: keep the twelve-worker case, or replace with an incident from §6.
+- Three refinements accepted from the automated review of the contributing PR
+  (Levaj2000#1), deferred to the section's authors rather than folded in editorially:
+  - R4.3's expire-back rule refunds a reservation whose outcome is unknown: if the action
+    succeeded but the consumer crashed before committing, the spent reservation looks abandoned
+    and is refunded, so crash-and-retry cycles can exceed the budget. Refund only when
+    non-consumption is authoritatively known, or reconcile idempotently.
+  - 4.3's "conservative floor" leaves below-floor decisions eligible to be served from stale
+    cached headroom; many small actions from the same cache re-open the race 4.2 closes. The
+    cache should decide only against capacity it has atomically reserved from the shared budget.
+  - "The crossing itself is the alert" cannot fire literally, since the control prevents the
+    crossing: the detection signal is the rejected reservation or the attempted consumption that
+    would have exceeded the threshold.
 
 ---
 
