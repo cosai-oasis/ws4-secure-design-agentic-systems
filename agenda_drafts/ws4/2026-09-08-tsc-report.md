@@ -92,13 +92,13 @@ deliverable actually is, and in two cases they are well ahead of what was report
 | MCP Security Whitepaper V2 | [#163](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/163) (residuals) | [`whitepapers/model-context-protocol-security.md`](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/blob/main/whitepapers/model-context-protocol-security.md) — shipped |
 | Agentic Isolation blog | — | [`blogs/sandbox-now.md`](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/blob/main/blogs/sandbox-now.md) — shipped |
 | Containment follow-on | [#172](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/172) | [PR #181](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/pull/181) → `whitepapers/agent-containment.md`, 340-line skeleton |
-| Agent Credentials paper | [#99](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/99) — RFC **accepted**, issue closed | [Agent Credentials White Paper (Draft)](https://docs.google.com/document/d/1ILDtbNJw_1GCj6V9uXaDgMLGKQJR9JJqUNWMef9Vamk/edit) — **12,243 words**, updated 2026-09-03 |
-| Multimodal threat taxonomy | [#113](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/113) | [RFC: v1Draft Multimodal Agentic Security](https://docs.google.com/document/d/1_71VIIOl2Nas16U-aXo6t1Y7sz71w6zeYC7jwdTweiA/edit) — **12,250 words**, updated 2026-09-03 |
+| Agent Credentials paper | [#99](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/99) — RFC **accepted**, issue closed | [Agent Credentials White Paper (Draft)](https://docs.google.com/document/d/1ILDtbNJw_1GCj6V9uXaDgMLGKQJR9JJqUNWMef9Vamk/edit)[^access] — **12,243 words**, updated 2026-09-03 |
+| Multimodal threat taxonomy | [#113](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/113) | [RFC: v1Draft Multimodal Agentic Security](https://docs.google.com/document/d/1_71VIIOl2Nas16U-aXo6t1Y7sz71w6zeYC7jwdTweiA/edit)[^access] — **12,250 words**, updated 2026-09-03 |
 | MCP risk-map review | [#178](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/178) | [secure-ai-tooling#507](https://github.com/cosai-oasis/secure-ai-tooling/pull/507) — 76 entries |
 | Observability component | [#175](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/175) | [secure-ai-tooling#501](https://github.com/cosai-oasis/secure-ai-tooling/pull/501) — still draft |
-| ADLC risks and controls | SIG chartered by [#97](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/97) | [ADLC Risks and Controls](https://docs.google.com/document/d/16rb7h2y4FYu2tDsgVRA3HfUlXYEM0scVnQneCkB30SM/edit) — **25,466 words**, updated 2026-08-19 |
+| ADLC risks and controls | SIG chartered by [#97](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/97) | [ADLC Risks and Controls](https://docs.google.com/document/d/16rb7h2y4FYu2tDsgVRA3HfUlXYEM0scVnQneCkB30SM/edit)[^access] — **25,466 words**, updated 2026-08-19 |
 | ADLC lifecycle definitional paper | [#97](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/97) (SIG scope, accepted) | **the paper itself is unwritten.** Nearest material is [`SIGs/ADLC/adlc-scope-doc.md`](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/blob/main/SIGs/ADLC/adlc-scope-doc.md) — the SIG's *scope*, not the definitional paper, and by the same departed author |
-| Trust Graph | **none** — the only one genuinely untracked | [Trust Graph White Paper](https://docs.google.com/document/d/14ySBvzyC7sdXg6H0d8zCfgkVdy6kDbMuu0wLQUdywyE/edit) — 172 words; [Proposal Scoping](https://docs.google.com/document/d/1nISpW50DFNe0-24LG5JksgzCg8vK374fzjbjbaThv_s/edit) — 654 words |
+| Trust Graph | **none** — the only one genuinely untracked | [Trust Graph White Paper](https://docs.google.com/document/d/14ySBvzyC7sdXg6H0d8zCfgkVdy6kDbMuu0wLQUdywyE/edit)[^access] — 172 words; [Proposal Scoping](https://docs.google.com/document/d/1nISpW50DFNe0-24LG5JksgzCg8vK374fzjbjbaThv_s/edit)[^access] — 654 words |
 
 **Two things this table says that the status updates did not.**
 
@@ -210,7 +210,7 @@ roadmap's own legend — blocked states are described in Next Milestone rather t
 |---|---|---|---|---|---|---|
 | MCP Security Whitepaper V2 | WS4 | Sarah Novotny, Ian Molloy | | 2026-08-12 | 🟢 Published / Complete | [#141](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/pull/141) |
 | Containment Follow-on Paper | WS4 | Jeff Leva (Editor) | 2026-08-25 | 2026-10-29 | 🔵 In Progress | [#172](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/172) |
-| Agent Credentials Paper | WS4 | Benedict Lau, Rithikha Rajamohan | | 2026-10-31 | 🔵 In Progress | *no issue; [draft](https://docs.google.com/document/d/1ILDtbNJw_1GCj6V9uXaDgMLGKQJR9JJqUNWMef9Vamk/edit)* |
+| Agent Credentials Paper | WS4 | Benedict Lau, Rithikha Rajamohan | | 2026-10-31 | 🔵 In Progress | *no issue; [draft](https://docs.google.com/document/d/1ILDtbNJw_1GCj6V9uXaDgMLGKQJR9JJqUNWMef9Vamk/edit)[^access]* |
 | Multimodal Threat Taxonomy | WS4 / Multimodal Agentic Security | Shriti Priya | | 2026-10-31 | 🔵 In Progress | [#113](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/113) |
 | ADLC Lifecycle Definitional Paper | WS4 / SIG ADLC | **Unowned** | | TBD | 🔵 Planned | *no issue, no draft* |
 
@@ -256,3 +256,5 @@ down, the two structural asks are not.
 
 6. **And the roadmap still shows one WS4 row.** I brought rows last week; they were not added. If
    today's reassessment reads scope off the roadmap, WS4 looks like a blog post. §5 is copy-paste ready.
+
+[^access]: These are CoSAI working documents in Google Drive and are not open to the public. If the link asks for access, that is expected — request it by joining the workstream rather than by requesting the file. Start with the [CoSAI onboarding guide](https://github.com/cosai-oasis/oasis-open-project/blob/main/ONBOARDING.md), which covers the mailing lists, meeting invitations and Slack; workstream membership is what grants document access.
