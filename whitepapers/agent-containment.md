@@ -93,15 +93,43 @@ Practitioners and architects who deploy agents with production access. Section 1
 
 **Answers:** Q11. **Raised by:** @getglad.
 
-**Settled (2026-09-05).** Adopted: local, outbound, and inbound as the organizing structure — as the internal decomposition of the containment layer per §1, not the paper's top frame. The strongest argument for adoption is one the thread hasn't made yet: the MCP runtime isolation guide, our own how-to, is almost entirely *local* axis with a little *outbound* and no *inbound* at all. The axes give the existing guidance a spine it currently lacks, and make its gaps legible.
+> Drafting note (2026-09-08): first prose draft, by the editor, implementing the settled Q11 decision (axes adopted as the containment layer's internal structure; inbound cross-referenced). Two pieces of new reasoning are open to challenge by PR or comment on #172: the closing argument of 2.3 (inbound is the axis that arms the other two), and 2.2's claim that outbound has two enforcement points answering different questions. The container-runtime paragraph in 2.1 carries the enforcement-point analysis for @adeinega's case and deliberately stops at the analysis — the criterion is §8's, where the subsection is offered to them.
 
-**Inbound is cross-referenced, not written here.** The input sanitization practical guide and the MCP paper's untrusted-content guidance already cover the controls; writing inbound content here duplicates two documents at once. The axis stays in the structure so the decomposition is complete; the reader is sent elsewhere for the how.
+The containment layer decomposes along the direction in which influence travels. **Local**: the agent must not affect the host beyond what is intended. **Outbound**: the agent must not affect systems remote to the host beyond what is intended. **Inbound**: the agent must not be influenced by unintended external signals, whether they originate on the host or remotely. Each axis has its own enforcement point, its own property to hold, and its own way of failing — and conflating them is how a deployment ends up hardened on one axis and open on another.
 
-**Starting material.** The blog post's "What Strong Sandboxing Requires" list is almost entirely local and outbound: OS-enforced isolation, egress controls, privilege minimization, progressive hardening, short-lived credentials.
+The decomposition earns its place for a practical reason: mapped against it, the existing guidance shows its shape. The blog post's "What Strong Sandboxing Requires" list is almost entirely local and outbound. The MCP runtime isolation guide [8] — this workstream's own how-to — is almost entirely local, with a little outbound and no inbound at all. The axes give that guidance a spine, and make its gaps legible rather than invisible.
 
-**Open items.**
-- For each axis, name the enforcement point, the property it must hold, and the blog-post controls that belong to it.
-- Local axis: container-runtime access is the concrete case to work through, host Docker socket versus a rootless or VM-backed engine inside the sandbox. Criterion lives in §8; the enforcement-point analysis belongs here.
+### 2.1 Local
+
+The enforcement point is the operating-system boundary around the agent's process: namespaces and filesystem policy, syscall filtering, mandatory access control, and — where the workload warrants stronger — a userspace kernel or microVM beneath the container. The reference monitor at this axis is the kernel or its stand-in, and the property it must hold is the §5 set: every host-facing action mediated, the policy outside the agent's write scope, the enforcement verifiable.
+
+The blog post's controls that live here: OS-enforced isolation rather than agent instructions; privilege minimization in both directions — blocking the named escalation paths (no Docker socket, no metadata service) and shrinking default authority so a compromise yields little; progressive hardening for workloads that need more than a shared kernel.
+
+The concrete case that tests the axis is the coding agent that needs to build and run containers (§1.1). Mounting the host's container-runtime socket into the sandbox does not weaken the boundary; it relocates the enforcement point to the wrong side of it. Anything that can reach that daemon holds a documented API for privileged escape — the monitor is now *inside* the agent's reach, which is a §5 mode-2 condition by construction. The workable shapes keep a real isolation boundary between the agent and the engine it drives: a rootless engine inside the sandbox, or a runtime backed by its own isolation layer. The requirement is real and deserves a control answer rather than a prohibition; what a vetted sandbox must demonstrate for this case is specified in §8.
+
+### 2.2 Outbound
+
+Outbound has two enforcement points, and they answer different questions. The **network egress boundary** — proxy, allowlist, DNS policy — answers *which endpoints this workload may reach*. The **tool or MCP gateway** answers *what this agent may cause to happen*, in typed, attributable operations. §3 argues that for agent workloads the second is the primary mediation surface and states precisely what the first still buys once it exists. Both must hold the same property: the agent's **effective reach** — the union of every path to an external effect, including every fetch a provider will perform on the agent's request (§3.1) — crosses an independently enforced boundary before the effect commits.
+
+The blog post's controls that live here: egress controls that treat every permitted channel, the inference endpoint included, as a potential exfiltration path; the credential-injecting proxy, so credentials never enter the agent's reach; short-lived, task-scoped credentials with circuit breakers — because outbound authority is carried as much by what the agent *holds* as by what it can *route to*; complete mediation; bounded delegation.
+
+One boundary of this axis is deliberate: everything above is per-agent. The outbound quantities an operator actually cares about — bytes, destinations, spend — are consumed across the set of agents sharing a principal, and no per-agent control on this axis sees the sum. That is §4's subject.
+
+### 2.3 Inbound
+
+Inbound is where prompt injection lives, and its enforcement point is unlike the other two. There is no boundary the agent might cross; there is content crossing *into* the agent's context, and the property to hold is that content from an untrusted source never acquires the authority of an instruction. The controls — input filtering and validation, output checks, the data/control distinction, detached defences, red teaming — are specified in the input sanitization practical guide [15] and in the MCP paper's untrusted-content guidance [10], and this paper does not restate them. The axis stays in the decomposition because without it the model is incomplete, and the reader is sent to the guides for the how.
+
+What belongs *here* is the axis's relationship to the other two: inbound is the axis that arms them. An agent does not need to be adversarial to test its bounds — but the fastest way to get an agent that behaves adversarially is for something it read to tell it to. A deployment hardened locally and outbound but open inbound has built strong walls around an agent whose goals an attacker can set. This is why the paper's threat model — a model that wants to escape — is not paranoia about the model: on an open inbound axis, *wants to escape* is an input, not a disposition.
+
+### 2.4 The axes at a glance
+
+| Axis | Enforcement point | Property to hold | The how-to lives in |
+|---|---|---|---|
+| Local | OS boundary (kernel or its stand-in) | Every host-facing action mediated; policy outside agent's reach | MCP runtime isolation guide [8] |
+| Outbound | Egress boundary + tool/MCP gateway | Effective reach crosses an independent boundary before the effect commits | §3 of this paper; MCP Security paper [10] |
+| Inbound | Content entering the agent's context | Untrusted content never gains instruction authority | Input sanitization guide [15]; MCP paper [10] |
+
+Sections 3 through 6 now work down this structure: §3 takes the outbound mediation surface, §4 the quantities no single axis sees, §5 the property every enforcement point must hold, §6 what remains reachable when an axis fails.
 
 ---
 
@@ -447,6 +475,7 @@ The question each section answers is therefore not "how strong is the box?" but:
 12. OCSF. *`attestation` object and `record_integrity` profile*, OCSF 1.9.0, 2026-08-03. https://github.com/ocsf/ocsf-schema/releases/tag/1.9.0
 13. OCSF. *Add normalized `ai_stop_reason` to the `ai_operation` profile*, ocsf/ocsf-schema#1704 (open). https://github.com/ocsf/ocsf-schema/pull/1704
 14. Hugging Face. *Security incident disclosure*, 2026-07-16. https://huggingface.co/blog/security-incident-july-2026
+15. CoSAI. *Input Data Sanitization and Filtering, Practical Guide*. https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/blob/main/practical-guides/input-and-data-sanitization-and-filtering.md
 
 ---
 
