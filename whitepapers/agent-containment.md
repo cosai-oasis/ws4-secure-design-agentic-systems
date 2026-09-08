@@ -140,12 +140,129 @@ Practitioners and architects who deploy agents with production access. Section 1
 
 **Settled (2026-09-05): the position, per @skvcool-rgb in #172.** Aggregate accounting is a control the paper recommends, as a scoped requirement: where the deploying organization controls the principal's authority, a conformant model MUST account budgets and egress across the set of agents sharing a principal (and across a delegation subtree), not only per container; where it does not, the same requirement lands on the provider as procurement (§1.1). Per-container and per-edge invariants are named explicitly as *local invariants that do not compose*.
 
-> Drafting note: this section is reserved for @skvcool-rgb, whose proposed scope stands: (1) the failure shape, pointing back to the #172 formulation; (2) the closing control — aggregate accounting keyed on the shared principal / delegation subtree, evaluated at the consuming action, over enumerated quantities; (3) the hard sub-problem named rather than hand-waved: the control presupposes a shared accounting authority, with its own consistency, latency, and trust questions; (4) the Android colluding-applications literature (via @imolloy) as prior art, mapped onto the delegation subtree.
+### 4.1 The failure shape
 
-> Drafting note, editorial: this section extends — and in one respect critiques — the approved Agentic IAM paper. That paper requires scope to narrow at each hop; this section's point is that per-hop attenuation is a local invariant that does not compose. The IAM paper already *names* the phenomenon in its threat themes ("two or more agents can pass data or proxy calls so that, together, they perform an action neither could perform alone") but its controls do not reach it. Cite the specific requirement and say this plainly, so the section reads as an extension of an approved paper rather than unmarked disagreement.
+Every control in §§2–3 is evaluated per container or per edge: an egress cap on a sandbox, a
+destination allowlist on a network policy, a scope that narrows at each delegation hop. Each is
+correct on its own terms and each is a **local invariant**: it bounds what one container or one
+edge may do. The quantities an operator actually cares about are not local. Bytes leaving the
+organisation, distinct destinations touched, money spent, side-effecting actions taken, agents
+spawned, subtree depth and fan-out — these are consumed **across the set of agents that share a
+principal**, and across the delegation subtree that principal roots. A set of N agents, each inside
+its cap, consumes N caps. Nothing in a per-container model fires, because nothing in it ever sees
+the sum.
+
+The #172 review reached this from two directions. From the sandboxing side: a coordinator that
+fans work out to twelve workers, each in a compliant sandbox with a 10 MB/day egress limit, moves
+120 MB through twelve distinct destinations without a single local control tripping. From the
+authority side: the approved *Agentic Identity and Access Management* paper requires scope to
+narrow at each hop, and names the phenomenon in its threat themes — two or more agents can pass
+data or proxy calls so that, together, they perform an action neither could perform alone — but its
+controls stop at the edge. Per-hop attenuation is necessary. It is not sufficient, because
+attenuation is also a local invariant: it bounds the child relative to the parent, not the subtree
+relative to the principal. This section extends that paper on exactly that point.
+
+**Worked example.** A principal holds a 100 MB/day egress budget and a 50-destination envelope. An
+orchestrating agent spawns twelve workers under the principal; each worker's sandbox is capped at
+10 MB/day and its network policy allows five destinations. Every worker stays inside both caps. At
+the end of the day 120 MB has left through up to sixty destinations, the principal's budget is
+exceeded by 20 % and its envelope by 20 %, and the audit trail shows twelve unremarkable sandboxes.
+Under subtree accounting the eleventh worker's first outbound request is evaluated against the
+principal's remaining budget — zero — and is held; the crossing itself is the alert, and it carries
+the lineage that names the orchestrator.
+
+### 4.2 The closing control: aggregate accounting at the consuming action
+
+The control that closes the gap is **aggregate accounting keyed on the shared principal and its
+delegation subtree, evaluated at the consuming action** — the point at which a unit of the
+quantity is about to be spent — over an enumerated set of quantities. The list SHOULD be explicit
+and small, because each quantity needs its own counter and its own budget:
+
+- egress volume (bytes), per principal and per subtree;
+- distinct external destinations;
+- spend (currency, tokens, compute) against the principal's budget;
+- rate of side-effecting actions (writes, sends, executions);
+- spawn count, subtree depth and fan-out.
+
+The decision at the consuming action is *allow only if the aggregate after this action remains
+within the principal's budget*. Two properties make it a control rather than a report:
+
+- **Consume atomically.** A check that reads the aggregate and then commits the action separately
+  is a race: N concurrent consumers each observe headroom and all proceed. Conformant
+  implementations MUST consume by compare-and-consume (reserve, then commit or release) or serialise
+  consumption per principal. A reservation that is never committed MUST expire back to the budget.
+- **Deny above the sum, not just above the slice.** A per-agent slice of the budget (budget/N) is
+  a local invariant in disguise; it fails the same way when N changes. The authority MUST be
+  consulted for the subtree aggregate, and the local slice is at most a first-stage cache.
+
+**Requirements.**
+
+- **R4.1** Where the deploying organisation controls the principal's authority, a conformant model
+  MUST account the enumerated quantities across the set of agents sharing that principal, and
+  across each delegation subtree, evaluated at the consuming action.
+- **R4.2** Per-container and per-edge limits MUST be documented as local invariants. A containment
+  claim MUST NOT rest on them alone for any quantity that sums across agents.
+- **R4.3** Consumption MUST be atomic (compare-and-consume or per-principal serialisation), and an
+  unconsumed reservation MUST expire back to the budget.
+- **R4.4** Where the organisation does not control the principal's authority — the procured and
+  integrated agents of §1.1 — R4.1 to R4.3 are procurement requirements on the provider, and MUST be
+  written as such.
+
+### 4.3 The hard sub-problem: the accounting authority
+
+R4.1 presupposes something the per-container model never needed: a **shared accounting authority**
+that every consuming action in the subtree consults. Naming it is the honest part of this section,
+because it carries three problems a per-container design does not.
+
+- **Consistency.** The aggregate is a read-modify-write per principal. Anything weaker than
+  serialised or compare-and-swap consumption re-opens the race in 4.2 as a window whose width is
+  the replication delay. Eventual consistency is acceptable for the *report*; it is not acceptable
+  for the *decision*.
+- **Latency budget.** The check sits on the hot path of every side-effecting action. The
+  implementation MUST bound it, and MUST define what happens when the bound is exceeded: the action
+  is denied or held for confirmation, never allowed. Continuous accounting without a fail-safe
+  default is allow-on-error (Saltzer and Schroeder, fail-safe defaults). A local first-stage cache
+  MAY serve reads; it MUST NOT serve the final decision above a conservative floor.
+- **Trust status.** The authority is a reference monitor in the §5 sense: it MUST be outside the
+  reach of the agents it accounts for, MUST be invoked for every consuming action of an enumerated
+  quantity (complete mediation, §3), and its decisions MUST be verifiable after the fact. In the
+  procured case the provider operates it, and the deploying organisation's assurance is whatever
+  the provider's evidence supports — which is why R4.4 is procurement.
+
+**Evidence.** Aggregate accounting is both the preventive control and the detection signal: the
+aggregate crossing its threshold *is* the alert. Both depend on the record carrying the join key.
+Every consuming-action record MUST carry the principal and the **full** delegation lineage, not only
+the immediate parent, integrity-protected, so that the subtree aggregate can be reconstructed by
+someone who was not there (§7; this is the "accounting decision" row of the evidence contract in
+#172, which has no OCSF home today).
+
+### 4.4 Prior art: colluding applications
+
+The problem is older than agents. The Android permission literature of 2011–2012 treated
+**colluding applications** — two apps whose individual permission sets are benign and whose
+combination exceeds the user's intent, via an inter-app channel — as an inter-application
+information-flow problem to be policed over the *combination*, not per grant (Bugiel et al.,
+*XManDroid*, and the analyses of inter-application communication and permission re-delegation
+from the same period; the exact citations to be confirmed with @imolloy, who raised them). The
+mapping onto agents is direct:
+
+| Android | Agent containment |
+|---|---|
+| an application's permission set | an agent's attenuated scope and sandbox caps |
+| the user's intent | the principal's authority and budgets |
+| an inter-app channel | a delegation edge or a shared principal |
+| system-wide policy over the transitive closure | subtree accounting at the accounting authority |
+
+The lesson carried over is the same one the review arrived at independently: a per-grant model
+cannot express the constraint, because the constraint is over a set.
 
 **Open items.**
-- The failure shape, with one worked example.
+- Confirm the colluding-applications citations with @imolloy and add them to §11.
+- Decide whether the enumerated quantity list is normative or illustrative; the authors' position
+  is normative-minimum (egress bytes, destinations, spend, spawn) with the rest RECOMMENDED.
+- Cross-reference the IAM paper's per-hop narrowing requirement by section number once its final
+  numbering is confirmed.
+- Worked example: keep the twelve-worker case, or replace with an incident from §6.
 
 ---
 
