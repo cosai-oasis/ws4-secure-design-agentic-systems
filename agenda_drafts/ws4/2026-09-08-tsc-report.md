@@ -1,0 +1,205 @@
+---
+title: "WS4 — State of the Workstream: deliverables and target timelines (revised)"
+audience: CoSAI TSC
+meeting: 2026-09-08 TSC (1:00–2:00 PM ET) — workstream standup (#49) and scope/roadmap reassessment (#52)
+presenter: Sarah Novotny and Ian Molloy
+supersedes: agenda_drafts/ws4/2026-09-01-tsc-report.md
+source: WS4 2026-09-03 — Gemini notes, chat log, attendance, and a full machine transcript of the
+  recording (local Whisper; no diarization); TSC minutes 2026-09-01; TSC agenda 2026-09-08;
+  repo issue/PR state as of 2026-09-08
+---
+
+# WS4 — State of the Workstream (revised for 2026-09-08)
+
+**Why this exists:** this revises the 2026-09-01 report against the 2026-09-03 WS4 call.
+Today's TSC runs the end-of-term workstream standup ([#49](https://github.com/cosai-oasis/cosai-tsc/issues/49))
+and the scope/goals/roadmap reassessment ([#52](https://github.com/cosai-oasis/cosai-tsc/issues/52)),
+so this is the view the incoming co-chairs inherit.
+
+> **On the quotations.** Quotes below come from a *machine* transcript of the 2026-09-03 recording
+> (local Whisper, no speaker diarization; speakers attributed by cross-referencing the Gemini notes,
+> chat log and attendance). They are verbatim against that transcript and the sense is unambiguous,
+> but if any quote attributed to another person is going to be read aloud to the TSC, confirm it
+> with them first. Full transcript: `meeting_minutes/ws4/WS4-20260903-transcript.md` (local only).
+
+**The headline has changed.** A week ago WS4 had one owner-confirmed date and six TBDs.
+It now has **three dated deliverables and a named editor on the containment paper** — but the
+TSC deliverables roadmap **still carries exactly one WS4 row**. The §5 rows from the Sep 1
+report were never added.
+
+---
+
+## 1. What changed since 2026-09-01
+
+| Item | Was (Sep 1) | Now (Sep 8) |
+|---|---|---|
+| **Containment follow-on** ([#172](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/172)) | Owner TBD, date TBD, placement unresolved | **Jeff Leva (@Levaj2000) is Editor**; skeleton [PR #181](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/pull/181) open (+340 lines, all 21 scope questions mapped to sections); **three dates set** |
+| **Agent Credentials paper** | Late September 2026, owner-confirmed | **Slipped to October 2026** — Benedict Lau reported a slight delay on 2026-09-03 |
+| **Multimodal threat taxonomy** | Draft date TBD | **Late October 2026**, Shriti Priya, modality-agnostic taxonomy — but she had not yet consulted her team |
+| **Observability** ([#175](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/175)) | Blocked on "top-level category or subcategory?" | **Question is moot.** Emrick Donadei found the existing `AuditRecordRepository` component already covers semantic observability and proposes **withdrawing the RFC**, reframing the behavioral half as a *control* |
+| **ADLC definitional / landscape paper** | Emrick Donadei drafting; SIG P0 | **Authorship vacant.** I corrected this live on 2026-09-03: Emrick is the ADLC **SIG lead**, which is where I had anchored the paper's lead. The pen is Parul Singh's, and she has moved on |
+| **Containment placement** | Open ask to the TSC | **Resolved** — broad WS4 workstream, not the ADLC SIG |
+| **Agent Credentials ↔ WS1** | Open ask to the TSC | **Resolved 2026-09-01** — TSC declined to fold the group; work product incorporates WS1 findings, schemas being defined with OCSF |
+| **MCP risk-map decomposition** | Not tracked as a commitment | Now a named review commitment ([#178](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/178)) — 76 entries awaiting WS4 SME review |
+| **Trust Graph** | Absent from the report entirely | Surfaced on the call as **a WS4 group** — biweekly, co-chaired, no draft yet. See §4.5 |
+
+> **Correction to the Sep 1 report.** Its lead ask — "is Observability a top-level CoSAI-RM
+> category or a subcategory under Application?" — was already superseded when I presented it.
+> Emrick Donadei posted the `AuditRecordRepository` finding at 01:54 UTC on Sep 1, hours before
+> the call. The decision the TSC actually needs is in §4, and it is a smaller one.
+
+---
+
+## 2. Shipped
+
+| Deliverable | Evidence | On TSC roadmap? |
+|---|---|---|
+| **MCP Security Whitepaper V2** | PR [#141](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/pull/141) merged 2026-08-12 | ❌ **Still not listed** |
+| **Agentic Isolation blog** — *"Treat Your Agent Like an Insider Threat"* | PR [#167](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/pull/167) merged 2026-08-25; live on coalitionforsecureai.org | ✅ Row 6, 🟢 Complete |
+
+> **Accuracy flag on the published blog.** Working Q21 of the containment scope questions,
+> Jeff Leva read the primary disclosures and found the post conflates two separate intrusions:
+> the JFrog Artifactory CVEs and the Hugging Face data-pipeline compromise are different events
+> with different vulnerability sets. This affects §6 of the follow-on paper and probably warrants
+> a correction to the live post. Detail in [#172](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/172).
+
+---
+
+## 3. In flight — nine items
+
+Ordered by how close each is to landing. Dated items first.
+
+| # | Deliverable | Owner | Stage | Target | Confidence |
+|---|---|---|---|---|---|
+| 1 | **Containment follow-on paper** ([#172](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/172), [PR #181](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/pull/181)) | **Jeff Leva**, Editor. Contributors: John Cavanaugh (research synthesis), **Jason Bowman** (security + RL-agent background, introduced by Kevin Calloway; attended 2026-09-03, needs Slack access and an intro to Jeff). TSC reviewers: Akila Srinivasan, David LaBianca, Jodi Middleton | Skeleton PR open; contributions land by PR against a section | **Contributions 2026-10-08 · first draft to TSC reviewers 2026-10-15 · review-ready 2026-10-29** | Editor-set, dated in writing |
+| 2 | **Agent Credentials paper** | Benedict Lau, Rithikha Rajamohan | Drafting by section; OCSF schema definition underway | **October 2026** — early draft skeleton for broader review | Owner-stated; **day not fixed** |
+| 3 | **Multimodal threat taxonomy** ([#113](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/113)) | Shriti Priya | Resolving ambiguities; modality-agnostic taxonomy | **Late October 2026** — refined draft for review | Owner-stated, *not* team-confirmed: *"I haven't talked to my team members"* |
+| 4 | **MCP risk-map decomposition review** ([#178](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/178)) | WS4 SMEs; David LaBianca driving | [secure-ai-tooling#507](https://github.com/cosai-oasis/secure-ai-tooling/pull/507): 46 new + 30 updated entries. Controls 37→67, risks 36→52. Review **against V1** to prevent scope creep | **TBD** — needs volunteers for discrete chunks | Blocked on reviewer capacity |
+| 5 | **Observability CoSAI-RM component** ([#175](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/175), [PR #501](https://github.com/cosai-oasis/secure-ai-tooling/pull/501)) | Emrick Donadei | **Rescoping.** Semantic half already covered by `AuditRecordRepository`; behavioral half (baselines, drift and tool-usage anomaly detection, circuit breakers, kill switches, escalation gates) to be reframed as a control. PR #501 still draft. Second, quieter blocker: David LaBianca serialises contributors to the risk map — *"I can only have so many people in queue to modify the same space at any one time"* — and WS2's telemetry work is ahead of ADLC in that queue | **TBD** — pending the §4.1 confirmation | Small decision, then days |
+| 6 | **ADLC lifecycle definitional / landscape paper** | **Vacant** | Nobody holds the pen. Emrick Donadei leads the *SIG*, not this paper — the 2026-09-03 agenda listed him as owner and I corrected it on the call. A candidate draft exists in the ADLC Drive folder and needs identifying before anyone restarts from scratch | **TBD — cannot be set without an author** | Blocked |
+| 7 | **ADLC risks and controls** | ADLC SIG | 30–40 risks identified | **Overdue** — end of August, missed | Blocked on SIG leadership and #5 |
+| 8 | **MCP Security V2.x residuals** ([#163](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/163)) | Chairs | Two items: one editorial, one needing a chair call on citing a pre-release OWASP document normatively | **TBD** | Chairs; no movement since 2026-08-12 |
+| 9 | **Trust Graph** | Co-chaired, incl. Rithikha Rajamohan and Kapil Singh | Meets alternate Thursdays, 09:30–11:00 ET. Hypergraph representation of delegation and agent state. **No written draft** — ideas live on a Miro board. Distinct from Agent Credentials, with acknowledged overlap: *"we constantly talk about whether we should be combining into one effort"* | **None set** | Not previously reported to the TSC (§4.5) |
+
+### RFCs under review — not deliverables until accepted
+
+- **[#170](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/170) Decommissioning as ADLC phase / lifecycle stage 9** (Bill Stout). *Converging.* Imran Siddique proposed dropping the soft/hard split entirely on 2026-09-03, with a definition the thread is coalescing on: *"Decommissioning ends the agent's authority to act; whether it can come back later is a policy choice."* Raymond Sheh added wider-system dependency and institutional-knowledge risks. **A resolution path emerged on 2026-09-03**: put decommissioning into the definitional paper *as a phase* so that risks have somewhere to attach — Bill Stout's *"there is need of place to land."* That converts David LaBianca's sequencing objection into another dependency on item 6 above, rather than a standing disagreement.
+- **[#149](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/149) Agent Manifest** (Imran Siddique), Phase 2. The GitHub issue is quiet since 2026-08-27, but the work moved elsewhere: the Agent Credentials group spent its 2026-09-03 call deciding **whether an agent manifest is evidence or a credential**, and took an action to meet with Imran to settle manifests and traces. Expect #149's fate to be decided inside the Agent Credentials paper rather than as a standalone RFC.
+
+### Cross-workstream commitments
+
+- **WS2 Telemetry for AI Systems** — Josiah Hagen presented the roadmap to WS4 on 2026-09-03.
+  WS4 feedback due **2026-09-14** via GitHub issues or PRs; he wants TSC co-chair review the week
+  of **2026-09-15**. Anyone doing OCSF or OpenTelemetry work must align to **Appendices D and E**.
+  Worth the TSC's attention: WS4's MCP decomposition **shrank that paper's ask on the CoSAI-RM to
+  three risks and one control** — the two workstreams' outputs are already interlocking as intended.
+  This discharges my open TSC action on the telemetry documentation request; I can close the issue.
+- **WS2 Zero Trust for AI Systems** — Josiah flagged it in chat as required reading for the
+  containment authors; it was pending PGB approval on 2026-09-03 and publishes imminently.
+  Vocabulary alignment between it and the containment paper is cheaper now than after both ship.
+- **ODIS** — readout and discussion scheduled for the **2026-09-10** WS4 call.
+
+---
+
+## 4. What WS4 needs from the TSC — five asks
+
+**4.1 Confirm the Observability reframe.** Not the question I brought on Sep 1. The ask now:
+agree that RFC #175 is **withdrawn** and the behavioral piece is refiled as a *control* against the
+existing `AuditRecordRepository` component. This is a chairs-and-RM-SIG call, it costs one comment,
+and it unblocks ADLC risk drafting for the Runtime and Reflection phases.
+
+**4.2 ADLC SIG leadership — open since 2026-08-27.** One correction to today's agenda, which
+says the SIG has *no* co-chairs: it has **one and a half, down from four** — Emrick Donadei is still
+serving. The gap is real but it is a thinning, not a vacancy, and a couple of people have already
+approached me. TSC action [#63](https://github.com/cosai-oasis/cosai-tsc/issues/63) sits with Ian
+and me, but WS4 cannot staff it from inside; this needs member organisations to nominate.
+*(Today's agenda item 4.)*
+
+**4.3 An author for the ADLC definitional paper — separate from 4.2.** Even with new co-chairs,
+this paper needs a named pen, and it is not the SIG lead's by default — that conflation is one I
+made myself on the agenda and corrected on the 2026-09-03 call. It is the foundational document
+that the decommissioning RFC (#170), the risks-and-controls set, and the CoSAI-RM integration all
+sequence behind. It is the single largest unowned dependency in the workstream.
+
+**4.4 Add the §5 rows to the roadmap — repeating last week's ask.** WS4 shipped two major
+deliverables in August; the roadmap shows one blog post. If today's reassessment (#52) judges
+workstream scope from the roadmap as it stands, WS4 is assessed on roughly a tenth of its output.
+
+**4.5 For agenda item 1, the scope reassessment — WS4's real problem is not scope, it is that
+nobody holds the map.** I said this out loud on the 2026-09-03 call: *"I need a better intersecting
+group of who's working on which things and how many different things inside workstream 4 are
+happening, because I'm not keeping track."* Trust Graph is the proof — an active WS4 group, meeting
+fortnightly, that appears in none of my own reporting until this document. The instrument already
+exists: Jeff Leva has an **interop document** mapping Agent Credentials, Trust Graph, OCSF and the
+layers each owns, and offered to reshare it. My proposal for the reassessment is that each
+workstream produces exactly that — an owned map of its internal efforts, refreshed per co-chair
+term — rather than a scope renegotiation. WS4 does not need a narrower remit; it needs its remit
+written down in one place.
+
+---
+
+## 5. Rows for `TSC Deliverables/roadmap.md`
+
+Copy-paste ready. Continues Active Deliverables numbering from row 6. Stage glyphs use the
+roadmap's own legend — blocked states are described in Next Milestone rather than given a new glyph.
+
+### Active Deliverables
+
+| # | Deliverable | Workstream / SIG | Current Stage | Next Deadline | Next Milestone |
+|---|---|---|---|---|---|
+| 7 | MCP Security Whitepaper V2 | WS4 — Secure Design Patterns for Agentic Systems | 🟢 Published / Complete | 2026-08-12 | Published; V2.x residuals tracked in #163 |
+| 8 | Containment Follow-on Paper | WS4 — Secure Design Patterns for Agentic Systems | 🔵 In Progress | 2026-10-15 | First draft to TSC reviewers; contributions close 2026-10-08 |
+| 9 | Agent Credentials Paper | WS4 — Agent Credentials Group | 🔵 In Progress | 2026-10-31 | Early draft skeleton for broader review (October; day not fixed) |
+| 10 | Multimodal Threat Taxonomy | WS4 — Multimodal Agentic Security Group | 🔵 In Progress | 2026-10-31 | Refined modality-agnostic taxonomy draft for review |
+| 11 | MCP Risk Map Decomposition Review | WS4 — Secure Design Patterns for Agentic Systems | 🔵 In Progress | TBD | SME review of secure-ai-tooling#507 (76 entries); needs volunteers (#178) |
+| 12 | Observability CoSAI-RM Component | WS4 — SIG ADLC | 🔵 In Progress | TBD | Blocked: confirm RFC #175 withdrawal and reframe as a control |
+| 13 | ADLC Lifecycle Definitional Paper | WS4 — SIG ADLC | 🔵 Planned | TBD | Blocked: paper has no author (SIG lead ≠ paper owner) |
+| 14 | ADLC Risks and Controls | WS4 — SIG ADLC | 🔵 In Progress | Overdue (end of Aug) | Blocked on SIG leadership and the observability reframe |
+
+### Papers & Points of View
+
+| Title | Workstream / SIG | Owner | Start Date | Target Date | Status | Issue |
+|---|---|---|---|---|---|---|
+| MCP Security Whitepaper V2 | WS4 | Sarah Novotny, Ian Molloy | | 2026-08-12 | 🟢 Published / Complete | [#141](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/pull/141) |
+| Containment Follow-on Paper | WS4 | Jeff Leva (Editor) | 2026-08-25 | 2026-10-29 | 🔵 In Progress | [#172](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/172) |
+| Agent Credentials Paper | WS4 | Benedict Lau, Rithikha Rajamohan | | 2026-10-31 | 🔵 In Progress | |
+| Multimodal Threat Taxonomy | WS4 / Multimodal Agentic Security | Shriti Priya | | 2026-10-31 | 🔵 In Progress | [#113](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/113) |
+| ADLC Lifecycle Definitional Paper | WS4 / SIG ADLC | **Unowned** | | TBD | 🔵 Planned | |
+
+### Blog Posts
+
+Row 1 is present and correct. A factual correction may follow — see §2.
+
+---
+
+## 6. Three-minute talk track
+
+If time collapses, say points 1, 4 and 5 and point at this document — the dates are written
+down, the two structural asks are not.
+
+1. **Since last week WS4 went from one date to four.** Containment has an editor — Jeff Leva
+   volunteered on Thursday's call, and by Saturday had declared himself Editor and opened a
+   skeleton PR with all 21 scope questions mapped to sections and three dates attached. Agent
+   Credentials is October, Multimodal is late October.
+
+2. **One slip, honestly reported.** Agent Credentials moved from late September to October.
+   Benedict called it a slight delay. I would rather report that than restate a date nobody holds.
+
+3. **Two of last week's four asks are closed** — containment sits in the broad workstream, not the
+   ADLC SIG, and you decided Agent Credentials stays in WS4 while absorbing WS1's findings. Thank
+   you; both unblocked real work.
+
+4. **The remaining problem is ADLC, and it is two problems, not one.** Correct today's agenda on
+   one point — the SIG has one and a half co-chairs, not none. But separately, the foundational
+   definitional paper has no author; Parul's departure left that pen down. Everything else in that
+   SIG — risks and controls, the decommissioning RFC, the CoSAI-RM integration — sequences behind
+   that one document. New co-chairs, that is the highest-leverage thing you can staff.
+
+5. **On agenda item 1: don't renegotiate our scope, make us map it.** I found a WS4 group last
+   Thursday — Trust Graph, meeting fortnightly — that appears in none of my own reporting. That is
+   not a scope problem, it is a bookkeeping one, and every workstream likely has it. Jeff Leva
+   already built the instrument: an interop doc showing who owns which layer. Ask each workstream
+   for that, once a co-chair term.
+
+6. **And the roadmap still shows one WS4 row.** I brought rows last week; they were not added. If
+   today's reassessment reads scope off the roadmap, WS4 looks like a blog post. §5 is copy-paste ready.
