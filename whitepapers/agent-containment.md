@@ -168,8 +168,8 @@ orchestrating agent spawns twelve workers under the principal; each worker's san
 the end of the day 120 MB has left through up to sixty destinations, the principal's budget is
 exceeded by 20 % and its envelope by 20 %, and the audit trail shows twelve unremarkable sandboxes.
 Under subtree accounting the eleventh worker's first outbound request is evaluated against the
-principal's remaining budget — zero — and is held; the crossing itself is the alert, and it carries
-the lineage that names the orchestrator.
+principal's remaining budget — zero — and is refused or held; the refused attempt is the alert, and
+it carries the lineage that names the orchestrator.
 
 ### 4.2 The closing control: aggregate accounting at the consuming action
 
@@ -190,10 +190,18 @@ within the principal's budget*. Two properties make it a control rather than a r
 - **Consume atomically.** A check that reads the aggregate and then commits the action separately
   is a race: N concurrent consumers each observe headroom and all proceed. Conformant
   implementations MUST consume by compare-and-consume (reserve, then commit or release) or serialise
-  consumption per principal. A reservation that is never committed MUST expire back to the budget.
+  consumption per principal. A reservation is released only when it is known that the action did
+  not happen. A reservation whose outcome is unknown — the consumer timed out or failed between
+  reserve and commit, or the downstream did not answer — MUST remain charged until non-consumption
+  is established authoritatively, or reconciled idempotently against the downstream's own record.
+  Expiry alone MUST NOT refund it: an action that did occur and a reservation that merely lapsed
+  are otherwise indistinguishable, and the budget could be spent repeatedly by letting
+  reservations lapse.
 - **Deny above the sum, not just above the slice.** A per-agent slice of the budget (budget/N) is
   a local invariant in disguise; it fails the same way when N changes. The authority MUST be
-  consulted for the subtree aggregate, and the local slice is at most a first-stage cache.
+  consulted for the subtree aggregate. A local slice is acceptable only as a **lease**: a quantity
+  the authority has already consumed atomically on the agent's behalf, which the agent may then
+  spend locally down to zero. A slice that is merely cached is not a lease and authorises nothing.
 
 **Requirements.**
 
@@ -202,8 +210,9 @@ within the principal's budget*. Two properties make it a control rather than a r
   across each delegation subtree, evaluated at the consuming action.
 - **R4.2** Per-container and per-edge limits MUST be documented as local invariants. A containment
   claim MUST NOT rest on them alone for any quantity that sums across agents.
-- **R4.3** Consumption MUST be atomic (compare-and-consume or per-principal serialisation), and an
-  unconsumed reservation MUST expire back to the budget.
+- **R4.3** Consumption MUST be atomic (compare-and-consume or per-principal serialisation). A
+  reservation MUST be released only when the action is known not to have happened; a reservation
+  with an unknown outcome MUST remain charged until it is reconciled authoritatively.
 - **R4.4** Where the organisation does not control the principal's authority — the procured and
   integrated agents of §1.1 — R4.1 to R4.3 are procurement requirements on the provider, and MUST be
   written as such.
@@ -221,16 +230,22 @@ because it carries three problems a per-container design does not.
 - **Latency budget.** The check sits on the hot path of every side-effecting action. The
   implementation MUST bound it, and MUST define what happens when the bound is exceeded: the action
   is denied or held for confirmation, never allowed. Continuous accounting without a fail-safe
-  default is allow-on-error (Saltzer and Schroeder, fail-safe defaults). A local first-stage cache
-  MAY serve reads; it MUST NOT serve the final decision above a conservative floor.
+  default is allow-on-error (Saltzer and Schroeder, fail-safe defaults). A local cache MAY serve
+  reads for reporting; it MUST NOT authorise any consumption, however small — N stale caches each
+  authorising a small action is the race of 4.2 again. The only local authorisation is against a
+  lease the authority has already consumed atomically (4.2).
 - **Trust status.** The authority is a reference monitor in the §5 sense: it MUST be outside the
   reach of the agents it accounts for, MUST be invoked for every consuming action of an enumerated
   quantity (complete mediation, §3), and its decisions MUST be verifiable after the fact. In the
   procured case the provider operates it, and the deploying organisation's assurance is whatever
   the provider's evidence supports — which is why R4.4 is procurement.
 
-**Evidence.** Aggregate accounting is both the preventive control and the detection signal: the
-aggregate crossing its threshold *is* the alert. Both depend on the record carrying the join key.
+**Evidence.** Aggregate accounting is both the preventive control and the detection signal. When
+the control holds, the aggregate never crosses its threshold, so the alert is the *attempt*: a
+consumption refused or held because it would have crossed. The attempt MUST be recorded and raised
+with the same lineage as a successful consumption. An aggregate found above its threshold after
+the fact is a different alert — it means the control failed. Both depend on the record carrying
+the join key.
 Every consuming-action record MUST carry the principal and the **full** delegation lineage, not only
 the immediate parent, integrity-protected, so that the subtree aggregate can be reconstructed by
 someone who was not there (§7; this is the "accounting decision" row of the evidence contract in
