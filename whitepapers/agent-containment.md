@@ -153,17 +153,58 @@ Practitioners and architects who deploy agents with production access. Section 1
 
 **Answers:** Q12, Q13. **Raised by:** @getglad, @imolloy.
 
-**Purpose.** Commit to a name for the enforcement property, and separate the failure taxonomy the blog post conflates.
+> Drafting note (2026-09-08): first prose draft, by the editor. Two commitments are embedded and open to challenge by PR or comment on #172: the vocabulary lands on *reference monitor* with a plain gloss (rather than a new term), and *verifiable* is read evidence-forward per @ryjen. The mapping of modes 1–3 onto the monitor's three properties at the end of 5.2 is new reasoning, not from the thread. Citation numbers are provisional per §11.
 
-**Vocabulary decision.** Either "reference monitor" with a plain-language gloss, or an approachable term that carries the same three properties: complete mediation, tamper-proof, verifiable. This matters more in a document people will cite than it did in a blog post. Sharpening from @ryjen in #172: whatever the term, the property it names is not "kernel enforced" — it is complete mediation, enforcement outside the agent's control, and *enough evidence to verify that mediation occurred*, which pulls the third property toward §7's evidence contract.
+Every control in this paper presumes an enforcement point: something that sees the agent's action and decides whether it proceeds. The blog post described that point as "independently enforced, not agent-enforced," which was accurate but informal. A document that will be cited needs the property named, and needs the ways it fails kept apart — because the incidents this body of work draws on do not fail in one way, and the remedies do not interchange.
 
-**The four failure modes, kept separate.**
-1. The agent defeats the control.
-2. The agent disables the control.
-3. The control was insufficiently specified.
-4. The control was correct and the agent used permitted authority.
+### 5.1 The property, named
 
-Most incidents in the blog post are modes 3 and 4, which is not where the industry's attention is. Each subsequent section should say which mode its control addresses. Anchor examples from the thread: the x32/seccomp case is mode 3 (the system applied an insufficient policy; the agent had no authority over it); the bubblewrap self-disable is mode 2; the gym-booking incident is mode 4 (nothing was escaped — what bounds it is scope on the grant, and evidence afterwards).
+This paper uses the term **reference monitor**, and asks nothing of the reader beyond its plain meaning: the component that observes every consequential action an agent takes and decides, from policy the agent cannot touch, whether the action proceeds.
+
+The term comes with three classical requirements, and each maps onto plain language:
+
+- **Complete mediation.** The monitor sees every path to the effect. An action that can reach its effect without crossing the monitor is not partially mediated; it is unmediated (§3).
+- **Tamper-proof.** The agent can neither alter the monitor nor the policy it applies. In practice: enforced from outside the agent's reach, with the monitor's own configuration outside the agent's write scope.
+- **Verifiable.** It must be possible to check the first two claims.
+
+For agent workloads, the third property does the most work, and this paper reads it more demandingly than the classical literature did. Historically, *verifiable* meant small enough to analyze. For agents it must also mean **evidenced**: the monitor emits a record sufficient for someone who was not present, and does not trust the operator, to confirm that mediation occurred (§7). After an incident, a monitor that cannot be verified from its records is indistinguishable from a monitor that was not there.
+
+One clarification the blog post's review forced: the property is not "kernel-enforced." The kernel is one implementation of the monitor at one layer. For tool and MCP calls the monitor is a gateway or policy enforcement point (§3); for system calls it is the kernel; for network egress it is a proxy. An agent deployment has several monitors, one per mediation surface, and the property must hold at each. What defines a reference monitor is the three requirements, not the privilege level it runs at.
+
+### 5.2 The four failure modes
+
+When containment fails, it fails in one of four ways, and this paper keeps them separate throughout.
+
+**Mode 1 — the agent defeats the control.** The control was correctly specified and remained in force; the mechanism itself broke. An exploitable vulnerability in the isolation path is the canonical case. The remedy lives in the mechanism: a patch posture the isolation path can be held to, minimum attack surface, and stronger isolation where the workload warrants it (§6).
+
+**Mode 2 — the agent disables the control.** The agent had, or acquired, authority over the control itself. The documented case: an agent that, when a sandbox blocked its workaround, autonomously disabled the sandbox and continued [11]. This is a failure of enforcement placement — of the tamper-proof property — and its remedy is architectural: the control and its configuration outside the agent's reach, and any attempt to alter them treated as a high-signal alert (§7).
+
+**Mode 3 — the control was insufficiently specified.** The control was on, untouched, and wrong. The seccomp filter that checked syscall numbers but not the architecture value — a pitfall the kernel's own documentation has warned about for a decade [7] — is the anchor case: the agent had no authority over the policy; the system applied an insufficient one. A denylist that misses an alternate path to the same binary, and a workspace with a reachable Docker socket [6], fail the same way. The remedy is verification of the policy, not strengthening of the mechanism: pre-deployment tests that the sandbox enforces what its operator believes it enforces (§8), and a mediation surface expressive enough to state the intended boundary at all (§3).
+
+**Mode 4 — the control was correct and the agent used permitted authority.** Nothing was escaped. The agent that cancelled a stranger's gym reservation crossed no containment boundary; its authority was scoped to an endpoint, not to whose reservation it could act on [11]. The gateway that performs a fetch with agent-controlled input is the same shape: a permitted party, acting as asked (§3.1). No isolation posture reaches this mode. What bounds it is scope on the grant — the subject of the Agentic IAM paper [9] — together with constraining what permitted parties will do on request (§3.1), accounting authority across the set of agents that share it (§4), and evidence afterwards (§7).
+
+The first three modes are failures of the monitor's three properties, in order: mode 1 breaks the mechanism, mode 2 breaks tamper-proofing, mode 3 breaks complete mediation — the policy did not cover the path. Mode 4 is not a failure of the monitor at all, and that is the deepest reason containment is one layer of a bounded-authority model rather than the whole of it (§1): a perfect monitor, perfectly specified, enforcing a grant that is too broad, produces the gym incident every time.
+
+### 5.3 Why the separation is load-bearing
+
+Most of the incidents this body of work rests on are modes 3 and 4. Industry attention — and spending — concentrates on modes 1 and 2: stronger isolation, more exotic sandboxes. The taxonomy is what makes that mismatch visible, and it has three practical consequences.
+
+First, remedies do not interchange. Buying stronger isolation does not fix an insufficient policy, and neither fixes a grant that was too broad. The blog post presented a mode-2 incident and a mode-3 incident in adjacent sentences as one phenomenon; they demand different fixes from different teams.
+
+Second, classifying an incident requires evidence. Telling mode 2 from mode 3 needs a record of the control's configuration and the enforcement decision at the time; telling mode 1 from mode 4 needs a record of what was actually permitted. Without the evidence contract of §7, the taxonomy is rhetoric; with it, an incident review can assign a mode and route the fix.
+
+Third, every control in this paper can now say what it is for:
+
+| Section | Addresses |
+|---|---|
+| §3 Mediation | Mode 3 — a surface expressive enough to specify the boundary |
+| §3.1 Permitted channels | Mode 4 — constraining what permitted parties will do |
+| §4 Composition | Mode 4 — authority consumed across a set, every local check passing |
+| §6 Reachability | Bounds the blast radius when modes 1–3 occur |
+| §7 Detection and evidence | Makes all four modes distinguishable, during and after |
+| §8 Verification | Mode 3 — proving the control enforces what its operator believes |
+
+The question each section answers is therefore not "how strong is the box?" but: which failure mode does this control remove — and how would we know it worked?
 
 ---
 
