@@ -462,7 +462,9 @@ The question each section answers is therefore not "how strong is the box?" but:
 
 **Contributors**
 
-> Drafting note: everyone credited in #172 for a banked question is a contributor to the section that answers it; add yourself here with your first PR.
+- @skvcool-rgb (§4)
+
+> Drafting note: everyone credited in #172 for a banked question is a contributor to the section that answers it; add yourself here with your first PR. Names or affiliations welcome in place of handles by PR.
 
 **TSC reviewers**
 
