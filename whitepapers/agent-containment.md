@@ -85,6 +85,7 @@ Practitioners and architects who deploy agents with production access. Section 1
 
 **Open items.**
 - Per section, mark which requirements are engineering and which become procurement in the procured-and-integrated case.
+- Add the coding agent that needs its own container runtime as a shape in its own right. Unlike the desktop and integrated cases it has a container boundary, but the workload wants to create containers, so the question is what the boundary must look like rather than whether one exists (see §8).
 
 ---
 
@@ -100,6 +101,7 @@ Practitioners and architects who deploy agents with production access. Section 1
 
 **Open items.**
 - For each axis, name the enforcement point, the property it must hold, and the blog-post controls that belong to it.
+- Local axis: container-runtime access is the concrete case to work through, host Docker socket versus a rootless or VM-backed engine inside the sandbox. Criterion lives in §8; the enforcement-point analysis belongs here.
 
 ---
 
@@ -227,9 +229,12 @@ Most incidents in the blog post are modes 3 and 4, which is not where the indust
 
 > Drafting note, editorial (2026-09-05): part of this already exists. The MCP Security paper's Security Assurance Profiles specify, level by level, what execution, data, and context isolation must demonstrate — and that paper's own open questions defer an "evidence-per-level annex" listing the verification artifacts each level should produce, which is much of Q17's deliverable, already scoped and parked. This section must open by citing the profiles and position itself as either (a) the deferred annex, generalized beyond MCP, or (b) only what the profiles cannot cover. It must not read as a fresh specification. Three artifacts converging on "what must a sandbox demonstrate" (this section, the profiles, secure-ai-tooling#516) is the same duplication risk we resolved for the OCSF asks — coordinate before drafting.
 
+> Drafting note, from review (2026-09-08): @adeinega raised container-runtime access on PR #181, feedback he had queued for the blog post and did not get to post there. It is the most concrete candidate criterion offered so far, and it belongs in this section. Docker-out-of-Docker, mounting the host's `/var/run/docker.sock` into the sandbox, is not a weakened boundary but an escape primitive with a documented API: anything that can reach that daemon can start a privileged container, bind-mount the host root, and leave. The engine-inside alternative is better and not automatically safe, since classic Docker-in-Docker requires `--privileged` on the outer container and trades one escape path for another; rootless DinD, or a runtime with a real isolation boundary underneath it (gVisor, Kata, Firecracker, sysbox), is the shape that holds. The requirement behind the question is real rather than a misconfiguration to design away: coding agents genuinely need to build and run containers, so the commons owes this a control answer, not a prohibition. To be drafted in #172; the subsection is offered to @adeinega in the PR thread.
+
 **Open items.**
 - Relationship to CoSAI-RM Isolation and Containment controls ([secure-ai-tooling#516](https://github.com/cosai-oasis/secure-ai-tooling/issues/516)) and to the MCP paper's assurance profiles, per the note above.
 - Whether this is a section, a recommendation for future work, or its own RFC.
+- Container-runtime access as a named criterion: what a vetted sandbox must demonstrate when the agent needs to build or run containers. Host socket mounting is disqualifying; the open part is which engine-inside shapes qualify, and how an implementation demonstrates which one it is. Raised by @adeinega.
 
 ---
 
