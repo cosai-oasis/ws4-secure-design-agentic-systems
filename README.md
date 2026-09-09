@@ -30,7 +30,7 @@ Active and approved RFCs:
 
 #### Whitepapers
 This workstream has published and released the following whitepapers.
-- [CoSAI Principles for Secure-by-Design Agentic Systems](whitepapers/security-principles-for-agentic-systems.md) and [PDF](whitepapers/security-principles-for-agentic-systems.pdf)
+- [Model Context Protocol (MCP) Security](whitepapers/model-context-protocol-security.md) and [PDF](whitepapers/model-context-protocol-security.pdf)
 - [Agentic Identity and Access Management](whitepapers/agentic-identity-and-access-control.md) and [PDF](whitepapers/agentic-identity-and-access-control.pdf)
 
 #### Runbooks
