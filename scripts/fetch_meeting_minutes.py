@@ -3,15 +3,24 @@
 Fetch CoSAI meeting minutes from Google Drive and GitHub, save as markdown.
 
 Drive sources: Reads Gemini-generated meeting notes from shared Drive
-folders, exports them as markdown. Drive access goes through the Google
-Workspace CLI (`gws`, https://github.com/googleworkspace/cli). See
-scripts/README.md for one-time gws + gcloud + OAuth setup. Currently covers WS4, the
-ADLC SIG (under WS4), WS3, the Code-Development SIG (under WS3), the
-Risk Management SIG (under WS3), and the Agent Credentials group.
+folders, exports them as markdown. Alongside the notes it also pulls the two
+other per-meeting artifacts Google Meet produces -- the in-call **chat log**
+and the **attendance** sheet -- which carry material the Gemini notes drop
+(links, side-questions, corrections, who was actually in the room and when).
+Meet does not produce a transcript document; see scripts/README.md for how to
+transcribe the recording locally when you need one.
 
-GitHub sources (TSC): Reads markdown meeting minutes committed to a public
-GitHub repo directory. Uses the unauthenticated GitHub Contents API; honors
-GITHUB_TOKEN env var if set to raise the rate limit.
+Drive access goes through the Google
+Workspace CLI (`gws`, https://github.com/googleworkspace/cli). See
+scripts/README.md for one-time gws + gcloud + OAuth setup. Currently covers
+WS1, WS2, WS3, WS4, the ADLC SIG and the Multimodal Agentic Security group
+(both under WS4), the Code-Development SIG (under WS3), the Risk Management
+SIG (under WS3), and the Agent Credentials group.
+
+GitHub sources: Reads markdown meeting minutes committed to public GitHub
+repo directories. Covers TSC minutes and PGB minutes. Uses the
+unauthenticated GitHub Contents API; honors GITHUB_TOKEN env var if set to
+raise the rate limit.
 
 Output goes under meeting_minutes/<subdir>/ in the WS4 repo.
 
@@ -50,7 +59,7 @@ SOURCES = [
         "shared_name_contains": "CoSAI WS4 recurring meeting",
         "shared_title_pattern": (
             r"^CoSAI WS4 recurring meeting - "
-            r"(?P<y>\d{4})/(?P<m>\d{2})/(?P<d>\d{2}) .* Notes by Gemini$"
+            r"(?P<y>\d{4})/(?P<m>\d{2})/(?P<d>\d{2})"
         ),
         "shared_folder_name_template": "WS4 {y}{m}{d}",
     },
@@ -62,9 +71,51 @@ SOURCES = [
         "shared_name_contains": "WS4 SIG Security of Agent Development Lifecycle",
         "shared_title_pattern": (
             r"^WS4 SIG Security of Agent Development Lifecycle - "
-            r"(?P<y>\d{4})/(?P<m>\d{2})/(?P<d>\d{2}) .* Notes by Gemini$"
+            r"(?P<y>\d{4})/(?P<m>\d{2})/(?P<d>\d{2})"
         ),
         "shared_folder_name_template": "{y}-{m}-{d}",
+    },
+    {
+        "name": "Multimodal",
+        "type": "drive",
+        "folder_id": "1JI89V3NrSQnEzcE6nlNUed2Huv114FD4",
+        "subdir": "multimodal",
+        # WS4 sub-group (Shriti Priya). Mixed layout: June/July meetings are
+        # filed in per-date subfolders; from August the Gemini notes sit loose
+        # in the parent, so the shared-with-me fallback carries those.
+        "shared_name_contains": "WS4 Multimodal Agentic Security Weekly Meeting",
+        "shared_title_pattern": (
+            r"^WS4 Multimodal Agentic Security Weekly Meeting - "
+            r"(?P<y>\d{4})/(?P<m>\d{2})/(?P<d>\d{2})"
+        ),
+        "shared_folder_name_template": "{y}-{m}-{d}",
+    },
+    {
+        "name": "WS1",
+        "type": "drive",
+        "folder_id": "1L7A46unF12D3Tk68_QVP53M9cGjJUMA3",
+        "subdir": "ws1",
+        # Prefix match — works whether or not "Notes by Gemini" is appended.
+        "shared_name_contains": "CoSAI WS1 Weekly Meeting",
+        "shared_title_pattern": (
+            r"^CoSAI WS1 Weekly Meeting - "
+            r"(?P<y>\d{4})/(?P<m>\d{2})/(?P<d>\d{2})"
+        ),
+        "shared_folder_name_template": "WS1-{y}{m}{d}",
+    },
+    {
+        "name": "WS2",
+        "type": "drive",
+        "folder_id": "1zmeLjxAp8UJdu99LM3qAhHf-CH9JGR32",
+        "subdir": "ws2",
+        # Prefix match — WS2 titles end after the date, with no
+        # "Notes by Gemini" suffix, so the pattern must not require one.
+        "shared_name_contains": "CoSAI WS2 Defenders meeting",
+        "shared_title_pattern": (
+            r"^CoSAI WS2 Defenders meeting - "
+            r"(?P<y>\d{4})/(?P<m>\d{2})/(?P<d>\d{2})"
+        ),
+        "shared_folder_name_template": "WS2-{y}{m}{d}",
     },
     {
         "name": "WS3",
@@ -84,7 +135,7 @@ SOURCES = [
         "shared_name_contains": "CoSAI WS3 SIG: Security of AI-Assisted Code Development",
         "shared_title_pattern": (
             r"^CoSAI WS3 SIG: Security of AI-Assisted Code Development - "
-            r"(?P<y>\d{4})/(?P<m>\d{2})/(?P<d>\d{2}) .* Notes by Gemini$"
+            r"(?P<y>\d{4})/(?P<m>\d{2})/(?P<d>\d{2})"
         ),
         "shared_folder_name_template": "{y}-{m}-{d}",
     },
@@ -96,7 +147,7 @@ SOURCES = [
         "shared_name_contains": "CoSAI WS3 CoSAI-RM SIG weekly meeting",
         "shared_title_pattern": (
             r"^CoSAI WS3 CoSAI-RM SIG weekly meeting - "
-            r"(?P<y>\d{4})/(?P<m>\d{2})/(?P<d>\d{2}) .* Notes by Gemini$"
+            r"(?P<y>\d{4})/(?P<m>\d{2})/(?P<d>\d{2})"
         ),
         "shared_folder_name_template": "WS3 CoSAI-RM SIG {y}{m}{d}",
     },
@@ -108,7 +159,7 @@ SOURCES = [
         "shared_name_contains": "CoSAI WS4: Agent Credentials",
         "shared_title_pattern": (
             r"^CoSAI WS4: Agent Credentials - "
-            r"(?P<y>\d{4})/(?P<m>\d{2})/(?P<d>\d{2}) .* Notes by Gemini$"
+            r"(?P<y>\d{4})/(?P<m>\d{2})/(?P<d>\d{2})"
         ),
         "shared_folder_name_template": "{y}-{m}-{d}",
     },
@@ -118,6 +169,44 @@ SOURCES = [
         "repo": "cosai-oasis/cosai-tsc",
         "path": "tsc-meeting-minutes",
         "subdir": "tsc",
+    },
+    {
+        "name": "PGB",
+        "type": "github",
+        "repo": "cosai-oasis/oasis-open-project",
+        "path": "pgb-meeting-minutes",
+        "subdir": "pgb",
+    },
+]
+
+# Per-meeting artifacts that sit alongside the Gemini notes. Google Meet emits
+# these with the same title stem as the notes, differing only in the trailing
+# kind ("... - Chat", "... - Attendance"), so they are matched on that suffix
+# plus mimeType. Each is written next to the notes file using the same stem.
+#
+# Two different retrieval paths are needed: Google-native files (Sheets) must be
+# *exported* to a concrete format, while binary/plain files (the chat log) must
+# be *downloaded* with alt=media. `gws drive files download` is not the right
+# verb for either -- it returns a long-running-operation envelope carrying a
+# downloadUri and writes nothing.
+#
+# Only the WS4 recurring meeting currently has chat capture enabled; sources
+# without these artifacts yield nothing here, which is not an error.
+COMPANION_ARTIFACTS = [
+    {
+        "kind": "chat",
+        "title_suffix": "Chat",
+        "extension": "-chat.txt",
+        "mime_type": "text/plain",
+        "method": "download",
+    },
+    {
+        "kind": "attendance",
+        "title_suffix": "Attendance",
+        "extension": "-attendance.csv",
+        "mime_type": "application/vnd.google-apps.spreadsheet",
+        "export_mime": "text/csv",
+        "method": "export",
     },
 ]
 
@@ -196,72 +285,162 @@ def list_meeting_folders(parent_folder_id):
     return sorted(folders, key=lambda f: f["name"])
 
 
-def find_notes_doc(folder_id):
-    """Find the Gemini notes document in a meeting folder.
+def list_folder_files(folder_id):
+    """List every non-folder file in a meeting folder, in one call.
+
+    One listing serves the notes document and every companion artifact, so a
+    folder costs a single Drive request regardless of how much we pull from it.
+    """
+    return drive_list({
+        "q": (
+            f"'{folder_id}' in parents and trashed=false and "
+            "mimeType != 'application/vnd.google-apps.folder'"
+        ),
+        "fields": "nextPageToken, files(id, name, mimeType, shortcutDetails)",
+        "pageSize": 100,
+        "supportsAllDrives": True,
+        "includeItemsFromAllDrives": True,
+    })
+
+
+def _resolve_shortcut(f, wanted_mime):
+    """Resolve a listing entry to a concrete file of wanted_mime, or None.
+
+    Meet files each appear twice in a folder -- once directly and once as a
+    shortcut -- so shortcuts are followed to their target rather than skipped,
+    and non-matching mimeTypes are rejected either way.
+    """
+    if f["mimeType"] == "application/vnd.google-apps.shortcut":
+        sd = f.get("shortcutDetails") or {}
+        if sd.get("targetMimeType") != wanted_mime:
+            return None
+        return {"id": sd["targetId"], "name": f["name"], "mimeType": sd["targetMimeType"]}
+    if f["mimeType"] != wanted_mime:
+        return None
+    return f
+
+
+DOC_MIME = "application/vnd.google-apps.document"
+
+
+def pick_notes_doc(files):
+    """Pick the Gemini notes document from a folder listing.
 
     Returns a dict with id, name, and mimeType. If the match is a shortcut
     pointing to a Google Doc, the returned id is the shortcut's target id so
     the caller can export it directly.
     """
-    files = drive_list({
-        "q": (
-            f"'{folder_id}' in parents and trashed=false and "
-            "(mimeType='application/vnd.google-apps.document' "
-            "or mimeType='application/vnd.google-apps.shortcut')"
-        ),
-        "fields": "nextPageToken, files(id, name, mimeType, shortcutDetails)",
-        "supportsAllDrives": True,
-        "includeItemsFromAllDrives": True,
-    })
-
-    def resolve(f):
-        if f["mimeType"] == "application/vnd.google-apps.shortcut":
-            sd = f.get("shortcutDetails") or {}
-            if sd.get("targetMimeType") != "application/vnd.google-apps.document":
-                return None
-            return {"id": sd["targetId"], "name": f["name"], "mimeType": sd["targetMimeType"]}
-        return f
-
     # Prefer "Notes by Gemini" matches, fall back to any resolvable doc
     for f in files:
         if "Notes by Gemini" in f["name"]:
-            resolved = resolve(f)
+            resolved = _resolve_shortcut(f, DOC_MIME)
             if resolved:
                 return resolved
     for f in files:
-        resolved = resolve(f)
+        resolved = _resolve_shortcut(f, DOC_MIME)
         if resolved:
             return resolved
     return None
 
 
-def export_doc_as_markdown(file_id, workdir):
-    """Export a Google Doc as markdown text.
+def pick_companion(files, spec):
+    """Pick one companion artifact (chat, attendance) from a folder listing."""
+    suffix = f" - {spec['title_suffix']}"
+    for f in files:
+        if not f["name"].endswith(suffix):
+            continue
+        resolved = _resolve_shortcut(f, spec["mime_type"])
+        if resolved:
+            return resolved
+    return None
 
-    gws only writes exports inside its working directory, so run it with
-    cwd=workdir and a relative temp filename, then read and remove the file.
+
+def _gws_to_bytes(argv, workdir, tag):
+    """Run a gws command that writes a file, and return the bytes it wrote.
+
+    gws refuses any -o path that resolves outside its working directory, so
+    every retrieval runs with cwd=workdir and a relative temp filename, then
+    reads and removes the file.
     """
-    tmp_name = f".gws-export-{os.getpid()}.tmp"
+    tmp_name = f".gws-{tag}-{os.getpid()}.tmp"
     tmp_path = workdir / tmp_name
     try:
-        run_gws(
-            [
-                "drive", "files", "export",
-                "--params", json.dumps({"fileId": file_id, "mimeType": "text/markdown"}),
-                "-o", tmp_name,
-            ],
-            cwd=workdir,
-        )
-        return tmp_path.read_text(encoding="utf-8")
+        run_gws([*argv, "-o", tmp_name], cwd=workdir)
+        return tmp_path.read_bytes()
     finally:
         tmp_path.unlink(missing_ok=True)
 
 
+def export_doc(file_id, workdir, mime_type):
+    """Export a Google-native file (Doc, Sheet) to a concrete format."""
+    data = _gws_to_bytes(
+        ["drive", "files", "export",
+         "--params", json.dumps({"fileId": file_id, "mimeType": mime_type})],
+        workdir,
+        "export",
+    )
+    return data.decode("utf-8")
+
+
+def export_doc_as_markdown(file_id, workdir):
+    """Export a Google Doc as markdown text."""
+    return export_doc(file_id, workdir, "text/markdown")
+
+
+def download_file(file_id, workdir):
+    """Download a non-Google-native file (the chat log) via alt=media."""
+    data = _gws_to_bytes(
+        ["drive", "files", "get",
+         "--params", json.dumps({"fileId": file_id, "alt": "media"})],
+        workdir,
+        "download",
+    )
+    return data.decode("utf-8")
+
+
+def fetch_companion(spec, entry, workdir):
+    """Retrieve one companion artifact's text, by whichever method it needs."""
+    if spec["method"] == "export":
+        return export_doc(entry["id"], workdir, spec["export_mime"])
+    return download_file(entry["id"], workdir)
+
+
+def folder_name_to_stem(folder_name):
+    """Convert folder name like 'WS4 20260402' to the stem 'WS4-20260402'."""
+    # Normalize whitespace and replace spaces with hyphens
+    return re.sub(r"\s+", "-", folder_name.strip())
+
+
 def folder_name_to_filename(folder_name):
     """Convert folder name like 'WS4 20260402' to 'WS4-20260402.md'."""
-    # Normalize whitespace and replace spaces with hyphens
-    name = re.sub(r"\s+", "-", folder_name.strip())
-    return f"{name}.md"
+    return f"{folder_name_to_stem(folder_name)}.md"
+
+
+def fetch_companions_for(files, stem, output_dir, skip_existing, label):
+    """Write every companion artifact found in `files` next to the notes file.
+
+    Returns (fetched, skipped, errors). Missing companions are not an error --
+    older meetings predate chat capture, and not every call records attendance.
+    """
+    fetched = skipped = errors = 0
+    for spec in COMPANION_ARTIFACTS:
+        output_path = output_dir / f"{stem}{spec['extension']}"
+        if skip_existing and output_path.exists():
+            skipped += 1
+            continue
+        entry = pick_companion(files, spec)
+        if not entry:
+            continue
+        print(f"  {label}: fetching {spec['kind']}...")
+        try:
+            content = fetch_companion(spec, entry, output_dir)
+        except GwsError as e:
+            print(f"  {label}: {spec['kind']} failed ({e}); skipping", file=sys.stderr)
+            errors += 1
+            continue
+        output_path.write_text(content, encoding="utf-8")
+        fetched += 1
+    return fetched, skipped, errors
 
 
 def fetch_drive_source(source, output_dir, skip_existing):
@@ -276,39 +455,177 @@ def fetch_drive_source(source, output_dir, skip_existing):
     print(f"[{source['name']}] Found {len(folders)} meeting folders")
 
     for folder in folders:
-        filename = folder_name_to_filename(folder["name"])
-        output_path = output_dir / filename
+        stem = folder_name_to_stem(folder["name"])
+        output_path = output_dir / f"{stem}.md"
+
+        wanted = [output_path] + [
+            output_dir / f"{stem}{c['extension']}" for c in COMPANION_ARTIFACTS
+        ]
+        # Fast path: once a meeting's notes and companions are all on disk there
+        # is nothing to list it for, so --skip-existing stays cheap after the
+        # first backfill.
+        if skip_existing and all(path.exists() for path in wanted):
+            skipped += len(wanted)
+            continue
+
+        files = list_folder_files(folder["id"])
+
+        if skip_existing and output_path.exists():
+            skipped += 1
+        else:
+            notes_doc = pick_notes_doc(files)
+            if not notes_doc:
+                print(f"  {folder['name']}: no notes document found")
+                no_notes += 1
+            else:
+                print(f"  {folder['name']}: fetching '{notes_doc['name']}'...")
+                try:
+                    content = export_doc_as_markdown(notes_doc["id"], output_dir)
+                except GwsError as e:
+                    # Listing surfaces shortcuts whose target doc may be in a
+                    # restricted Drive the user can't export from. Don't let one
+                    # bad doc kill the whole run.
+                    print(f"  {folder['name']}: export failed ({e}); skipping", file=sys.stderr)
+                    errors += 1
+                else:
+                    header = f"# {folder['name']}\n\n"
+                    header += f"**Source:** {notes_doc['name']}\n\n---\n\n"
+                    with open(output_path, "w") as f:
+                        f.write(header + content)
+                    fetched += 1
+
+        f2, s2, e2 = fetch_companions_for(
+            files, stem, output_dir, skip_existing, folder["name"]
+        )
+        fetched += f2
+        skipped += s2
+        errors += e2
+
+    return fetched, skipped, no_notes, errors
+
+
+def _notes_doc_first(f):
+    """Sort key preferring Gemini notes over any other doc sharing a meeting's
+    title prefix (transcripts, recaps). The title patterns match on the prefix
+    alone, so several docs can map to one output filename; notes should win.
+    """
+    return (0 if "Notes by Gemini" in f["name"] else 1, f["name"])
+
+
+def fetch_drive_loose_docs(source, output_dir, skip_existing):
+    """Catch Gemini notes that sit loose in the source's parent folder rather
+    than inside a per-meeting subfolder.
+
+    The shared-with-me pass cannot see these: when a folder is shared, Drive
+    sets sharedWithMe only on the folder, not on the documents inside it, so
+    docs filed directly in the parent fall through both other passes. Matches
+    by title pattern and writes the same canonical filename the folder pass
+    would produce.
+
+    Returns (fetched, skipped, errors).
+    """
+    pattern = source.get("shared_title_pattern")
+    template = source.get("shared_folder_name_template")
+    if not (pattern and template):
+        return 0, 0, 0
+
+    fetched = skipped = errors = 0
+    pat = re.compile(pattern)
+
+    print(f"\n[{source['name']}] Scanning parent folder for loose notes...")
+    files = drive_list({
+        "q": (
+            f"'{source['folder_id']}' in parents and trashed = false and "
+            "mimeType = 'application/vnd.google-apps.document'"
+        ),
+        "fields": "nextPageToken, files(id, name, mimeType)",
+        "pageSize": 100,
+        "supportsAllDrives": True,
+        "includeItemsFromAllDrives": True,
+    })
+
+    claimed = set()
+    for f in sorted(files, key=_notes_doc_first):
+        m = pat.match(f["name"])
+        if not m:
+            continue
+        synthetic = template.format(**m.groupdict())
+        if synthetic in claimed:
+            continue
+        claimed.add(synthetic)
+        output_path = output_dir / folder_name_to_filename(synthetic)
 
         if skip_existing and output_path.exists():
             skipped += 1
             continue
 
-        notes_doc = find_notes_doc(folder["id"])
-        if not notes_doc:
-            print(f"  {folder['name']}: no notes document found")
-            no_notes += 1
-            continue
-
-        print(f"  {folder['name']}: fetching '{notes_doc['name']}'...")
+        print(f"  [loose] {synthetic}: fetching '{f['name']}'...")
         try:
-            content = export_doc_as_markdown(notes_doc["id"], output_dir)
+            content = export_doc_as_markdown(f["id"], output_dir)
         except GwsError as e:
-            # Listing surfaces shortcuts whose target doc may be in a
-            # restricted Drive the user can't export from. Don't let one
-            # bad doc kill the whole run.
-            print(f"  {folder['name']}: export failed ({e}); skipping", file=sys.stderr)
+            print(f"  [loose] {synthetic}: export failed ({e}); skipping", file=sys.stderr)
+            errors += 1
+            continue
+        header = (
+            f"# {synthetic}\n\n"
+            f"**Source:** {f['name']} (loose in parent folder)\n\n---\n\n"
+        )
+        with open(output_path, "w") as out:
+            out.write(header + content)
+        fetched += 1
+
+    # Companions filed loose in the parent folder, for the same reason the notes
+    # are: a shared folder carries sharedWithMe, the files inside it do not.
+    # Needs shared_name_contains to rebuild a per-kind title pattern, since
+    # shared_title_pattern is anchored on "Notes by Gemini".
+    name_contains = source.get("shared_name_contains")
+    if not name_contains:
+        return fetched, skipped, errors
+
+    for spec in COMPANION_ARTIFACTS:
+        cpat = re.compile(
+            rf"^{re.escape(name_contains)} - "
+            rf"(?P<y>\d{{4}})/(?P<m>\d{{2}})/(?P<d>\d{{2}}) .* "
+            rf"{re.escape(spec['title_suffix'])}$"
+        )
+        try:
+            found = drive_list({
+                "q": (
+                    f"'{source['folder_id']}' in parents and trashed = false and "
+                    f"mimeType = '{spec['mime_type']}'"
+                ),
+                "fields": "nextPageToken, files(id, name, mimeType)",
+                "pageSize": 100,
+                "supportsAllDrives": True,
+                "includeItemsFromAllDrives": True,
+            })
+        except GwsError as e:
+            print(f"  [loose] {spec['kind']} listing failed ({e}); skipping",
+                  file=sys.stderr)
             errors += 1
             continue
 
-        header = f"# {folder['name']}\n\n"
-        header += f"**Source:** {notes_doc['name']}\n\n---\n\n"
+        for f in found:
+            m = cpat.match(f["name"])
+            if not m:
+                continue
+            stem = folder_name_to_stem(template.format(**m.groupdict()))
+            output_path = output_dir / f"{stem}{spec['extension']}"
+            if skip_existing and output_path.exists():
+                skipped += 1
+                continue
+            print(f"  [loose] {stem}: fetching {spec['kind']}...")
+            try:
+                content = fetch_companion(spec, f, output_dir)
+            except GwsError as e:
+                print(f"  [loose] {stem}: {spec['kind']} failed ({e}); skipping",
+                      file=sys.stderr)
+                errors += 1
+                continue
+            output_path.write_text(content, encoding="utf-8")
+            fetched += 1
 
-        with open(output_path, "w") as f:
-            f.write(header + content)
-
-        fetched += 1
-
-    return fetched, skipped, no_notes, errors
+    return fetched, skipped, errors
 
 
 def fetch_drive_shared_fallback(source, output_dir, skip_existing):
@@ -343,11 +660,15 @@ def fetch_drive_shared_fallback(source, output_dir, skip_existing):
         "includeItemsFromAllDrives": True,
     })
 
-    for f in candidates:
+    claimed = set()
+    for f in sorted(candidates, key=_notes_doc_first):
         m = pat.match(f["name"])
         if not m:
             continue
         synthetic = template.format(**m.groupdict())
+        if synthetic in claimed:
+            continue
+        claimed.add(synthetic)
         output_path = output_dir / folder_name_to_filename(synthetic)
 
         if skip_existing and output_path.exists():
@@ -368,6 +689,57 @@ def fetch_drive_shared_fallback(source, output_dir, skip_existing):
         with open(output_path, "w") as out:
             out.write(header + content)
         fetched += 1
+
+    # Companions for the same unfiled meetings. Each needs its own query: the
+    # shared-with-me listing filters on mimeType, and chat (text/plain) and
+    # attendance (a Sheet) are neither Docs nor each other. The title pattern is
+    # rebuilt per kind rather than reusing shared_title_pattern, which is
+    # anchored on "Notes by Gemini".
+    for spec in COMPANION_ARTIFACTS:
+        cpat = re.compile(
+            rf"^{re.escape(name_contains)} - "
+            rf"(?P<y>\d{{4}})/(?P<m>\d{{2}})/(?P<d>\d{{2}}) .* "
+            rf"{re.escape(spec['title_suffix'])}$"
+        )
+        cq = (
+            "sharedWithMe = true and trashed = false and "
+            f"mimeType = '{spec['mime_type']}' and "
+            f"name contains '{safe_contains}'"
+        )
+        try:
+            found = drive_list({
+                "q": cq,
+                "fields": "nextPageToken, files(id, name, mimeType)",
+                "pageSize": 100,
+                "supportsAllDrives": True,
+                "includeItemsFromAllDrives": True,
+            })
+        except GwsError as e:
+            print(f"  [shared] {spec['kind']} listing failed ({e}); skipping",
+                  file=sys.stderr)
+            errors += 1
+            continue
+
+        for f in found:
+            m = cpat.match(f["name"])
+            if not m:
+                continue
+            synthetic = template.format(**m.groupdict())
+            stem = folder_name_to_stem(synthetic)
+            output_path = output_dir / f"{stem}{spec['extension']}"
+            if skip_existing and output_path.exists():
+                skipped += 1
+                continue
+            print(f"  [shared] {synthetic}: fetching {spec['kind']}...")
+            try:
+                content = fetch_companion(spec, f, output_dir)
+            except GwsError as e:
+                print(f"  [shared] {synthetic}: {spec['kind']} failed ({e}); skipping",
+                      file=sys.stderr)
+                errors += 1
+                continue
+            output_path.write_text(content, encoding="utf-8")
+            fetched += 1
 
     return fetched, skipped, errors
 
@@ -452,12 +824,18 @@ def main():
             )
             total_no_notes += no_notes
             total_errors += errors
-            f2, s2, e2 = fetch_drive_shared_fallback(
+            f2, s2, e2 = fetch_drive_loose_docs(
                 source, output_dir, args.skip_existing
             )
             fetched += f2
             skipped += s2
             total_errors += e2
+            f3, s3, e3 = fetch_drive_shared_fallback(
+                source, output_dir, args.skip_existing
+            )
+            fetched += f3
+            skipped += s3
+            total_errors += e3
         elif source["type"] == "github":
             fetched, skipped, errors = fetch_github_source(
                 source, output_dir, args.skip_existing
