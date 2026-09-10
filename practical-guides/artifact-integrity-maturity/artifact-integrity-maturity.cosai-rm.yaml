@@ -1,0 +1,773 @@
+# Artifact Integrity Maturity Model - CoSAI-RM Schema
+# Version: 1.0.0
+
+metadata:
+  name: artifact-integrity-maturity-model
+  version: "1.0.0"
+  status: draft
+  description: >
+    Progressive security model for AI artifact provenance enabling cryptographic
+    proof of integrity, lineage, and policy compliance across artifact lifecycles.
+  framework_mappings:
+    - cosai-rm
+    - mitre-atlas
+    - owasp-llm-top10
+    - nist-ai-rmf
+    - stride
+    - slsa
+    - in-toto
+
+# ============================================================================
+# INVARIANTS (Floor Claims by Maturity Level)
+# ============================================================================
+
+invariants:
+  # --- Level 1: Basic Integrity ---
+  - id: INV-L1-01
+    name: Measured
+    level: 1
+    assertion: "H(artifact_content) == integrity.digest"
+    formal: "MEASURED <TARGET X> as (hash) SIGNED BY A"
+    description: Cryptographic commitment to artifact content
+    required: true
+    
+  - id: INV-L1-02
+    name: Produced By
+    level: 1
+    assertion: "signature.signer == claimed_producer"
+    formal: "<TARGET X> was PRODUCED BY A"
+    description: Ownership/responsibility claim linking artifact to producer
+    required: true
+    
+  - id: INV-L1-03
+    name: Signer Verified
+    level: 1
+    assertion: "signer.subject ∈ trust_store"
+    formal: "SIGNER A verified against trust_store"
+    description: Signer identity validated against recognized trust store
+    required: true
+    
+  - id: INV-L1-04
+    name: Timestamped
+    level: 1
+    assertion: "|now() - signed_at| < tolerance"
+    formal: "TIMESTAMP t within acceptable range"
+    description: Signature timestamp within acceptable drift
+    required: false  # Optional at L1, Required at L2+
+    default_tolerance_seconds: 300
+    
+  # --- Level 2: Chaining and Lineage ---
+  - id: INV-L2-01
+    name: Derived From (Null Provenance)
+    level: 2
+    assertion: "lineage.inputs[].artifact_id EXISTS"
+    formal: "<TARGET Y> was DERIVED FROM <TARGET X> SIGNED BY A"
+    description: Basic derivation claim without process details
+    required: true
+    
+  - id: INV-L2-02
+    name: Input Verified
+    level: 2
+    assertion: "∀ input ∈ lineage.inputs: H(input.content) == input.verification.original_digest"
+    formal: "INPUT <TARGET X> was VERIFIED as Hash"
+    description: All input artifact hashes validated before derivation
+    required: true
+    critical: true
+    
+  - id: INV-L2-03
+    name: Evidence Backed
+    level: 2
+    assertion: "derivation_claim.evidence.process_log_hash EXISTS"
+    formal: "INPUT <X.1> was DERIVED FROM <X> BY <PROCESS> SIGNED BY A"
+    description: Full derivation with process reference and evidence
+    required: false  # Required for EVIDENCE_BACKED claim type
+    
+  - id: INV-L2-04
+    name: Chain Linked
+    level: 2
+    assertion: "H(previous.signature) == chain_signature.previous_signature_hash"
+    formal: "CHAIN_SIGNATURE links to predecessor"
+    description: Cryptographic linkage to predecessor artifact
+    required: true
+    
+  - id: INV-L2-05
+    name: Timestamped (Strict)
+    level: 2
+    assertion: "|now() - signed_at| < strict_tolerance"
+    formal: "TIMESTAMP t within strict range"
+    description: Signature timestamp with stricter tolerance
+    required: true  # Now required at L2+
+    default_tolerance_seconds: 60
+    source: tsa_preferred
+    
+  # --- Level 3: Attestations and Policy ---
+  - id: INV-L3-01
+    name: Attested (Process)
+    level: 3
+    assertion: "attestations.process EXISTS AND verify(attestations.process.signature)"
+    formal: "ATTESTED(process) by attester SIGNED"
+    description: Process attestation with valid signature
+    required: true
+    predicate_type: "https://slsa.dev/provenance/v1"
+    
+  - id: INV-L3-02
+    name: Attested (Model)
+    level: 3
+    assertion: "IF artifact.type == 'model' THEN attestations.model EXISTS"
+    formal: "ATTESTED(model) with metrics SIGNED"
+    description: Model attestation when artifact is ML model
+    required: conditional
+    condition: "artifact.type == 'model'"
+    
+  - id: INV-L3-03
+    name: Attested (Data)
+    level: 3
+    assertion: "IF uses_training_data THEN attestations.data EXISTS"
+    formal: "ATTESTED(data) with provenance SIGNED"
+    description: Data attestation when training data used
+    required: conditional
+    condition: "lineage.inputs[].role == 'training_data'"
+    
+  - id: INV-L3-04
+    name: Attested (Infrastructure)
+    level: 3
+    assertion: "attestations.infrastructure EXISTS"
+    formal: "ATTESTED(infrastructure) with security controls SIGNED"
+    description: Infrastructure security attestation
+    required: false  # Recommended
+    
+  - id: INV-L3-05
+    name: Policy Evaluated
+    level: 3
+    assertion: "policy.evaluations[].result ∈ {PASS, WARN}"
+    formal: "POLICY_EVALUATED with result"
+    description: Policy engine evaluation completed
+    required: true
+    
+  - id: INV-L3-06
+    name: Admission Gated
+    level: 3
+    assertion: "IF deploying THEN policy.admission_status.admitted == true"
+    formal: "ADMISSION_GATED for target environment"
+    description: Explicit admission decision for deployment
+    required: conditional
+    condition: "deploying_to_production"
+
+# ============================================================================
+# TOPOLOGY (Structural Complexity Options)
+# ============================================================================
+
+topology:
+  description: >
+    Organizations select lineage topology based on operational requirements.
+    Higher topology complexity enables richer provenance but requires more
+    sophisticated verification.
+  
+  options:
+    - id: TOPO-CHAIN
+      name: Chain
+      level: 1
+      description: Linear succession of artifacts
+      structure: "A → B → C → D"
+      max_inputs_per_artifact: 1
+      supports_branching: false
+      supports_merging: false
+      verification_complexity: "O(n)"
+      verification_algorithm: "pointer_traversal"
+      use_cases:
+        - Single artifact version history
+        - Sequential transformations
+        - Simple audit trails
+      schema_requirements:
+        - "lineage.previous_artifact_id: string | null"
+      
+    - id: TOPO-TREE
+      name: Tree
+      level: 2
+      description: Branching OR converging, but not both simultaneously
+      structure: |
+        Divergent:     Convergent:
+            A            A  B  C
+           / \            \ | /
+          B   C             D
+      max_inputs_per_artifact: "unlimited"
+      supports_branching: true
+      supports_merging: false  # No diamonds
+      verification_complexity: "O(n)"
+      verification_algorithm: "dfs_traversal"
+      use_cases:
+        - Team forks from base model
+        - Multi-input training pipelines
+        - Parallel experimentation
+      schema_requirements:
+        - "lineage.previous_artifact_id: string | null"
+        - "lineage.inputs: array"
+      
+    - id: TOPO-DAG
+      name: DAG (Directed Acyclic Graph)
+      level: 3
+      description: Full graph with diamond dependencies
+      structure: |
+            A
+           / \
+          B   C
+           \ /
+            D  ← diamond
+      max_inputs_per_artifact: "unlimited"
+      supports_branching: true
+      supports_merging: true
+      verification_complexity: "O(V+E)"
+      verification_algorithm: "toposort_with_diamond_check"
+      use_cases:
+        - Model merging
+        - Ensemble creation
+        - Federated learning
+        - Collaborative ML workflows
+      schema_requirements:
+        - "lineage.previous_artifact_id: string | null"
+        - "lineage.inputs: array"
+        - "lineage.merge_metadata: object"
+        - "lineage.topology: 'dag'"
+      additional_checks:
+        - "cycle_detection"
+        - "diamond_consistency"
+        - "multi_path_attestation_consistency"
+
+# ============================================================================
+# COMPONENTS
+# ============================================================================
+
+components:
+  - id: COMP-01
+    name: Artifact Registry
+    description: Storage for artifacts and their manifests
+    security_role: Stores WHAT with integrity
+    
+  - id: COMP-02
+    name: Signing Service
+    description: Key management and signature generation
+    security_role: Authenticates WHO produced artifact
+    
+  - id: COMP-03
+    name: Trust Store
+    description: Repository of trusted signer certificates
+    security_role: Validates signer identity (INV-L1-03)
+    
+  - id: COMP-04
+    name: Lineage Tracker
+    description: Tracks derivation relationships between artifacts
+    security_role: Enforces chain/tree/DAG integrity
+    
+  - id: COMP-05
+    name: Attestation Service
+    description: Generates and validates structured attestations
+    security_role: Provides evidence for claims (INV-L3-*)
+    
+  - id: COMP-06
+    name: Policy Engine
+    description: OPA/Rego-based policy evaluation
+    security_role: Enforces deployment gates (INV-L3-05)
+    
+  - id: COMP-07
+    name: Admission Controller
+    description: Kubernetes Gatekeeper or equivalent
+    security_role: Enforces production admission (INV-L3-06)
+
+# ============================================================================
+# RISKS
+# ============================================================================
+
+risks:
+  - id: RISK-01
+    name: Artifact Tampering
+    atlas_id: AML.T0048
+    stride: Tampering
+    description: Artifact content modified after signing
+    affected_levels: [1, 2, 3]
+    control: INV-L1-01
+    
+  - id: RISK-02
+    name: Provenance Forgery
+    atlas_id: AML.T0043
+    stride: Spoofing
+    description: False claims about artifact origin
+    affected_levels: [1, 2, 3]
+    controls: [INV-L1-02, INV-L1-03]
+    
+  - id: RISK-03
+    name: Lineage Manipulation
+    owasp_llm: LLM06
+    stride: Tampering
+    description: False derivation claims or input substitution
+    affected_levels: [2, 3]
+    controls: [INV-L2-01, INV-L2-02, INV-L2-04]
+    
+  - id: RISK-04
+    name: Chain Break
+    stride: Tampering
+    description: Hash chain integrity violated
+    affected_levels: [2, 3]
+    control: INV-L2-04
+    
+  - id: RISK-05
+    name: Diamond Inconsistency
+    description: Same artifact has different hashes via different paths
+    affected_levels: [3]
+    topology: TOPO-DAG
+    control: "diamond_consistency_check"
+    
+  - id: RISK-06
+    name: Attestation Forgery
+    atlas_id: AML.T0043
+    stride: Spoofing
+    description: False attestations about model/data/process
+    affected_levels: [3]
+    controls: [INV-L3-01, INV-L3-02, INV-L3-03]
+    
+  - id: RISK-07
+    name: Policy Bypass
+    stride: Elevation of Privilege
+    description: Deployment without required policy evaluation
+    affected_levels: [3]
+    controls: [INV-L3-05, INV-L3-06]
+    
+  - id: RISK-08
+    name: Signer Compromise
+    atlas_id: AML.T0024
+    stride: Spoofing
+    description: Signing key compromised
+    affected_levels: [1, 2, 3]
+    controls: [INV-L1-03]
+    mitigations:
+      - key_rotation
+      - hsm_storage
+      - certificate_revocation
+      
+  - id: RISK-09
+    name: Cycle Injection
+    stride: Tampering
+    description: Circular dependency introduced in DAG
+    affected_levels: [3]
+    topology: TOPO-DAG
+    control: "cycle_detection"
+    
+  - id: RISK-10
+    name: Multi-Party Claim Conflict
+    description: Different parties make inconsistent claims about same artifact
+    affected_levels: [2, 3]
+    control: "claim_consistency_check"
+
+# ============================================================================
+# CONTROLS
+# ============================================================================
+
+controls:
+  # Level 1 Controls
+  - id: CTRL-01
+    name: Hash Verification
+    implements: INV-L1-01
+    level: 1
+    description: Verify H(content) == digest
+    algorithm: "SHA256 | SHA384 | SHA512 | SHA3-256"
+    
+  - id: CTRL-02
+    name: Signature Verification
+    implements: INV-L1-02
+    level: 1
+    description: Verify signature over artifact manifest
+    algorithms: ["RS256", "ES256", "ES384", "EdDSA"]
+    
+  - id: CTRL-03
+    name: Trust Store Lookup
+    implements: INV-L1-03
+    level: 1
+    description: Verify signer exists in trust store
+    refresh_interval: "24h"
+    
+  - id: CTRL-04
+    name: Timestamp Validation
+    implements: [INV-L1-04, INV-L2-05]
+    level: 1
+    description: Verify timestamp within tolerance
+    l1_tolerance: 300
+    l2_tolerance: 60
+    source_preference: ["tsa", "local"]
+    
+  # Level 2 Controls
+  - id: CTRL-05
+    name: Input Hash Verification
+    implements: INV-L2-02
+    level: 2
+    description: Verify all input artifact hashes before derivation
+    critical: true
+    
+  - id: CTRL-06
+    name: Chain Signature Verification
+    implements: INV-L2-04
+    level: 2
+    description: Verify H(prev.signature) == chain_signature.previous_signature_hash
+    
+  - id: CTRL-07
+    name: Topology Validation
+    implements: [TOPO-CHAIN, TOPO-TREE, TOPO-DAG]
+    level: 2
+    description: Verify artifact structure matches declared topology
+    checks:
+      chain: "max_inputs == 1"
+      tree: "no_diamonds"
+      dag: "no_cycles"
+      
+  # Level 3 Controls
+  - id: CTRL-08
+    name: Attestation Signature Verification
+    implements: [INV-L3-01, INV-L3-02, INV-L3-03, INV-L3-04]
+    level: 3
+    description: Verify all attestation signatures
+    trust_level_required: "high"
+    
+  - id: CTRL-09
+    name: Policy Evaluation
+    implements: INV-L3-05
+    level: 3
+    description: Execute OPA/Rego policy rules
+    engine: "opa"
+    minimum_rules:
+      - artifact_integrity
+      - lineage_verified
+      - attestations_present
+      
+  - id: CTRL-10
+    name: Admission Gate
+    implements: INV-L3-06
+    level: 3
+    description: Verify admission status for target environment
+    controller: "gatekeeper"
+    
+  - id: CTRL-11
+    name: Diamond Consistency Check
+    implements: RISK-05
+    level: 3
+    topology: TOPO-DAG
+    description: Verify same artifact has consistent hash via all paths
+    
+  - id: CTRL-12
+    name: Cycle Detection
+    implements: RISK-09
+    level: 3
+    topology: TOPO-DAG
+    description: Verify no circular dependencies in graph
+    algorithm: "toposort"
+
+# ============================================================================
+# MATURITY LEVELS (Tiers)
+# ============================================================================
+
+maturity_levels:
+  - level: 1
+    name: Basic Integrity
+    description: "Proves: This artifact exists, was created by X, and hasn't changed"
+    required_invariants: [INV-L1-01, INV-L1-02, INV-L1-03]
+    optional_invariants: [INV-L1-04]
+    topology_options: [TOPO-CHAIN]
+    axioms_satisfied: [1, 2, 3, 4]  # From Zero-Trust Tool Invocation
+    
+    defaults:
+      hash_algorithm: SHA256
+      signature_algorithm: RS256
+      key_rotation_days: 90
+      timestamp_tolerance_seconds: 300
+      timestamp_required: false
+      trust_store_refresh_hours: 24
+      
+    anchor_points:
+      - field: "integrity._level2_anchor.chain_ready"
+        value: true
+      - field: "provenance._level2_anchor.inputs"
+        value: []
+      - field: "signature._level2_anchor.chain_position"
+        value: 0
+      - field: "signature._level2_anchor.previous_signature"
+        value: null
+        
+  - level: 2
+    name: Chaining and Lineage
+    description: "Proves: This artifact was derived from verified inputs through a documented process"
+    inherits: 1
+    required_invariants: [INV-L2-01, INV-L2-02, INV-L2-04, INV-L2-05]
+    optional_invariants: [INV-L2-03]
+    topology_options: [TOPO-CHAIN, TOPO-TREE]
+    axioms_satisfied: [1, 2, 3, 4, 5]  # Adds Hash Provenance
+    
+    defaults:
+      timestamp_tolerance_seconds: 60
+      timestamp_required: true
+      timestamp_source: tsa
+      max_chain_depth: 100
+      input_verification_required: true
+      process_parameters_hash_required: true
+      log_retention_days: 365
+      
+    derivation_claim_types:
+      - id: NULL_PROVENANCE
+        evidence_required: false
+        process_required: false
+      - id: VERIFICATION
+        evidence_required: false
+        process_required: false
+      - id: EVIDENCE_BACKED
+        evidence_required: true
+        process_required: true
+        
+    anchor_points:
+      - field: "_level3_anchor.attestation_slots"
+        value: []
+      - field: "_level3_anchor.policy_refs"
+        value: []
+        
+    conditional_requirements:
+      - condition: "classification.level <= 3"
+        requirements:
+          - "authorization.transport_binding REQUIRED"
+          - "audit.ticket_id REQUIRED"
+        
+  - level: 3
+    name: Attestations and Policy
+    description: "Proves: This artifact meets policy requirements and is approved for deployment"
+    inherits: 2
+    required_invariants: [INV-L3-01, INV-L3-05]
+    conditional_invariants: [INV-L3-02, INV-L3-03, INV-L3-06]
+    optional_invariants: [INV-L3-04]
+    topology_options: [TOPO-CHAIN, TOPO-TREE, TOPO-DAG]
+    axioms_satisfied: [1, 2, 3, 4, 5]  # Plus attestation proofs
+    
+    defaults:
+      signature_algorithm: ES384
+      required_attestation_categories: [process]
+      recommended_attestation_categories: [model, data, process, infrastructure]
+      attestation_predicate_type: "https://in-toto.io/attestation/v1"
+      provenance_predicate_type: "https://slsa.dev/provenance/v1"
+      attester_trust_level_for_production: high
+      policy_engine: opa
+      policy_format: rego
+      admission_controller: gatekeeper
+      evidence_retention_days: 2555
+      compliance_check_frequency: daily
+      
+    attestation_categories:
+      - category: process
+        required: always
+        claims:
+          required: [pipeline_version, execution_environment]
+          recommended: [slsa_level, reproducibility_score]
+      - category: model
+        required: when_type_is_model
+        claims:
+          required: [model_architecture, training_framework, performance_metrics]
+          recommended: [fairness_metrics, explainability_report]
+      - category: data
+        required: when_uses_training_data
+        claims:
+          required: [data_source, collection_date_range, record_count, schema_version]
+          recommended: [pii_scan_result, bias_analysis]
+      - category: infrastructure
+        required: recommended
+        claims:
+          required: [runtime_environment, security_controls]
+          recommended: [vulnerability_scan, sbom]
+
+# ============================================================================
+# VALIDATION SEQUENCE
+# ============================================================================
+
+validation_sequence:
+  level_1:
+    - step: 1
+      action: "VERIFY signature.algorithm ∈ allowed_algorithms"
+    - step: 2
+      action: "VERIFY signature over canonical manifest"
+      invariant: INV-L1-02
+    - step: 3
+      action: "VERIFY signer.subject ∈ trust_store"
+      invariant: INV-L1-03
+    - step: 4
+      action: "VERIFY H(artifact_content) == integrity.digest"
+      invariant: INV-L1-01
+      critical: true
+    - step: 5
+      action: "IF timestamp present: VERIFY |now() - signed_at| < tolerance"
+      invariant: INV-L1-04
+      optional: true
+    - step: 6
+      action: "RETURN {measured: true, produced_by: true, signer_verified: true}"
+      
+  level_2:
+    - step: 1-6
+      action: "[All Level 1 verification steps]"
+    - step: 7
+      action: "VERIFY lineage.chain_position > 0 OR chain_integrity == 'GENESIS'"
+    - step: 8
+      action: "FOR EACH input IN lineage.inputs: VERIFY H(input.content) == original_digest"
+      invariant: INV-L2-02
+      critical: true
+    - step: 9
+      action: "IF previous_artifact: VERIFY H(prev.signature) == previous_signature_hash"
+      invariant: INV-L2-04
+    - step: 10
+      action: "IF topology == TREE: VERIFY no_diamonds(graph)"
+    - step: 11
+      action: "IF derivation_claim.type == EVIDENCE_BACKED: VERIFY evidence exists"
+      invariant: INV-L2-03
+    - step: 12
+      action: "RETURN L1_results + {derived_from: true, inputs_verified: true, chain_valid: true}"
+      
+  level_3:
+    - step: 1-12
+      action: "[All Level 2 verification steps]"
+    - step: 13
+      action: "IF topology == DAG: VERIFY no_cycles(graph)"
+    - step: 14
+      action: "IF topology == DAG: VERIFY diamond_consistency(graph)"
+    - step: 15
+      action: "VERIFY attestations.process EXISTS AND signature valid"
+      invariant: INV-L3-01
+    - step: 16
+      action: "IF artifact.type == 'model': VERIFY attestations.model EXISTS"
+      invariant: INV-L3-02
+    - step: 17
+      action: "IF uses_training_data: VERIFY attestations.data EXISTS"
+      invariant: INV-L3-03
+    - step: 18
+      action: "FOR EACH evaluation IN policy.evaluations: VERIFY result ∈ {PASS, WARN}"
+      invariant: INV-L3-05
+    - step: 19
+      action: "IF deploying: VERIFY admission_status.admitted == true"
+      invariant: INV-L3-06
+    - step: 20
+      action: "RETURN L2_results + {attested: true, policy_passed: true, admitted: true}"
+
+# ============================================================================
+# FRAMEWORK MAPPINGS
+# ============================================================================
+
+framework_mappings:
+  mitre_atlas:
+    - id: AML.T0024
+      name: Session/Key Compromise
+      risks: [RISK-08]
+    - id: AML.T0040
+      name: Replay Attack
+      relevance: "Addressed by chain signatures"
+    - id: AML.T0043
+      name: Supply Chain Compromise
+      risks: [RISK-02, RISK-06]
+    - id: AML.T0048
+      name: Data Manipulation
+      risks: [RISK-01, RISK-03]
+      
+  owasp_llm_top10:
+    - id: LLM03
+      name: Training Data Poisoning
+      controls: [INV-L2-02, INV-L3-03]
+    - id: LLM06
+      name: Sensitive Information Disclosure
+      risks: [RISK-03]
+    - id: LLM08
+      name: Excessive Agency
+      controls: [INV-L3-05, INV-L3-06]
+      
+  stride:
+    - category: Spoofing
+      risks: [RISK-02, RISK-06, RISK-08]
+    - category: Tampering
+      risks: [RISK-01, RISK-03, RISK-04, RISK-09]
+    - category: Repudiation
+      controls: [INV-L1-02, INV-L2-03]
+    - category: Information Disclosure
+      controls: [CTRL-03]
+    - category: Denial of Service
+      relevance: "Out of scope"
+    - category: Elevation of Privilege
+      risks: [RISK-07]
+      
+  slsa:
+    - level: 1
+      description: "Documentation of build process"
+      mapped_to: INV-L2-03
+    - level: 2
+      description: "Tamper resistance of build service"
+      mapped_to: INV-L3-01
+    - level: 3
+      description: "Extra resistance to specific threats"
+      mapped_to: [INV-L3-01, INV-L3-04]
+    - level: 4
+      description: "Highest levels of confidence"
+      mapped_to: "maturity_level: 3 with all attestations"
+      
+  nist_ai_rmf:
+    - function: GOVERN
+      controls: [1.1, 1.2]
+      mapped_to: [INV-L3-05, INV-L3-06]
+    - function: MAP
+      controls: [3.1, 3.2]
+      mapped_to: [INV-L2-01, INV-L2-02]
+    - function: MEASURE
+      controls: [2.1, 2.2]
+      mapped_to: [INV-L3-02, INV-L3-03]
+    - function: MANAGE
+      controls: [1.1, 2.1]
+      mapped_to: [INV-L3-05]
+      
+  compliance:
+    - framework: SOC2
+      controls: [CC6.1, CC7.1, CC7.2]
+      evidence_sources: [attestations.process, attestations.infrastructure]
+    - framework: NIST-AI-RMF
+      functions: [GOVERN-1.1, MAP-3.1, MEASURE-2.1]
+      evidence_sources: [attestations.model, attestations.data]
+    - framework: ISO27001
+      controls: [A.12.1, A.14.2]
+      evidence_sources: [attestations.infrastructure, policy.evaluations]
+    - framework: PCI-DSS
+      requirements: [6.3, 6.5, 10.1]
+      evidence_sources: [audit, lineage, attestations.process]
+
+# ============================================================================
+# CROSS-PARTY CLAIM NAVIGATION
+# ============================================================================
+
+multi_party:
+  description: >
+    When claims come from different parties, navigation uses pointer-by-subject
+    indexing with independent signature verification per signer.
+    
+  claim_structure:
+    type: "Map<SubjectID, Set<SignedClaim>>"
+    example: |
+      claims["artifact-Y"] = {
+        SignedClaim(DERIVED_FROM, signer=Carol),
+        SignedClaim(ATTESTED:model, signer=Dave),
+        SignedClaim(ATTESTED:infra, signer=Eve),
+        SignedClaim(POLICY_EVALUATED, signer=Frank)
+      }
+      
+  verification_algorithm: |
+    def verify_multi_party(artifact_id, trust_policy):
+        claims = collect_claims_by_subject(artifact_id)
+        for claim in claims:
+            verify_signature(claim, claim.signer)
+            verify_signer_trusted(claim.signer, trust_policy)
+        for input_ref in get_input_references(claims):
+            verify_multi_party(input_ref.artifact_id, trust_policy)
+        assert has_required_claims(claims, artifact.maturity_level)
+        assert claims_consistent(claims)
+        
+  conflict_resolution:
+    strategies:
+      - id: FAIL
+        description: Any conflict fails verification
+      - id: QUORUM
+        description: Majority of trusted parties wins
+      - id: PRIORITY
+        description: Higher trust level wins
+      - id: TEMPORAL
+        description: Most recent claim wins (with caveats)
