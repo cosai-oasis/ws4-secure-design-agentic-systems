@@ -372,7 +372,87 @@ The question each section answers is therefore not "how strong is the box?" but:
 
 ### 7.1 What to log
 
-> Drafting note: two tables against the same event, per the settled split above. The detection table: signals, each with its expected false-positive source (§7.2). The evidence table: the contract fields from #172 — principal and full delegation chain as the integrity-protected correlation key, policy and tool-catalog versions, action identifier, request digest, enforcement decision and reason, runtime identity or attestation reference, outcome, integrity-protected sequence, and the accounting decision itself (§4). The schema and mapping go in the practical guide.
+Two approved WS4 papers already carry most of the field list, and this section should be read as
+extending them rather than restarting them. The *Model Context Protocol Security* paper requires,
+at L2 and above, structured logging of tool identity, caller identity, policy decision, resource
+target, outcome, request metadata and correlation identifiers, with raw parameters logged only
+after redaction, hashing or field-level tokenization, rising to immutable tamper-evident logging of
+all interactions at L4. The *Agentic Identity and Access Management* paper's Appendix D requires
+agent ID, subject ID, tenant, environment, resource and action, decision with reason, scope and
+authorization details, policy version, attestation information and a `correlation_id`, and states
+the "prove control on demand" obligation: an organization must be able to answer, from logs alone,
+which agents were active, what permissions they held at that time, who was involved in each action,
+and which policies, attestation evidence and delegated scopes justified each decision.
+
+What this paper adds is the separation. Those lists are single lists serving two readers. Detection
+is written for an operator inside the deployment who is trying to notice an attempt in progress, and
+it is allowed to be noisy, heuristic and tuned locally. Evidence is written for someone who was not
+there and does not trust the operator, and it must be stable, complete and dull. A field that earns
+its place in one does not automatically earn its place in the other, and the two have opposite
+failure modes: a detection signal that fires too rarely is useless, while an evidence field that is
+present only sometimes is worse than absent, because a verifier cannot distinguish "did not happen"
+from "was not recorded".
+
+Two constraints apply to the evidence table as a whole. Nothing in an evidence record may be
+executable authority (§3): the record states what was decided and on what basis, and a consumer of
+the record must never be able to replay a field in it to obtain the decision again. And correlation
+is scoped to the shared principal and the delegation subtree it roots, not to one run or one
+container (§4); a per-run correlation key cannot show that a set of individually compliant agents
+collectively exceeded the intended authority or budget, which is the failure §4 describes.
+
+**Detection signals.** Each row names what the signal is evidence of and where its false positives
+come from. §7.2 takes up why the rates themselves cannot be stated yet.
+
+| Signal | What it indicates | Expected false-positive source |
+| :---- | :---- | :---- |
+| Denied syscalls under the sandbox policy | The workload attempted something the profile forbids | Language runtimes and package managers probe for capabilities they can live without; a denied `clone3` or `statx` is routine startup behaviour on a mismatched libc |
+| Repeated policy violations by one agent instance | Systematic probing rather than an incidental denial | A misconfigured tool retrying a legitimately scoped call; retry loops inflate one denial into many |
+| `/proc` and cgroup inspection | Sandbox reconnaissance | Ordinary resource introspection: runtimes read `/proc/self/cgroup` and memory limits to size thread pools and heaps |
+| Container runtime socket access | Attempted escape to the host control plane | Almost none in a correctly built sandbox, which is what makes this the highest-confidence signal in the list. The exception is a build or CI agent legitimately given the socket, which should be a distinct deployment shape (§1.1) |
+| Cloud metadata service probes | Attempted credential theft | SDK default credential chains probe the metadata endpoint unconditionally on startup, before any application code decides how to authenticate |
+| Blocked DNS resolution and blocked egress destinations | Exfiltration or command-and-control attempt | Telemetry, update checks and dependency resolution reaching destinations nobody put on the allowlist |
+| Credential-broker denials | A request for authority beyond the granted scope | An agent legitimately discovering the boundary of its own scope, which is indistinguishable at the broker from probing it |
+| Attempted modification of sandbox configuration | Attempted self-escalation | Effectively none; treat any instance as an incident |
+| Aggregate consumption across the delegation subtree crossing a threshold no local control sees | Composition failure (§4) | Legitimate fan-out workloads whose aggregate is high by design; the profile depends on the deployment's own fan-out shape and does not transfer between deployments |
+| Executed capability outside the agent's declared set | The discriminator named in §7.2: undeclared-but-executed | An incomplete or stale declaration, which is a defect in the declaration rather than noise in the signal |
+
+**The evidence contract.** These are the fields that let a party who was not present and does not
+trust the operator reconstruct what happened. Each is REQUIRED unless the row says otherwise. The
+mapping to concrete schema fields belongs in the practical guide, pinned to an OCSF version, with
+proposed fields marked as proposed.
+
+| Field | What it makes reconstructible | Notes |
+| :---- | :---- | :---- |
+| Principal and full delegation chain | Who the action was ultimately performed for, and by what path of authority | The integrity-protected correlation key. Scoped to the subtree, not the run, per §4. The whole chain, because the immediate caller alone cannot show that attenuation held at every hop |
+| Policy version | Which rules were in force at the moment of decision | Without it a later reader evaluates the action against today's policy and reaches a different verdict than the enforcement point did |
+| Tool-catalog version | What the agent could have called at that moment | Distinct from policy version and separately mutable. Required for the declared-versus-executed discriminator in §7.2 to be checkable after the fact |
+| Action or tool-call identifier | Which specific invocation this record is about | The join key between the detection artifact, the evidence artifact and any downstream effect |
+| Request digest | That the recorded request is the request that was made | A digest rather than the parameters, so the record can be retained and shared without carrying the payload. This satisfies the MCP paper's redaction requirement rather than conflicting with it |
+| Enforcement decision and reason | What the enforcement point concluded, and on what basis | Both halves. A decision without a reason cannot be audited, only counted |
+| Runtime identity or attestation reference | What was executing, as opposed to what claimed to be executing | Required. Where attestation is not available in the deployment shape (§1.1), the field carries an explicit `not-available` value with a reason rather than being omitted. An explicit absence is evidence; an empty field is a shrug |
+| Outcome | Whether the action took effect | Distinct from the decision: an allowed action can still fail, and a denied one can still have partial effect |
+| Integrity-protected sequence or timestamp | That the record set is complete and unreordered | The property that makes deletion detectable. A per-record signature proves each record; only a chained sequence proves that none is missing |
+| The accounting decision | What the aggregate budget stood at, and what this action consumed of it | Per §4. Without it the composition invariant is unauditable after the fact, because the sum cannot be recomputed from records that never carried the running total |
+
+Coverage of the *Agentic IAM* paper's "prove control on demand" checklist follows from the table
+rather than being asserted: which agents were active comes from the principal and chain, what
+permissions they held from the policy and catalog versions, who was involved in each action from the
+principal and action identifier, and what justified each decision from the decision, reason and
+attestation reference. The obligation that paper states as a capability, this table states as the
+minimum record that makes the capability real.
+
+**Two requirements this section settles.**
+
+- **The runtime identity or attestation reference row is required, not conditional.** Attestation is
+  not available in every deployment shape (§1.1), but a conditional evidence field is exactly the
+  shape that produces the "did not happen" versus "was not recorded" ambiguity this section exists to
+  remove. The field is therefore always present and carries an explicit `not-available` value with a
+  reason where attestation is unavailable.
+- **An implementation MUST state which canonicalization its digests use, and the record MUST
+  identify it.** Two implementations that digest the same request differently produce records that
+  cannot be compared, which defeats the field. The paper requires that a canonicalization be stated
+  and identified, so two records are either comparable or honestly incomparable; which
+  canonicalizations qualify is practical-guide material, pinned alongside the OCSF mapping.
 
 ### 7.2 The false-positive profile
 
