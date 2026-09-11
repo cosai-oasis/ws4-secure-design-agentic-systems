@@ -429,7 +429,7 @@ proposed fields marked as proposed.
 | Action or tool-call identifier | Which specific invocation this record is about | The join key between the detection artifact, the evidence artifact and any downstream effect |
 | Request digest | That the recorded request is the request that was made | A digest rather than the parameters, so the record can be retained and shared without carrying the payload. This satisfies the MCP paper's redaction requirement rather than conflicting with it |
 | Enforcement decision and reason | What the enforcement point concluded, and on what basis | Both halves. A decision without a reason cannot be audited, only counted |
-| Runtime identity or attestation reference | What was executing, as opposed to what claimed to be executing | Where available. Absence must be recorded as absence rather than left to be inferred from an empty field |
+| Runtime identity or attestation reference | What was executing, as opposed to what claimed to be executing | Required. Where attestation is not available in the deployment shape (§1.1), the field carries an explicit `not-available` value with a reason rather than being omitted. An explicit absence is evidence; an empty field is a shrug |
 | Outcome | Whether the action took effect | Distinct from the decision: an allowed action can still fail, and a denied one can still have partial effect |
 | Integrity-protected sequence or timestamp | That the record set is complete and unreordered | The property that makes deletion detectable. A per-record signature proves each record; only a chained sequence proves that none is missing |
 | The accounting decision | What the aggregate budget stood at, and what this action consumed of it | Per §4. Without it the composition invariant is unauditable after the fact, because the sum cannot be recomputed from records that never carried the running total |
@@ -441,17 +441,18 @@ principal and action identifier, and what justified each decision from the decis
 attestation reference. The obligation that paper states as a capability, this table states as the
 minimum record that makes the capability real.
 
-**Open items.**
+**Two requirements this section settles.**
 
-- The requirement level of the runtime identity or attestation reference row. It is written as
-  conditional above because attestation is not available in every deployment shape (§1.1), but a
-  conditional evidence field is exactly the shape that produces the "was not recorded" ambiguity
-  this section is trying to remove. A first-class not-available value, recorded explicitly, may be
-  the better answer.
-- Whether the request digest needs a stated canonicalization here or only in the practical guide.
-  Two implementations that digest the same request differently produce records that cannot be
-  compared, which defeats the field. The paper may need to require *a* stated canonicalization
-  without naming one.
+- **The runtime identity or attestation reference row is required, not conditional.** Attestation is
+  not available in every deployment shape (§1.1), but a conditional evidence field is exactly the
+  shape that produces the "did not happen" versus "was not recorded" ambiguity this section exists to
+  remove. The field is therefore always present and carries an explicit `not-available` value with a
+  reason where attestation is unavailable.
+- **An implementation MUST state which canonicalization its digests use, and the record MUST
+  identify it.** Two implementations that digest the same request differently produce records that
+  cannot be compared, which defeats the field. The paper requires that a canonicalization be stated
+  and identified, so two records are either comparable or honestly incomparable; which
+  canonicalizations qualify is practical-guide material, pinned alongside the OCSF mapping.
 
 ### 7.2 The false-positive profile
 
