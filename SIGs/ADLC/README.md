@@ -6,9 +6,11 @@ This SIG is part of [CoSAI Workstream 4, Secure Design Patterns for Agentic Syst
 The goal of this SIG is to research and develop secure lifecycle practices for AI-based agentic systems. This SIG addresses the infrastructure, identity, lifecycle, and operational security of the agents themselves. The SIG focuses on providing quick, tangible ways to more securely deploy agent development ecosystems, reducing the risk of failures while enabling organizations to make explicit, informed choices. Among its deliverables, this SIG will produce a comprehensive Agent Development Lifecycle (ADLC) document that defines trust boundaries across the entire agent lifecycle, identifies the controls needed at each phase, the prerequisites for those controls, and the risks that arise when they are absent.
 
 ### SIG Leads
+
+* Courtenay Ngo (Microsoft)
 * Emrick Donadei (Google)
 * Jennings Aske (SailPoint)
-* Parul Singh (Red Hat)
+* Matthew Gladney (NVIDIA)
 
 ### Deliverables
 
