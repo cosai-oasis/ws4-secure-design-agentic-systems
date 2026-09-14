@@ -50,8 +50,8 @@ leads plus a `gh` permission check) automatically.
 |---|---|---|
 | Full name | Workstream 4 — Secure Design Patterns for Agentic Systems | Agentic Development Lifecycle SIG (under WS4) |
 | Repo | `cosai-oasis/ws4-secure-design-agentic-systems` | same |
-| Chairs | @sarahnovotny, @imolloy | @husky-parul, @kgoesche, Jennings Aske |
-| Supporting leads | @AIRedTeaming (Alex Polyakov), Raghuram Yeluri (Intel) | — |
+| Chairs | `README.md` → "Workstream Leads" | `SIGs/ADLC/README.md` → "SIG Leads" |
+| Supporting leads | `README.md` → "Supporting Leads" | — |
 | Cadence | Thursdays, 12:00 ET / 09:00 PT | Wednesdays, 11:00 ET / 08:00 PT |
 | Minutes directory | `meeting_minutes/ws4` | `meeting_minutes/adlc` |
 | Minutes filename pattern | `WS4-{YYYYMMDD}.md` | `{YYYY-MM-DD}.md` |
@@ -60,6 +60,12 @@ leads plus a `gh` permission check) automatically.
 | Slack (cosai-op workspace) | `#ws4-secure-design-agentic-systems` | `#ws4-adlc-sig` |
 | Mailing list | cosai-agentic-systems-ws@lists.oasis-open-projects.org | same |
 | Recognised triage labels | `review`, `accepted`, `whitepaper`, `playbook`, `v2 branch` | `review`, `accepted`, `SIG`, `deferred` |
+
+Leadership changes too often to hard-code, so the Chairs and Supporting leads
+rows name the README section that lists them. Read those sections on every run.
+The READMEs give names and organisations but no GitHub handles. When a handle
+is needed, for example for `generated_by_role` or an Owner column, take it from
+GitHub activity (a Discussion, issue or PR author), not from memory.
 
 To onboard another workstream or SIG, add a column here (and to the
 corresponding table in `../cosai-ws4-issue-triage/SKILL.md`).
