@@ -431,7 +431,7 @@ proposed fields marked as proposed.
 | Enforcement decision and reason | What the enforcement point concluded, and on what basis | Both halves. A decision without a reason cannot be audited, only counted |
 | Runtime identity or attestation reference | What was executing, as opposed to what claimed to be executing | Required. Where attestation is not available in the deployment shape (§1.1), the field carries an explicit `not-available` value with a reason rather than being omitted. An explicit absence is evidence; an empty field is a shrug |
 | Outcome | Whether the action took effect | Distinct from the decision: an allowed action can still fail, and a denied one can still have partial effect |
-| Integrity-protected sequence or timestamp | That the record set is complete and unreordered | The property that makes deletion detectable. A per-record signature proves each record; only a chained sequence proves that none is missing |
+| Integrity-protected sequence with trusted checkpoints | Ordering and detectable gaps within a declared record sequence | Verification needs expected sequence boundaries and trusted checkpoints. A completeness claim also needs a declared collection scope and accounting for actions omitted before recording. A timestamp alone does not establish completeness. |
 | The accounting decision | What the aggregate budget stood at, and what this action consumed of it | Per §4. Without it the composition invariant is unauditable after the fact, because the sum cannot be recomputed from records that never carried the running total |
 
 Coverage of the *Agentic IAM* paper's "prove control on demand" checklist follows from the table
