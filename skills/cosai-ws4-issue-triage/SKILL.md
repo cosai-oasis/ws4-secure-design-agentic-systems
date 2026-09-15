@@ -39,12 +39,16 @@ posted without explicit approval.
 | | `ws4` | `adlc` |
 |---|---|---|
 | Repo | `cosai-oasis/ws4-secure-design-agentic-systems` | same |
-| Chairs | @sarahnovotny, @imolloy | @husky-parul, @kgoesche, Jennings Aske |
+| Chairs | `README.md` → "Workstream Leads" | `SIGs/ADLC/README.md` → "SIG Leads" |
 | Recognised triage labels | `review`, `accepted`, `whitepaper`, `playbook`, `v2 branch` | `review`, `accepted`, `SIG`, `deferred` |
 | Waves & milestones | table below | not yet defined — propose explicitly with rationale |
 
 Canonical triager to match: **@parmarmanojkumar** (across CoSAI; observe the
 local workstream's triagers as well — chairs above).
+
+The Chairs row names the README section that lists the chairs, because
+leadership changes too often to hard-code. Read that section on every run, and
+take GitHub handles from GitHub activity rather than from memory.
 
 To onboard another workstream or SIG, add a column here and a
 waves-and-milestones table below.
