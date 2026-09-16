@@ -1,14 +1,14 @@
 ---
 title: "Securing the Agent Development Lifecycle: Five Assumptions That No Longer Hold"
 author: "Workstream 4: Secure Design Patterns for Agentic Systems"
-date: 2026-09-08
-version: 0.1-draft
+date: 2026-09-16
+version: 0.2-draft
 status: "Working draft. Not reviewed, not approved."
 ---
 
 # Securing the Agent Development Lifecycle: Five Assumptions That No Longer Hold
 
-**Status:** Working draft. Not reviewed, not approved. Sections 2 and 3 make load-bearing claims and are the parts most in need of argument; section 5 leaves genuinely unsettled questions open rather than resolving them by assertion.
+**Status:** Working draft. Not reviewed, not approved. Sections 2 and 3 make load-bearing claims and are the parts most in need of argument. Section 5 lists what is still unsettled. Section 6 records the positions the working group has taken so far, with dates and sources, and is the place new positions go as the group argues them out. Review happens on the pull request, not in a separate document.
 
 # Table of contents
 
@@ -42,9 +42,12 @@ status: "Working draft. Not reviewed, not approved."
   - [4.1 Adapting controls you already run](#41-adapting-controls-you-already-run)
   - [4.2 Where each assumption is repaired](#42-where-each-assumption-is-repaired)
 - [5. Open questions](#5-open-questions)
-- [6. Takeaways and conclusion](#6-takeaways-and-conclusion)
-- [7. References](#7-references)
-- [8. Contributors and acknowledgements](#8-contributors-and-acknowledgements)
+- [6. Positions of the working group](#6-positions-of-the-working-group)
+  - [6.1 How a position gets in](#61-how-a-position-gets-in)
+  - [6.2 Positions taken](#62-positions-taken)
+- [7. Takeaways and conclusion](#7-takeaways-and-conclusion)
+- [8. References](#8-references)
+- [9. Contributors and acknowledgements](#9-contributors-and-acknowledgements)
 - [Appendix A. Gate summary](#appendix-a-gate-summary)
 - [Appendix B. CoSAI focus, AI usage guidelines, disclaimer, copyright](#appendix-b-cosai-focus-ai-usage-guidelines-disclaimer-copyright)
 
@@ -52,7 +55,7 @@ status: "Working draft. Not reviewed, not approved."
 
 ## Abstract
 
-Organizations deploying AI agents are applying their existing secure software development practices to them and finding that the practices do not fit. The mismatch is usually read as a maturity problem — the tooling will catch up, the scanners will learn to read prompts — but it is structural. Secure development frameworks encode assumptions about how software behaves, and agentic systems violate five of them: that behavior is fixed when the artifact is built, that the reviewable artifact is the code, that identity is a service account, that testing approximates production behavior, and that retirement means deleting the deployment.
+Organizations deploying AI agents are applying their existing secure software development practices to them and finding that the practices do not fit. The mismatch is usually read as a maturity problem: the tooling will catch up, the scanners will learn to read prompts. It is structural. Secure development frameworks encode assumptions about how software behaves, and agentic systems violate five of them: that behavior is fixed when the artifact is built, that the reviewable artifact is the code, that identity is a service account, that testing approximates production behavior, and that retirement means deleting the deployment.
 
 This paper sets out an agent development lifecycle constructed as a direct response to those five failures. It is a process framework: it states what must be decided, verified, and evidenced, at which point in an agent's life, and by whom. Each of its eight phases is derived from a named assumption that breaks, so a reader who disagrees with a phase can locate and attack the reasoning that produced it rather than the phase itself.
 
@@ -88,13 +91,13 @@ The intended outcome is practical. A security team should be able to adapt the c
 
 Secure software development frameworks are not wrong about agents. They are silent about them, which is a more specific problem and a more tractable one. Their controls encode assumptions that held well enough for four decades of software and that agentic systems break. Naming the breakages precisely is what earns each phase in section 3 its place, and it is the discipline this paper tries to hold: no phase appears that cannot be traced to a failure below.
 
-One clarification before the argument begins, because the vocabulary is already colliding. A parallel and growing body of work asks how AI agents change the development of *conventional* software — how a team plans, builds, tests, and ships its product faster when agents do much of the work. That is a different subject from this one. Here the agent is the artifact being secured, not the instrument doing the securing. The two lifecycles share terminology and a handful of controls, and they answer different questions.
+One clarification before the argument begins, because the vocabulary is already colliding. A parallel and growing body of work asks how AI agents change the development of *conventional* software: how a team plans, builds, tests, and ships its product faster when agents do much of the work. That is a different subject from this one. Here the agent is the artifact being secured, not the instrument doing the securing. The two lifecycles share terminology and a handful of controls, and they answer different questions.
 
 ### 1.1 Five assumptions secure development rests on
 
 #### 1.1.1 Behavior is fixed when the artifact is built
 
-For conventional software, the build is the moment behavior is determined. Everything downstream — signing, scanning, promotion, change control — protects an artifact whose behavior is already settled. Review the code and you have reviewed the behavior, subject to the quality of the review.
+For conventional software, the build is the moment behavior is determined. Everything downstream (signing, scanning, promotion, change control) protects an artifact whose behavior is already settled. Review the code and you have reviewed the behavior, subject to the quality of the review.
 
 An agent's behavior is determined at runtime, by the composition of its system instructions, a model whose weights the deploying organization did not author, content retrieved at the moment of the request, memory accumulated across prior sessions, and whichever tools happen to be reachable. The same artifact, deployed unchanged, behaves differently this week than last because the corpus it retrieves from changed, or because the model behind an API was updated by its provider. Build-time assurance does not transfer to runtime.
 
@@ -138,7 +141,7 @@ The available frameworks are individually sound and collectively leave a gap, be
 
 | Framework | What it reaches | Where it stops for agents |
 |---|---|---|
-| NIST SSDF, SP 800-218 [^1] | Practice groups spanning prepare, protect, produce, and respond; a strong baseline for phase alignment | Encodes assumptions 1 and 2 — the artifact is code, and its behavior is settled at build |
+| NIST SSDF, SP 800-218 [^1] | Practice groups spanning prepare, protect, produce, and respond; a strong baseline for phase alignment | Encodes assumptions 1 and 2: the artifact is code, and its behavior is settled at build |
 | NIST SP 800-218A [^2] | Extends secure development practice to model development, including provenance and tuning | Takes the model as subject. The agent that consumes the model is out of frame |
 | OWASP SAMM [^3] | Organization-level maturity model for assurance activities | Organizationally oriented; offers no agent-specific assurance activities to mature |
 | OWASP LLM Top 10 and Agentic Security Initiative [^4] | Concrete agent-relevant failure modes, including prompt injection and excessive agency | A risk enumeration rather than a lifecycle. Says what goes wrong, not at which gate it is prevented |
@@ -146,7 +149,7 @@ The available frameworks are individually sound and collectively leave a gap, be
 | ISO/IEC 42001 [^6] | Management system requirements for AI at organizational level | Governance altitude; does not reach engineering-phase gates |
 | Vendor AI-native development playbooks [^7] | The most operationally concrete material available: policy expressed as version-controlled configuration, an identity for the agent distinct from the engineer who triggered it, and tiered autonomy with explicit human authorization at the production gate | Take the agent as instrument rather than artifact. No provenance or trust-tier gate on the models and tools the agent consumes, and no treatment of retirement |
 
-Two patterns are worth drawing out. First, these frameworks divide by the wrong axis for this problem: some take the model as subject, some the organization, some the architecture, and none takes the agent entity across its lifetime. Second, where agent-specific material does exist, it is overwhelmingly enumerative. Enumerations are valuable and this paper depends on them, but they do not tell an engineering team which gate is supposed to catch a given risk. That is the service a lifecycle framework provides, and it is the gap this paper addresses. Third, the most operationally mature material in the table is the material that takes the agent as an instrument rather than as the thing being shipped, which is evidence that the gap is not a maturity problem waiting to close on its own. It is a difference in subject, and it will persist until something addresses the subject directly.
+Three patterns are worth drawing out. First, these frameworks divide by the wrong axis for this problem: some take the model as subject, some the organization, some the architecture, and none takes the agent entity across its lifetime. Second, where agent-specific material does exist, it is overwhelmingly enumerative. Enumerations are valuable and this paper depends on them, but they do not tell an engineering team which gate is supposed to catch a given risk. That is the service a lifecycle framework provides, and it is the gap this paper addresses. Third, the most operationally mature material in the table is the material that takes the agent as an instrument rather than as the thing being shipped, which is evidence that the gap is not a maturity problem waiting to close on its own. It is a difference in subject, and it will persist until something addresses the subject directly.
 
 ---
 
@@ -162,7 +165,7 @@ This is a deliberate limit and it does real work. A document explaining how to c
 
 ### 2.2 Design time is inside the process
 
-Because assumption 1 fails — behavior is not fixed at build — the decisions that constrain behavior cannot be discovered during implementation. They must be made deliberately and recorded before anything is procured or written.
+Because assumption 1 fails and behavior is not fixed at build, the decisions that constrain behavior cannot be discovered during implementation. They must be made deliberately and recorded before anything is procured or written.
 
 Intended use, autonomy bounds, blast radius, data classification, the identity and delegation model, containment posture, and the threat model are lifecycle artifacts in their own right. They are the inputs against which every later gate is evaluated. An admission gate cannot pass or fail an agent without a recorded statement of what that agent was supposed to be permitted to do.
 
@@ -170,7 +173,7 @@ This makes design time the first phase rather than a precondition sitting outsid
 
 ### 2.3 The agent entity is the unit of scope
 
-The lifecycle governs the agent: its instructions, its reasoning core, its input and output handling, and the policies by which it consumes everything else. For the resources an agent depends on — the model, the orchestration platform, the tools, the data stores, the infrastructure — the deploying organization implements consumption controls in the agent and verifies that each platform meets its stated requirements.
+The lifecycle governs the agent: its instructions, its reasoning core, its input and output handling, and the policies by which it consumes everything else. For the resources an agent depends on (the model, the orchestration platform, the tools, the data stores, the infrastructure), the deploying organization implements consumption controls in the agent and verifies that each platform meets its stated requirements.
 
 The distinction is between implementing and verifying, and its practical force lands at admission: if a prerequisite platform cannot evidence that it meets a requirement the agent depends on, the agent does not deploy. This keeps the lifecycle tractable. An organization is not required to re-secure its cloud provider in order to deploy an agent. It is required to know what it is depending on, and to have verified the dependency.
 
@@ -228,7 +231,7 @@ Verify: that the identity provider issues and will validate the agent's credenti
 
 *Repairs assumptions 1 and 4.*
 
-Enforce continuously what was verified once. The agent presents its identity for each consequential action. Policy is evaluated at the point of tool invocation rather than assumed from deployment. Input and output handling apply their filters against live traffic. Decision traces are recorded at fidelity sufficient to reconstruct why an action was taken. Live behavior is compared against the recorded baseline. An intervention capability exists and has been exercised rather than merely configured.
+Enforce continuously what was verified once. The agent presents its identity for each consequential action. Policy is evaluated at the point of tool invocation rather than assumed from deployment. Input and output handling apply their filters against live traffic. Decision traces are recorded at fidelity sufficient to reconstruct why an action was taken. Live behavior is compared against the recorded baseline, and the comparison is fail-closed: an agent whose monitoring is off or unread is outside its admitted state. An intervention capability exists and has been exercised rather than merely configured. In the CoSAI Risk Map [^8] the record is the audit record repository, and the comparison and response path are a control [^11].
 
 Verification continues too. Prerequisites that passed at admission can regress, and a platform that stops meeting a requirement should surface as an alert rather than as an incident.
 
@@ -250,7 +253,7 @@ Enforce memory-write policy. Capture provenance and source attribution for anyth
 
 Changes to a live agent re-enter review rather than accumulating. A change to the policy surface is treated as a change to behavior, because it is one: behavioral regression testing runs after any change, the baseline is re-established, and instructions and handling logic revert together as a unit rather than drifting apart.
 
-Upstream change is the harder half. A model updated behind an API, a framework patched, a tool's contract altered — none of these are changes the deploying organization initiated, and each can alter agent behavior. Maintenance is the phase that notices.
+Upstream change is the harder half. A model updated behind an API, a framework patched, a tool's contract altered: none of these are changes the deploying organization initiated, and each can alter agent behavior. Maintenance is the phase that notices.
 
 **Gate.** No change to the policy surface, and no change to a prerequisite, reaches production without re-baselining behavior.
 
@@ -258,11 +261,15 @@ Upstream change is the harder half. A model updated behind an API, a framework p
 
 *Repairs assumption 5.*
 
-Take the agent from operating to terminal, and prove that identity, delegation, residue, memory, and traces were handled under policy.
+Decommissioning ends the agent's authority to act. Whether it can come back later is a policy choice, and if it comes back it re-enters through Admission as a new entity. Pausing, suspending, or quarantining a live agent are Runtime or Maintenance states, not this phase. An agent that can resume under the same admitted identity has not been decommissioned. This definition was settled on the working group's RFC [^10] after a longer draft with "soft" and "hard" modes was withdrawn; what looked like two modes was one phase with parameters the organization sets.
 
-Record the authorization: who requested retirement, who approved it, and why. Enumerate the agent's resources across every system it touched. Revoke credentials and delegated grants, including those held by sub-agents it created. Dispose of memory under retention policy, with evidence of disposal. Archive decision traces separately from operational data, since audit and legal needs outlive the agent. De-register from orchestration platforms and identity providers. Confirm invalidation with each external provider the agent held credentials against.
+Every decommissioning does the same things, whatever the organization's retention rules. Record who requested retirement, who approved it, and why. Freeze inbound invocation. Revoke authenticators and tombstone the identifier rather than delete it, because a deleted identifier breaks replay detection. Revoke delegated authority across every sub-agent the agent created. Enumerate its resources across every system it touched and give each one a disposition: revoked, deleted, cryptographically shredded, retained until a date, held for legal reasons, handed over to a successor, or an explicit exception with an owner and an expiry. Publish the terminal state and its effective time where a relying party can check it without the retiring organization's help. Store the disposition receipt: retired identity, authorizer, effective time, each asset's disposition, evidence references, and exceptions.
 
-**Gate.** Teardown is evidenced rather than asserted. A decommissioning that cannot demonstrate what was revoked and what was retained has not completed.
+What varies is set by the organization, in the way NIST SP 800-53 leaves parameters to the implementer [^9]: who may authorize, whether dual control or a legal-hold check is required, how each store is disposed of, how long held assets are kept, which sanitization technique applies, how long the tombstoned identifier is retained, and which archived artifacts may enter a later Admission. Archiving the traces and purging the tool grants of the same agent is a valid combination.
+
+Two losses are easy to miss. Other systems and people may have come to depend on capabilities the agent was never documented as providing, and the agent may hold knowledge that exists nowhere else. Both should be enumerated before the receipt closes, and instrumented for at development time, since neither can be recovered afterwards. Decommissioning can also be imposed, when an upstream provider disappears or a dependency breaks. The steps above still apply; some confirmations cannot be obtained, and the receipt records that as an exception rather than pretending otherwise.
+
+**Gate.** Teardown is evidenced rather than asserted. A decommissioning that cannot show what was revoked, what was retained, and when authority ended has not completed. A verifier holding a record signed by this identity can place it before or after that moment, or report that it cannot.
 
 ---
 
@@ -296,21 +303,45 @@ No assumption is repaired by a single phase, which is the point of framing the l
 
 ## 5. Open questions
 
-Questions the authors consider genuinely unsettled, offered as an agenda rather than as gaps papered over.
+Questions the working group considers unsettled, offered as an agenda rather than as gaps papered over. Two questions that appeared in the first draft, observability as a distinct concern and modes of retirement, have since been answered and moved to section 6.
 
-1. **Observability as a distinct concern.** Whether the instrumentation that makes an agent's reasoning inspectable is adequately covered by conventional application logging, or whether the observer's perspective on a non-deterministic system differs enough in kind to warrant separate treatment — with its own risks, notably sensitive data disclosure through decision traces.
+1. **Scoping by deployment pattern.** Whether lifecycle obligations should be modulated by how autonomous a deployment is (a model answering questions, a model calling tools, a single agent, an agent coordinating others, an agent composing its own network), and if so, whether the modulation reduces obligations at low autonomy or only reduces the effort of meeting them. A scoping matrix along these lines was proposed in June [^12]; the group's only position so far is that any such matrix is a set of example patterns, not a universal decomposition.
 
-2. **Modes of retirement.** Whether the distinction between suspending an agent with its state sealed and permanently removing it belongs in the lifecycle definition, or whether the parameters are properly set by each organization. The distinction matters because mixing the two is itself a failure mode: an agent believed suspended but effectively deleted loses evidence, and one believed deleted but effectively suspended can resume.
+2. **Intervention semantics.** Where the capability to halt an agent belongs, how termination cascades to work already delegated, and how completion is verified across in-flight transactions. There is a reasonable argument that termination is the wrong primitive, and that throttling or falling back to a deterministic path serves better in systems where an abandoned transaction is itself a harm. The behavioral monitoring control [^11] leaves open whether it owns the halt or only the decision to halt.
 
-3. **Scoping by deployment pattern.** Whether lifecycle obligations should be modulated by how autonomous a deployment is — a model answering questions, a model calling tools, a single agent, an agent coordinating others, an agent composing its own network — and if so, whether the modulation reduces obligations at low autonomy or only reduces the effort of meeting them.
+3. **Evidence portability.** Whether the evidence a gate produces can be made portable enough for a third party to evaluate a procured agent against this lifecycle without access to the supplier's internals. A related question, what a verifier may conclude when evidence is absent, is being worked through on its own RFC [^13]: absence is neither conformance nor violation, and the third answer needs a name.
 
-4. **Intervention semantics.** Where the capability to halt an agent belongs, how termination cascades to work already delegated, and how completion is verified across in-flight transactions. There is a reasonable argument that termination is the wrong primitive, and that throttling or falling back to a deterministic path serves better in systems where an abandoned transaction is itself a harm.
-
-5. **Evidence portability.** Whether the evidence a gate produces can be made portable enough for a third party to evaluate a procured agent against this lifecycle without access to the supplier's internals.
+4. **What is lost at retirement.** Section 3.8 asks organizations to enumerate undocumented dependencies and undocumented knowledge before an agent retires. Whether the lifecycle should require a handover artifact for these, and what it would contain, is unsettled.
 
 ---
 
-## 6. Takeaways and conclusion
+## 6. Positions of the working group
+
+This paper is meant to carry the working group's opinions, not only a survey of other people's. This section is where those opinions live. It is deliberately a table rather than prose, so a position can be added in one line, dated, and traced to the discussion that produced it.
+
+### 6.1 How a position gets in
+
+A position is a claim the group has argued and settled, at least for now. It enters this table only with a date and a source: a meeting whose minutes record it, or a GitHub thread where it was reached. Positions can be reopened. When one is, the old row stays and a new row supersedes it, so the paper keeps the history of what the group used to think and why it changed.
+
+The group produces positions in two ways. Some fall out of ordinary work, such as an RFC review that converges. Others come from a deliberate exercise: a meeting opens with a short review of one influential paper or post, the presenter states one claim from it to argue with, and the room argues. Each such session ends with a position the group either writes here or explicitly declines to take. A position nobody writes down did not happen.
+
+### 6.2 Positions taken
+
+| Date | Question | Position | Source |
+|---|---|---|---|
+| 2026-07-01 | Are the category sets this paper uses (deployment levels, architecture layers) a universal decomposition? | No. They are examples of patterns. Presenting them as universal creates consensus friction without adding precision | ADLC minutes, 7/1; scoping matrix [^12] |
+| 2026-08-12 | Is System Governance a lifecycle phase? | No. Governance supplies authorization; the phases execute it. Dropped from the phase list | ADLC minutes, 8/12 |
+| 2026-08-12 | Does this lifecycle restate conventional package and dependency supply chain practice? | No. That belongs to the Supply Chain workstream. This paper covers what goes beyond model signing: provenance and trust tiers for models, prompts, tools, and retrieval sources | ADLC minutes, 8/12; section 3.2 |
+| 2026-08-19 | When mapping this lifecycle to the CoSAI Risk Map, widen existing entries or add new ones? | Add new entries, so a control has something specific to attach to. File an RFC or issue before any PR | ADLC minutes, 8/19 |
+| 2026-08-27 | Does this paper specify containment mechanisms? | No. Containment is a separate Workstream 4 paper. This paper requires that containment posture be decided and verified, and cites that paper for how | WS4 minutes, 8/27; section 2.1 |
+| 2026-09-01 to 09-14 | Is observability a distinct component of an agentic system? | The record is not new: it is the audit record repository the Risk Map already has. What is new is what you do with it: a baseline, drift and anomaly detection, and a response path. That is a control, and it is fail-closed | RFC #175 withdrawn, RFC #195 filed [^11] |
+| 2026-09-09 to 09-14 | Is decommissioning reversible? Does it have modes? | Decommissioning ends the agent's authority to act and is terminal. Anything reversible is a Runtime or Maintenance state. There are no modes; there are organization-defined parameters | ADLC minutes, 9/9; RFC #170 as amended [^10] |
+| 2026-09-09 | Where does the working group keep its record? | In GitHub. The paper is reviewed on its pull request. Google Docs and Slack are scratch space | ADLC minutes, 9/9 |
+| *planned* | Is the harness, rather than the model, where an agent's behavior is determined and changed? If so, do Maintenance and Reflection carry more weight than section 3 gives them? | *To be argued. First paper-review session, scheduled for 2026-09-23, on Weng's harness engineering post [^14]* | |
+
+---
+
+## 7. Takeaways and conclusion
 
 The case for treating agent development as its own lifecycle does not rest on agents being new, or important, or fast-moving. It rests on five specific assumptions that existing practice encodes and that agentic systems violate. Each violation is identifiable, each has a consequence that can be stated in terms of when assurance must be established, and each maps to a phase.
 
@@ -318,11 +349,11 @@ Framed that way, the lifecycle is a modest instrument. It adds a design phase be
 
 An organization already running a mature secure development lifecycle is closer to this than it may expect. The useful question is not whether to adopt a new framework, but which of its existing controls rest on an assumption that no longer holds.
 
-A reader who disagrees with a phase is invited to attack the assumption it derives from. That is the argument this structure is built to expose.
+A reader who disagrees with a phase is invited to attack the assumption it derives from. That is the argument this structure is built to expose. A reader who disagrees with a position in section 6 is invited to reopen it, with a source.
 
 ---
 
-## 7. References
+## 8. References
 
 [^1]: NIST. *Secure Software Development Framework (SSDF), SP 800-218.* https://csrc.nist.gov/pubs/sp/800/218/final
 [^2]: NIST. *Secure Software Development Practices for Generative AI and Dual-Use Foundation Models, SP 800-218A.* https://csrc.nist.gov/pubs/sp/800/218/a/final
@@ -331,10 +362,17 @@ A reader who disagrees with a phase is invited to attack the assumption it deriv
 [^5]: Center for Internet Security. *CIS Controls v8.1 AI Agent Companion Guide.* https://learn.cisecurity.org/controls-v8-1-ai-agent-companion-guide
 [^6]: ISO/IEC. *42001:2023, Information technology — Artificial intelligence — Management system.* https://www.iso.org/standard/42001
 [^7]: Claxton, Louis. *The AI-Native SDLC Playbook*, 21 August 2026. https://claude.com/blog/the-ai-native-sdlc-playbook
+[^8]: CoSAI. *Secure AI Tooling Risk Map.* https://github.com/cosai-oasis/secure-ai-tooling
+[^9]: NIST. *Security and Privacy Controls for Information Systems and Organizations, SP 800-53 Rev. 5.* https://csrc.nist.gov/pubs/sp/800/53/r5/upd1/final
+[^10]: CoSAI WS4. *RFC: Add Decommissioning as an ADLC Phase and as CoSAI Lifecycle Stage 9.* https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/170
+[^11]: CoSAI WS4. *RFC: Agent Behavioral Monitoring as a CoSAI Risk Map control.* https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/195
+[^12]: CoSAI WS4. *Taxonomy for framing and scoping ADLC during security assessments.* https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/130
+[^13]: CoSAI WS4. *RFC: Evidence sufficiency, and what a verifier may conclude when evidence is absent.* https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/189
+[^14]: Weng, Lilian. *Harness Engineering for Self-Improvement*, 4 July 2026. https://lilianweng.github.io/posts/2026-07-04-harness/
 
 ---
 
-## 8. Contributors and acknowledgements
+## 9. Contributors and acknowledgements
 
 **Workstream leads**
 
@@ -345,13 +383,15 @@ A reader who disagrees with a phase is invited to attack the assumption it deriv
 
 **Editor**
 
-- TBD
+- Courtenay Ngo, Microsoft
 
 **Working group leads**
 
+- Courtenay Ngo, Microsoft
 - Emrick Donadei, Google
 - Jennings Aske, SailPoint
-- Emeritus - Parul Singh, Red Hat
+- Matthew Gladney, NVIDIA
+- Emeritus: Parul Singh, Red Hat, who wrote the scope document and the working analysis this paper is drawn from
 
 **Contributors**
 
@@ -412,7 +452,7 @@ Participants in the lifecycle work from which this paper is drawn, listed alphab
 | 5 | Runtime | Continuous enforcement, evidence, and demonstrated intervention capability |
 | 6 | Reflection and knowledge consolidation | Nothing becomes durable without provenance and a policy check |
 | 7 | Maintenance | No change to the policy surface or a prerequisite reaches production without re-baselining |
-| 8 | Decommissioning | Teardown evidenced, not asserted |
+| 8 | Decommissioning | Teardown evidenced, not asserted; terminal state and its effective time published |
 
 ---
 
