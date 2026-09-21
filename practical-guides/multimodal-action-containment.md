@@ -1,8 +1,10 @@
 # Action-layer containment for multimodal agents
 
-**Status:** Personal review draft, 21 September 2026. Proposed practical-guide contribution for [WS4 RFC #113](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/113) and [containment issue #172](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/172). Not submitted upstream, approved guidance, or a report of executed tests.
+**Status:** Proposed practical guide, 21 September 2026. Submitted for review against [WS4 RFC #113](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/113) and [containment issue #172](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/172). Not approved guidance or a report of executed tests.
 
-**AI assistance:** Prepared with OpenAI Codex at Imran Siddique's direction from public sources. Human technical review and confirmation of donation rights remain pending under the [CoSAI AI-use policy](https://github.com/cosai-oasis/oasis-open-project/blob/main/AI-USAGE-GUIDELINES.md).
+**Contributor:** Imran Siddique.
+
+**AI assistance:** Prepared with OpenAI Codex from public sources and submitted at Imran Siddique's explicit direction. Assisted-by: AI Assistant <ai-assistant@coalitionforsecureai.org>. Disclosure follows the [CoSAI AI-use policy](https://github.com/cosai-oasis/oasis-open-project/blob/main/AI-USAGE-GUIDELINES.md).
 
 ## Purpose and scope
 
@@ -128,5 +130,5 @@ CoSAI's Zero Trust guidance explicitly distinguishes preventing authority expans
 - Which provider-mediated paths can the selected evaluation environment observe and constrain?
 - Which non-text attack fixtures can contributors legally share and reproducibly run?
 
-The proposed upstream submission should reference #113 and #172, retain AI-use disclosure, and follow human review and donation confirmation. No new RFC is proposed.
+This contribution references #113 and #172. The integration questions above remain for workstream review; no new RFC is proposed.
 
