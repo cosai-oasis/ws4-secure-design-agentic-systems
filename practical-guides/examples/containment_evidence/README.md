@@ -19,9 +19,9 @@ The record is three sequenced entries — the enforcement decision, the accounti
 | Runtime identity or attestation reference | `entries[0].runtime` — `attestation.status: not-available` with a reason, plus the software identity | real run |
 | Outcome | `entries[2].outcome`, referencing the decision by entry hash | illustrative |
 | Integrity-protected sequence with trusted checkpoints | `entries[*].prev_hash` / `entry_hash`, `sequence.checkpoint` | real, recomputable |
-| The accounting decision | `entries[1]` | real budget state, illustrative claim evaluation |
+| The accounting decision | `entries[1].decision` (`verdict`, `reason`), `entries[1].budget`, `entries[1].claim` | real budget state; illustrative claim and decision |
 
-"Real run" values come from a run of an Apache-2.0 orchestrator on 2026-09-20 (run `20260920-165918`): the principal chain, the policy bundle digest, the build digest, the model, the worker's Ed25519 key. "Illustrative" values show the shape of rows that this producer does not journal yet, because its journal carries no tool-call events; they are not a production record and say so in the file's `$comment`.
+"Real run" values come from a run of an Apache-2.0 orchestrator on 2026-09-20 (run `20260920-165918`): the principal chain, the policy bundle digest, the build digest, the model, the worker's Ed25519 key. "Illustrative" values show the shape of rows that this producer does not journal yet, because its journal carries no tool-call events; they are not a production record and say so in the file's `$comment`. `producer.trust_record_profile` is the producer's own statement of the record profile it emits; the paper endorses no profile, and the guide cites none.
 
 ## The absence cases, deliberately
 
@@ -57,5 +57,5 @@ The request commitment cannot be recomputed from the file: it is an HMAC whose k
 Three places where the mapping will have to make a choice, listed so they are not discovered late:
 
 - `runtime.attestation.status: not-available` needs a representation that is distinct from an omitted attestation object.
-- `entries[1]` carries a claim evaluation (`claim_type`, `decision`, no `reason` because the decision is `attested`) next to the budget state; the two halves may map to different objects.
+- `entries[1]` carries the claim check (`claim`: type, presenter, verification) next to the accounting decision (`decision`: a verdict in §4's vocabulary, allowed, refused or held, with a coded reason) and the budget state; the halves are separate objects in the sample and may map to different objects.
 - `entries[2].egress_observed.status: not_established` is an observation status, not a network event; mapping it to a network activity class would assert an observation that was never made.
