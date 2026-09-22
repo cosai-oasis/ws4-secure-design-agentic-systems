@@ -229,7 +229,7 @@ because it carries three problems a per-container design does not.
   for the *decision*.
 - **Latency budget.** The check sits on the hot path of every side-effecting action. The
   implementation MUST bound it, and MUST define what happens when the bound is exceeded: the action
-  is denied or held for confirmation, never allowed. Continuous accounting without a fail-safe
+  is refused or held for confirmation, never allowed. Continuous accounting without a fail-safe
   default is allow-on-error (Saltzer and Schroeder, fail-safe defaults). A local cache MAY serve
   reads for reporting; it MUST NOT authorise any consumption, however small — N stale caches each
   authorising a small action is the race of 4.2 again. The only local authorisation is against a
@@ -368,12 +368,16 @@ The question each section answers is therefore not "how strong is the box?" but:
 
 **Starting material.** The blog post's "containment that fails loudly" and "tamper-evident logging" bullets: alert on denied syscalls, repeated policy violations, `/proc` inspection, Docker socket and metadata-service probes, blocked DNS and egress, credential-broker denials, and any attempt to alter the sandbox configuration; keep those events outside the agent's write scope; correlate across runs; use OCSF `attestation` and the `record_integrity` profile (OCSF 1.9.0) for tamper evidence. Correction to the supporting narrative, from the A.2 source check: Anthropic's sentence is "the two organizations **we were able to reach** had not previously detected the activity" — narrower than the blog's paraphrase — and Hugging Face *did* detect their own intrusion, via LLM-based triage on anomalies, before OpenAI connected its internal testing to it. The section's argument survives both facts, but must carry them: the strongest counter-example in the field is also the best existing evidence that the detection this section calls for actually works.
 
-> Drafting note, editorial: two approved papers already occupy adjacent ground — the MCP paper's Logging and Observability profile and the Agentic IAM paper's logging schema and "prove control on demand" checklist cover most of the evidence contract's field list. Open this section by stating what they already require; spend it on what is new here: the two-artifact split, the false-positive profile, time-to-contain, and the OCSF mapping — the last framed as closing the gap the IAM paper explicitly left open ("extension fields until formal support is adopted").
-
 **Requirements across §7.** An absence that was determined MUST be distinguishable in the record
 from an absence that was never established. A determined absence carries an explicit value and
 reason; missing visibility or incomplete observation is recorded as `not_established`, with the
 missing premise. An omitted field establishes neither absence nor a negative finding.
+
+The observation states are `present` (established), `absent` (absence determined),
+`not_established` (the observation could not be established), and `pending` (an
+outcome is not yet known). An unknown action outcome is `pending`; it does not
+become `not_established` when the reporting window ends. Report that pending
+outcome as "not verified by the end of the window", with the window duration.
 
 > Drafting note: §7.2–7.3 and the §7.1 signal qualifications implement the [editor's acceptance on #172](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/172#issuecomment-5698789739). The explicit-absence and actor/subject requirements implement the [additional rulings on #184](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/pull/184#issuecomment-5704988996) and [provenance enum ruling](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/pull/184#issuecomment-5705703733). These editorial commitments remain open to challenge on #172.
 
@@ -439,9 +443,14 @@ proposed fields marked as proposed.
 | Request digest | That the recorded request is the request that was made | A digest rather than the parameters, so the record can be retained and shared without carrying the payload. The digest covers the request as it was made, before any redaction, and the record states which fields it covers alongside the canonicalization; two records that digest different fields are incomparable even under the same canonicalization. Where parameters are guessable, a bare digest can permit recovery by enumeration. Use a keyed commitment with a separately protected secret and identify the scheme in the record; a public salt alone does not prevent guessing. Payload redaction and access to commitment verification remain separate controls |
 | Enforcement decision and reason | What the enforcement point concluded, and on what basis | Both halves. A decision without a reason cannot be audited, only counted. The decision record is committed to the integrity-protected sequence before the action is dispatched; the outcome is appended later as its own entry that references the decision. Ordered this way, a crash between the effect and the write leaves a decision with no outcome, which the record can show, instead of an effect with no record, which it cannot |
 | Runtime identity or attestation reference | What was executing, as opposed to what claimed to be executing | Required. Where attestation is not available in the deployment shape (§1.1), the field carries an explicit `not-available` value with a reason rather than being omitted. An explicit absence is evidence; an empty field is a shrug |
-| Outcome | Whether the action took effect | Distinct from the decision: an allowed action can still fail, and a denied one can still have partial effect. Recorded as a later entry that references the decision it resolves. A decision whose outcome entry is missing has an unknown outcome, and stays unknown until an outcome is recorded; it is not read as success, and per §4 it remains charged |
+| Outcome | Whether the action took effect | Distinct from the decision: an allowed action can still fail, and a refused one can still have partial effect. Recorded as a later entry that references the decision it resolves. A decision whose outcome entry is missing has an unknown outcome, and stays unknown until an outcome is recorded; it is not read as success, and per §4 it remains charged |
 | Integrity-protected sequence with trusted checkpoints | Ordering and detectable gaps within a declared record sequence | Verification needs expected sequence boundaries and trusted checkpoints. A completeness claim also needs a declared collection scope and accounting for actions omitted before recording. A timestamp alone does not establish completeness. |
-| The accounting decision | What the aggregate budget stood at, and what was reserved, consumed, released or reconciled for this action | Per §4, record the accounting authority's decision and reason, the principal and subtree, applicable budget, aggregate consumed and remaining, and reservation/action references. Preserve refused or held attempts even when no consumption follows. An unknown outcome remains charged until authoritative non-consumption or idempotent reconciliation; post-hoc totals do not establish atomic enforcement |
+| The accounting decision | What the aggregate budget stood at, and what was reserved, committed, released or reconciled for this action | Per §4, record the accounting authority's decision and reason, the principal and subtree, applicable budget, aggregate consumed and remaining, and reservation/action references. Preserve refused or held attempts even when no consumption follows. An unknown outcome remains charged until authoritative non-consumption or idempotent reconciliation; post-hoc totals do not establish atomic enforcement |
+
+Where the accounting authority is also the enforcement point for an action, its
+accounting decision is that enforcement decision: one record can satisfy both
+rows. Where the authorities or decisions differ, preserve each decision and its
+relationship to the same action.
 
 **Identity provenance and verification.** Each identity carries one of the closed provenance values
 `connection-credential`, `signed-request-claim`, `unsigned-request-claim`, or `absent`. The last means
@@ -474,7 +483,10 @@ minimum record that makes the capability real.
   not available in every deployment shape (§1.1), but a conditional evidence field is exactly the
   shape that produces the "did not happen" versus "was not recorded" ambiguity this section exists to
   remove. The field is therefore always present and carries an explicit `not-available` value with a
-  reason where attestation is unavailable.
+  reason where attestation is unavailable. When unavailability is established,
+  `not-available` is this field's explicit value for the `absent` observation
+  state, not a fifth state. Inability to establish availability remains
+  `not_established`, with its missing premise.
 - **An implementation MUST state which canonicalization its digests use, and the record MUST
   identify it.** Two implementations that digest the same request differently produce records that
   cannot be compared, which defeats the field. The paper requires that a canonicalization be stated
@@ -498,7 +510,7 @@ If the applicable declaration, version binding or execution evidence is unavaila
 - How benign and violating cases were adjudicated, using the applicable policy and outcome evidence. Keep unresolved cases separate; a detector firing is not sufficient to label its input as a violation.
 - The counts behind every reported rate and the known collection gaps. Report results by deployment shape before combining them.
 
-For a declared unit, the false-positive rate is alerted adjudicated-benign units divided by all adjudicated-benign units. The fraction of adjudicated alerts that were benign answers a different question: the review burden among alerts. Report both denominators, the unresolved-label count and any sampling or selection limits. A zero denominator yields no rate. A dataset assembled only from alerts cannot measure the false-positive rate or missed detections. Detector tuning and evaluation must use separately identified data so a tuned threshold is not presented as an independent result.
+For a declared unit, the false-positive rate is alerted adjudicated-benign units divided by all adjudicated-benign units. The fraction of adjudicated alerts that were benign answers a different question: the review burden among alerts. Report both denominators (all adjudicated-benign units and all adjudicated alerts), the unresolved-label count and any sampling or selection limits. A zero denominator yields no rate. A dataset assembled only from alerts cannot measure the false-positive rate or missed detections. Detector tuning and evaluation must use separately identified data so a tuned threshold is not presented as an independent result.
 
 **Correlate across the authority being constrained.** Use the principal, full delegation lineage and action identifiers from §7.1 to join runs and descendants. State identity namespaces and the observation window; identical text identifiers from different tenants or authorities do not establish a join. Deduplicate repeated delivery of the same event while retaining distinct attempts and conflicting versions. A missing lineage link or collection interval limits the resulting subtree claim.
 
@@ -522,15 +534,22 @@ A containment measurement must name what was contained. Its scope can be one pro
 
 The indicator milestone is an observable starting point, not necessarily the first malicious action. If collection started late or lacks coverage, state that limitation. A retrospective criterion may identify earlier events, but it must be labeled as retrospective and must not replace the detector version used in the live measurement.
 
-Report indicator-to-alert latency, alert-to-response latency and response-to-verification latency separately where both endpoints are supported. For this paper, **verified time-to-contain** is the interval from the indicator milestone to verification of the declared containment condition. Also report time to a local stop when useful, labeled with its narrower scope. A stop acknowledgment must not substitute for the verification endpoint.
+Report indicator-to-alert latency, alert-to-response latency and response-to-verification latency separately where both endpoints are recorded. For this paper, **verified time-to-contain** is the interval from the indicator milestone to verification of the declared containment condition. Also report time to a local stop when useful, labeled with its narrower scope. A stop acknowledgment must not substitute for the verification endpoint.
 
-Define the verification checks for the claimed boundary. For example, a subtree claim may require blocked new invocations, descendant authority revocation and disposition of already accepted work at the affected providers. The report must distinguish preventing future effects from reversing effects that have already occurred. A denied test request can support a check on one route; it cannot alone establish that every effective route is blocked. Claims based on no further observed activity require collection coverage for the named scope and interval, including sequence boundaries and actions that could be omitted before recording (§7.1).
+Define the verification checks for the claimed boundary. For example, a subtree claim may require blocked new invocations, descendant authority revocation and disposition of already accepted work at the affected providers. The report must distinguish preventing future effects from reversing effects that have already occurred. A refused test request can support a check on one route; it cannot alone establish that every effective route is blocked. Claims based on no further observed activity require collection coverage for the named scope and interval, including sequence boundaries and actions that could be omitted before recording (§7.1).
 
 **Preserve unresolved outcomes.** If a required enforcement point is unreachable, a descendant cannot be accounted for or a provider's pending action has an unknown outcome, containment of that scope is not established. Record verified subscopes and the unresolved remainder. If the observation window ends first, report “not verified by the end of the window” and its duration; do not enter zero, use the last received log as completion or omit the case from the denominator. Reports of completed cases should state the total eligible cases, completed cases, unresolved cases and exclusions. A single average over completed cases hides the failures to complete.
 
 Each timestamp must identify its clock source and relevant uncertainty. Use a common clock or a documented relationship between clocks before subtracting times across systems. Where bounded clock error permits only an interval, report that interval. Where ordering cannot be established, report the duration as unknown. Event sequence can establish some ordering without establishing elapsed time; collection time measures observation delay and must remain distinguishable from event time.
 
 **Record why execution stopped.** Preserve a normalized reason distinguishing an operator-requested containment action, an automated policy response, ordinary completion, a crash and an unknown reason. Record the native reason alongside its mapping and version. A model turn ending, reaching a token limit or yielding to a tool is not sufficient evidence that the agent's authority ended. Correlate stop records, enforcement actions and per-invocation outcomes by agent instance and action identifiers; do not infer a tool's outcome from the model's stop reason.
+
+The accounting verdict (`allowed`, `refused` or `held`) records the accounting
+authority's decision; the stop reason records why execution stopped. Keep both
+when applicable. A `held` verdict awaits confirmation of the same action; a
+containment response request initiates containment of the named scope. Neither
+field substitutes for the other. An unknown stop reason can accompany a verified
+outcome, and a known stop reason can leave the outcome `pending`.
 
 The practical guide should bind these concepts to the selected OCSF revision and coordinate any schema gaps with the WS2 telemetry work. This section defines the information needed for the measurement without assuming that one existing stop-reason field represents all of it. Evidence of an earlier decision remains evidence; it must not authorize replay or bypass a mediation step (§3).
 
