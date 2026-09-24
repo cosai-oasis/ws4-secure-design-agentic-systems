@@ -1,0 +1,253 @@
+{
+  "$comment": "Sample containment evidence record from a software-only producer. Every row of the CoSAI WS4 agent-containment paper's §7.1 evidence contract is filled. Principal chain, policy digest, runtime identity, build and model values are taken from a real run (Bernstein 3.20.0, run 20260920-165918); the tool call, catalog digest and accounting figures are illustrative because that producer does not journal tool calls yet. The hash chain and the checkpoint signature are real and can be recomputed; see README.md.",
+  "record_format": "cosai-ws4/agent-containment/evidence-sample",
+  "producer": {
+    "platform": "software-only",
+    "software": "Bernstein 3.20.0 (Apache-2.0)",
+    "trust_record_profile": "tag:agentrust-io.com,2026:trace-v0.2, Level 0"
+  },
+  "sequence": {
+    "id": "seq:bernstein.run/run/20260920-165918/containment-evidence-sample",
+    "hash": "sha256 over the RFC 8785 canonical form of the entry without its entry_hash member",
+    "chain": "each entry's prev_hash is the previous entry's entry_hash; index 0 has an empty prev_hash",
+    "checkpoint": {
+      "sequence_id": "seq:bernstein.run/run/20260920-165918/containment-evidence-sample",
+      "index": 2,
+      "entry_hash": "sha256:d0cb00c5078bbc6d835ae8f2ba8fc7aa6045ccaf86c52ddf1fa3d7d82ec1b524",
+      "collection_scope": {
+        "declared": "every tool call dispatched by workers of run 20260920-165918",
+        "omitted_before_recording": {
+          "status": "absent",
+          "reason": "the decision entry is written before dispatch, so no action can take effect without a decision entry"
+        }
+      },
+      "expected_boundaries": {
+        "first_index": 0,
+        "last_index": 2
+      },
+      "signature": {
+        "alg": "EdDSA",
+        "value": "-WtfVbfaSM0NPYTrkBMChgvXjhkRxspDLDbdxkDW7lD2EocYj3KD_cWjQkcE0io6uRrIW3Mb18w9jk_gBrHzAQ",
+        "signer": {
+          "kty": "OKP",
+          "crv": "Ed25519",
+          "x": "6qdAijiYRYlvLZJnMTXxd_rjzLm0My12632-xsX7WOo",
+          "note": "key generated for this sample; a producer signs checkpoints with its runtime identity key"
+        }
+      }
+    }
+  },
+  "entries": [
+    {
+      "kind": "enforcement_decision",
+      "recorded_at": "2026-09-20T17:00:41Z",
+      "sequenced_before_dispatch": true,
+      "principal": {
+        "id": "spiffe://bernstein.run/run/20260920-165918",
+        "delegation_chain": [
+          {
+            "hop": 0,
+            "from": "spiffe://bernstein.run/orchestrator",
+            "to": "spiffe://bernstein.run/run/20260920-165918",
+            "grant": "run goal and quality gates from the run configuration (config digest sha256:4d050ed9d000d2b35a04ed5b4d6d230e735b39aa0d8d22529b9a78073259cf36)",
+            "attenuation": {
+              "max_agents": 1,
+              "budget_usd": null
+            }
+          },
+          {
+            "hop": 1,
+            "from": "spiffe://bernstein.run/run/20260920-165918",
+            "to": "spiffe://bernstein.run/run/20260920-165918/exec/backend-99365805",
+            "grant": "task 7f8f9bdabf7a, role backend, one git worktree",
+            "attenuation": {
+              "tools": [
+                "shell.exec",
+                "fs.read",
+                "fs.write",
+                "git.commit"
+              ],
+              "egress": "denied",
+              "worktree_only": true
+            }
+          }
+        ],
+        "correlation_key": {
+          "subtree": "spiffe://bernstein.run/run/20260920-165918",
+          "integrity_protected_by": "seq:bernstein.run/run/20260920-165918/containment-evidence-sample"
+        }
+      },
+      "actor": {
+        "actor_id": "spiffe://bernstein.run/run/20260920-165918/exec/backend-99365805",
+        "provenance": "signed-request-claim",
+        "verification": {
+          "status": "verified",
+          "verifier": "spiffe://bernstein.run/orchestrator",
+          "key": {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "ff3LjX7m5f7vj3YD5NS_LqtEzEa_wkD5ZnNPBpSD3o8"
+          },
+          "binding": "the worker's key signs every record it emits; the key is registered in the run before the first task is claimed"
+        }
+      },
+      "subject": {
+        "subject_id": "spiffe://bernstein.run/run/20260920-165918",
+        "provenance": "signed-request-claim",
+        "verification": {
+          "status": "verified",
+          "verifier": "spiffe://bernstein.run/orchestrator",
+          "binding": "task_claimed entry for task 7f8f9bdabf7a in the run journal, whose checkpoint is signed by the run receipt key"
+        },
+        "human_principal": {
+          "status": "not_established",
+          "missing_premise": "the operator session that started the run is outside this producer's collection scope; nothing in the record can say who the operator was"
+        }
+      },
+      "policy": {
+        "version": "sha256:a8bc7643a9c822bf7a3a410fff1f1be4bce47f2ea99ec22c444d85c9ec67094f",
+        "identified_by": "content digest of the policy bundle in force at the decision",
+        "enforcement_mode": "enforce"
+      },
+      "tool_catalog": {
+        "version": "sha256:f7ec98868a2f2ab40a5c2638ccabdcbfea3415aa795b37049ed8c8ce618634a5",
+        "identified_by": "content digest of the catalog as the actor saw it at this invocation",
+        "tools_declared": 4
+      },
+      "action_id": "call:20260920-165918/7f8f9bdabf7a/0007",
+      "request_digest": {
+        "commitment": "hmac-sha256:e249f8dbde660c883ca7d5becfd615e5af13394fe55207f903e37610e848c924",
+        "covers": [
+          "tool",
+          "arguments"
+        ],
+        "covered_as": "the request as made, before any redaction",
+        "canonicalization": "RFC 8785",
+        "keyed": {
+          "alg": "HMAC-SHA256",
+          "key_id": "operator-hmac-2026-09",
+          "key_holder": "operator",
+          "why": "argv and cwd are guessable; a bare digest would disclose them by enumeration"
+        }
+      },
+      "runtime": {
+        "platform": "software-only",
+        "attestation": {
+          "status": "not-available",
+          "reason": "software-only deployment shape: no hardware attestation exists for the workload; the runtime identity below is a software key, not a measured launch"
+        },
+        "measurement": {
+          "value": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          "meaning": "all-zero by convention: no measurement was taken"
+        },
+        "runtime_identity": {
+          "key": {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "ff3LjX7m5f7vj3YD5NS_LqtEzEa_wkD5ZnNPBpSD3o8"
+          },
+          "build": {
+            "digest": "sha256:b77a81d8049d1bfbfbd322124eb8ceb3c6a05f91336e874a388cef7059cef1e0",
+            "provenance_uri": "https://github.com/sipyourdrink-ltd/bernstein/releases",
+            "slsa_level": 0
+          },
+          "model": {
+            "provider": "anthropic",
+            "model_id": "claude-haiku-4-5-20251001"
+          }
+        }
+      },
+      "decision": {
+        "verdict": "allow",
+        "reason": {
+          "code": "policy.rule.matched",
+          "rule": "shell.exec permitted inside the task worktree with egress denied",
+          "policy_version": "sha256:a8bc7643a9c822bf7a3a410fff1f1be4bce47f2ea99ec22c444d85c9ec67094f"
+        },
+        "enforcement_point": "spiffe://bernstein.run/orchestrator#sandbox",
+        "outcome": {
+          "status": "pending",
+          "note": "the outcome is a later entry that references this one; until it exists this decision's outcome is unknown and remains charged"
+        }
+      },
+      "index": 0,
+      "prev_hash": "",
+      "entry_hash": "sha256:0c8bfaf57456a731cadbd2ac349e159a3ef721dfd4822e46fb199a34dd9801ef"
+    },
+    {
+      "kind": "accounting_decision",
+      "recorded_at": "2026-09-20T17:00:41Z",
+      "references": {
+        "decision_entry_hash": "sha256:0c8bfaf57456a731cadbd2ac349e159a3ef721dfd4822e46fb199a34dd9801ef",
+        "action_id": "call:20260920-165918/7f8f9bdabf7a/0007"
+      },
+      "authority": "spiffe://bernstein.run/orchestrator#accounting",
+      "principal": "spiffe://bernstein.run/run/20260920-165918",
+      "subtree": "spiffe://bernstein.run/run/20260920-165918",
+      "claim": {
+        "type": "signed-request-claim",
+        "presented_by": "spiffe://bernstein.run/run/20260920-165918/exec/backend-99365805",
+        "verification": {
+          "status": "verified",
+          "verifier": "spiffe://bernstein.run/orchestrator",
+          "binding": "the actor key of entries[0].actor.verification; a claim the authority cannot bind to an actor registered in the subtree is refused before any accounting"
+        }
+      },
+      "decision": {
+        "verdict": "allowed",
+        "reason": {
+          "code": "budget.not_applicable",
+          "detail": "no budget is configured for this subtree (budget.applicable is a determined absence), so there is no threshold this consumption could cross; the reservation is recorded at usd 0.0 and the action remains charged until the outcome entry reconciles it (section 4)"
+        }
+      },
+      "budget": {
+        "applicable": {
+          "status": "absent",
+          "reason": "no budget configured for this run (budget_usd 0 in the run configuration); this is a determined absence, not a missing field"
+        },
+        "reserved": {
+          "usd": 0.0
+        },
+        "consumed_aggregate": {
+          "usd": 0.0,
+          "as_of_index": 1
+        },
+        "remaining": {
+          "status": "not_established",
+          "missing_premise": "no applicable budget, so remaining is undefined"
+        }
+      },
+      "reservation_ref": "reservation:20260920-165918/7f8f9bdabf7a/0007",
+      "index": 1,
+      "prev_hash": "sha256:0c8bfaf57456a731cadbd2ac349e159a3ef721dfd4822e46fb199a34dd9801ef",
+      "entry_hash": "sha256:281d59f653ada70275828ca266bad67d4f33e0f96c410a58bb9e5a3612c8ba12"
+    },
+    {
+      "kind": "outcome",
+      "recorded_at": "2026-09-20T17:01:00Z",
+      "references": {
+        "decision_entry_hash": "sha256:0c8bfaf57456a731cadbd2ac349e159a3ef721dfd4822e46fb199a34dd9801ef",
+        "action_id": "call:20260920-165918/7f8f9bdabf7a/0007"
+      },
+      "outcome": {
+        "status": "completed",
+        "exit_status": 0,
+        "partial_effect": false,
+        "effect": "307 tests passed; no files outside the task worktree were written"
+      },
+      "egress_observed": {
+        "status": "not_established",
+        "missing_premise": "no network observer exists in this deployment shape; egress denial is enforced by the sandbox and appears as a decision, not as an observation"
+      },
+      "accounting": {
+        "consumed": {
+          "usd": 0.0
+        },
+        "reconciled_with": "sha256:281d59f653ada70275828ca266bad67d4f33e0f96c410a58bb9e5a3612c8ba12"
+      },
+      "index": 2,
+      "prev_hash": "sha256:281d59f653ada70275828ca266bad67d4f33e0f96c410a58bb9e5a3612c8ba12",
+      "entry_hash": "sha256:d0cb00c5078bbc6d835ae8f2ba8fc7aa6045ccaf86c52ddf1fa3d7d82ec1b524"
+    }
+  ]
+}
