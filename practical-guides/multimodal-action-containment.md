@@ -23,7 +23,7 @@ The existing [secure-tool design guide](https://github.com/cosai-oasis/ws4-secur
 | [Multimodal Agentic Security, #113](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/113) | Input modalities, attack classes, mitigation context | Open issue labeled accepted |
 | [Agent Containment](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/blob/main/whitepapers/agent-containment.md) | Sections 3–5: mediation, aggregate accounting, enforcement failures | Unapproved working draft |
 | [Mediation prose, #192](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/pull/192) | Alternate paths and provider-mediated execution | Open, unmerged |
-| [Detection and evidence, #184](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/pull/184) | Section 7: decision/outcome separation, evidence, containment measurement | Open, unmerged |
+| [Detection and evidence, #184](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/pull/184) | Section 7: decision/outcome separation, evidence, containment measurement | Merged (rechecked 24 September 2026); working-draft status remains |
 | [Tool Design for Secure Agentic Systems](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/blob/main/practical-guides/mcp-secure-tool-design.md) | Implementation patterns for the execution boundary | Existing practical guide |
 | [Software-only evidence sample, #200](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/pull/200) | Illustrative records for the proposed section 7 contract | Open PR; mixed real and illustrative provenance, not a production tool-call record |
 
