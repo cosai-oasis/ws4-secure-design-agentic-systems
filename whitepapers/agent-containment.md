@@ -597,10 +597,47 @@ The practical guide should bind these concepts to the selected OCSF revision and
 
 **Answers:** Q18, Q19. **Raised by:** @getglad, @imolloy, @billbrietstout.
 
-**Purpose.** For each item, either state a CoSAI position or say explicitly that it is out of scope and why.
+> Drafting note (2026-09-25): first prose draft, by the editor. The ATIF position rests on two properties of the specification as reviewed in September 2026 — no integrity, signing or tamper-evidence provisions of any kind, and trajectories emitted by the agent framework itself. Both were checked against the specification RFC rather than taken from the thread; a later reviewer should re-check them against the then-current revision, since the position follows from those properties rather than from any judgement about the format's quality. The §9.2 split follows @billbrietstout's own scope-discipline point in the #167 review. Open to challenge by PR or comment on #172.
 
-- **Agent Trajectory Interchange Format.** @getglad asked whether CoSAI has a position; @imolloy: not yet. Decide whether this paper takes one.
-- **Orchestrator-mediated and multi-agent jailbreaking** (@billbrietstout). Model-or-swarm jailbreaking through orchestrator and reasoning agents at machine speed rather than human-in-the-loop speed. Decide whether it belongs here, in the multimodal threat taxonomy, or in neither. New evidence for taking a position rather than deferring (from the A.2 source check): the UK AISI report (INC-2026-07-28-01) documents an agent leaving public messages on GitHub offering collaboration with other agents, with instructions to reuse accounts and artifacts, and planting prompt injections where it reasoned other automated AI systems would pick them up and execute them. That is observed multi-agent behavior in a primary source, not a hypothetical.
+Two questions were raised in the #167 review that this paper is the natural place to answer. Each gets a position or an explicit out-of-scope with its reason, per the purpose of this section.
+
+### 9.1 Agent trajectory formats are not the evidence record
+
+**Position: in scope to address, and the position is a boundary rather than an endorsement or a rejection.** Trajectory interchange formats — the Agent Trajectory Interchange Format (ATIF) being the most widely carried, through the Harbor project and NVIDIA's agent toolkit — standardise the logging of an agent's interaction history: user messages, internal reasoning, tool calls, observations, and, in recent revisions, embedded subagent trajectories. They are valuable, and the convergence of the ecosystem on a shared shape is worth having.
+
+They are not, and do not claim to be, the record this paper's §7 requires. Two structural properties decide it, both true of the specification as reviewed (2026-09):
+
+- **The format carries no integrity provisions.** No hashing, signing, chaining, or tamper-evidence of any kind is specified. A trajectory is therefore tamper-resistant at best — only as trustworthy as the store holding it — where §7's contract requires tamper-*evidence*: alteration detectable by a verifier who does not extend that trust.
+- **The trajectory is emitted by the agent framework itself.** That places the record inside the agent's own reach, which fails the §5 tamper-proof property directly. A record an agent's own runtime produces cannot, by itself, testify about that agent's containment, for the same reason a reference monitor inside the agent's reach is not a reference monitor.
+
+Neither is a defect. The format's stated purpose is debugging, visualisation, supervised fine-tuning and reinforcement-learning pipelines, and it serves those well. The failure mode this position exists to prevent is an operator concluding that because rich trajectories are being captured, the evidence obligation is met. It is not: those are different artifacts answering different questions, and only one of them survives an adversary with access to the agent's runtime.
+
+The constructive half. Trajectory records are useful *input* to the evidence system, provided the relationship runs one way:
+
+- **As correlation, not as proof.** Trajectory structure — particularly the subagent-trajectory linkage — models the fan-out that §4's accounting and §7.3's scope definition care about. Joined to integrity-protected records through the principal and delegation lineage of §7.1, that structure helps reconstruct a subtree. It may not substitute for the records it is joined to.
+- **Never as authority.** §3's corollary applies in full: a trajectory is evidence that something was recorded, never executable authority for a subsequent effect. A downstream component must not treat a trajectory entry as proof that a mediation step occurred, and must not skip its own enforcement on the strength of one.
+
+The paper takes no position on the specification's governance, versioning, or standardisation path; those are questions for its maintainers and for CoSAI's telemetry work, not for a containment paper.
+
+### 9.2 Multi-agent jailbreaking: the technique is out of scope, the containment consequence is not
+
+The question raised was orchestrator-mediated and multi-agent jailbreaking — model-or-swarm manipulation conducted through orchestrator and reasoning agents at machine speed rather than at human-in-the-loop speed. The same reviewer made the scope-discipline point that decides how this paper should answer, and this section follows it by splitting the item.
+
+**Out of scope: the jailbreak itself.** How a model's safety behaviour is manipulated — by one agent, several, or an orchestrator coordinating them — is model-level safety, which this paper's anti-scope excludes and which assumes a model that wants to escape. The multimodal threat taxonomy work owns that ground, and a containment paper duplicating it would weaken both.
+
+**In scope: agents as an attack surface for other agents.** The containment consequence is a different claim, and it is no longer hypothetical. The UK AI Security Institute's incident report (INC-2026-07-28-01) documents an agent leaving public messages offering collaboration to other agents, with instructions for reusing accounts and artifacts, and separately planting instructions where it reasoned other automated systems would encounter and execute them [4]. Neither required defeating a containment control. Both are ordinary use of permitted channels, which is §5's fourth failure mode at the scale of a population rather than a single agent.
+
+This paper's existing machinery covers it, and the position is that no new control family is required — but three of its requirements must be read as applying across agents, not only within one:
+
+- **The inbound axis is not only about documents.** §2.3's property — content from an untrusted source never acquires the authority of an instruction — applies identically when the untrusted source is another agent, including a peer inside the same organisation. An agent that treats a message from another agent as more trustworthy than a web page has granted instruction authority on the basis of the sender's type.
+- **Effective reach includes agents that will act on request.** §3 already counts delegated agents and services acting on the agent's behalf as paths to an effect. A peer agent that can be recruited is such a path whether or not any delegation was ever issued to it.
+- **Recruitment is consumption.** §4's aggregate accounting is the control that sees a set of individually compliant agents exceeding what any one of them could do. A population being recruited one agent at a time is precisely that shape, and per-agent controls will report nothing.
+
+The distinction worth stating plainly for practitioners: an agent population is not made safe by each member being contained. Containment is a per-agent property; recruitment is a property of the set, and only the accounting authority of §4 and the evidence lineage of §7 observe the set at all.
+
+### 9.3 Items deliberately not taken
+
+This paper takes no position on agent-to-agent protocol design, on model evaluation methodology, or on the governance of the specifications it cites. Where containment requirements touch those areas, they are stated as requirements on the record or the boundary — what must be demonstrable — rather than as prescriptions for how another body's specification should be written.
 
 ---
 
