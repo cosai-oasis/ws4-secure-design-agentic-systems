@@ -446,7 +446,7 @@ come from. §7.2 takes up why the rates themselves cannot be stated yet.
 | Executed capability outside the agent's declared set | The discriminator named in §7.2: undeclared-but-executed | An incomplete or stale declaration, which is a defect in the declaration rather than noise in the signal |
 
 Signals and counters derived from enforcement decisions count the verdict applied to each
-invocation, the one its evidence record carries, not a reused decision.
+invocation, as its evidence record carries it, not a reused decision.
 
 **The evidence contract.** These are the fields that let a party who was not present and does not
 trust the operator reconstruct what happened. Each is REQUIRED unless the row says otherwise. The
