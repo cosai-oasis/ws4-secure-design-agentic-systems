@@ -97,9 +97,9 @@ One clarification before the argument begins, because the vocabulary is already 
 
 #### 1.1.1 Behavior is fixed when the artifact is built
 
-For conventional software, the build is the moment behavior is determined. Everything downstream (signing, scanning, promotion, change control) protects an artifact whose behavior is already settled. Review the code and you have reviewed the behavior, subject to the quality of the review.
+Conventional software primarily executes logic its developers defined at build time, run against runtime inputs. Everything downstream (signing, scanning, promotion, change control) protects an artifact whose behavior is already settled. Review the code and you have reviewed the behavior, subject to the quality of the review.
 
-An agent's behavior is determined at runtime, by the composition of its system instructions, a model whose weights the deploying organization did not author, content retrieved at the moment of the request, memory accumulated across prior sessions, and whichever tools happen to be reachable. The same artifact, deployed unchanged, behaves differently this week than last because the corpus it retrieves from changed, or because the model behind an API was updated by its provider. Build-time assurance does not transfer to runtime.
+An agent's behavior is determined at runtime, and can differ from one execution to the next even when it is given the same objective. It is shaped by the composition of its system instructions, a model whose weights the deploying organization did not author, content retrieved at the moment of the request, memory accumulated across prior sessions, and whichever tools happen to be reachable. The same artifact, deployed unchanged, behaves differently this week than last because the corpus it retrieves from changed, or because the model behind an API was updated by its provider. Build-time assurance does not transfer to runtime.
 
 **Consequence.** Assurance must be established at admission and maintained continuously during operation, rather than settled once at build.
 
