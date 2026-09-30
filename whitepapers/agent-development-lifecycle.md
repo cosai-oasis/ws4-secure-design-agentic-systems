@@ -131,7 +131,7 @@ For a non-deterministic system consuming untrusted input, a passing test says th
 
 Decommissioning conventional software means removing the running instance, revoking its credentials, and disposing of its data under a retention policy. The system leaves no residue beyond what was provisioned for it.
 
-An agent leaves residue that was never provisioned: durable memory it chose to write, credentials and grants it accrued while operating, webhooks and subscriptions it established, sub-agents it created, and knowledge it consolidated into retrieval stores that other agents now read as authoritative. Deleting the deployment retracts none of it. An agent can continue to shape behavior long after it stops running, through what it left behind.
+An agent leaves residue that was never provisioned: durable memory it chose to write, credentials and grants it accrued while operating, webhooks and subscriptions it established, sub-agents it created, and knowledge it consolidated into retrieval stores that other agents now read as authoritative. Deleting the deployment retracts none of it. Neither does a kill switch, which halts the agent and revokes the authority the platform issued but not what the agent created. An agent can continue to shape behavior long after it stops running, through what it left behind.
 
 **Consequence.** Retirement is a verified teardown with its own authorization and its own evidence, not an operational afterthought.
 
