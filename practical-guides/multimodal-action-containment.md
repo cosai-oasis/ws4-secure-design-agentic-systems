@@ -21,11 +21,11 @@ The existing [secure-tool design guide](https://github.com/cosai-oasis/ws4-secur
 | Resource | Relevant material | Status checked on 21 September 2026 |
 | :--- | :--- | :--- |
 | [Multimodal Agentic Security, #113](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/113) | Input modalities, attack classes, mitigation context | Open issue labeled accepted |
-| [Agent Containment](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/blob/main/whitepapers/agent-containment.md) | Sections 3–5: mediation, aggregate accounting, enforcement failures | Unapproved working draft |
-| [Mediation prose, #192](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/pull/192) | Alternate paths and provider-mediated execution | Open, unmerged |
-| [Detection and evidence, #184](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/pull/184) | Section 7: decision/outcome separation, evidence, containment measurement | Merged (rechecked 24 September 2026); working-draft status remains |
+| [Agent Containment](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/blob/feat/containment/whitepapers/agent-containment.md) | Sections 3 to 5: mediation, aggregate accounting, enforcement failures | Unapproved working draft on the `feat/containment` integration branch |
+| [Mediation prose, #192](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/pull/192) | Alternate paths and provider-mediated execution | Merged into `feat/containment` 1 October 2026; #227 then added the gateway fail-safe paragraph that anchors A10 |
+| [Detection and evidence, #184](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/pull/184) | Section 7: decision/outcome separation, evidence, containment measurement | Merged into `feat/containment` 24 September 2026; working-draft status remains |
 | [Tool Design for Secure Agentic Systems](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/blob/main/practical-guides/mcp-secure-tool-design.md) | Implementation patterns for the execution boundary | Existing practical guide |
-| [Software-only evidence sample, #200](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/pull/200) | Illustrative records for the proposed section 7 contract | Open PR; mixed real and illustrative provenance, not a production tool-call record |
+| [Software-only evidence sample, #200](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/pull/200) | Illustrative records for the proposed section 7 contract | Open PR; mixed real and illustrative provenance, not a production tool-call record; record shape pending the assurance-boundary statement field from #184 |
 
 The proposed checks below are a synthesis for review. They are not existing CoSAI conformance requirements. Requirements in the linked containment drafts remain draft requirements.
 
@@ -35,7 +35,7 @@ An operation is eligible only when the independently established user authority,
 
 The executor should evaluate a structured operation against trusted context: caller and principal, operation, object, destination, relevant arguments, task authorization, approval where required, and budget state. Identity and task scope cannot be established solely by model-generated fields. Resource ownership checks belong at a service with authoritative ownership information.
 
-Map every route to the same effect. A mail tool, browser session, shell process, delegated worker, or provider-side fetch may all disclose the same data. Mediate each route or explicitly exclude it from the claimed containment boundary. Protect enforcement configuration and credentials from modification by the agent. Pair tool mediation with filesystem and network isolation where available.
+Map every route to the same effect. A mail tool, browser session, shell process, delegated worker, or provider-side fetch may all disclose the same data. Mediate each route or explicitly exclude it from the assurance boundary, recorded as the section 7.1 assurance-boundary statement. Protect enforcement configuration and credentials from modification by the agent. Pair tool mediation with filesystem and network isolation where available.
 
 Use explicit task authorization for security-sensitive choices. A recipient extracted from an image is a candidate value; extraction alone does not authorize disclosure to that recipient. When trusted context cannot resolve the choice, use an authenticated approval flow.
 
@@ -98,7 +98,7 @@ For each fixture record:
 
 - Legitimate task, independently established authority, expected authorized behavior, and prohibited effect.
 - Input modality, attack class, source and processed-artifact references, transform settings, model version, and tool catalog.
-- Enforcement location, effective policy identifier, tested routes, exclusions, and observation interval.
+- Enforcement location, policy version as a content digest (section 7.1), tested routes, exclusions, and observation interval.
 - Actor, principal, delegation chain, action ID, authorization and accounting decisions, and separately observed outcome.
 - Approval/replay behavior, resource measurements, cancellation results, and unresolved work where applicable.
 
