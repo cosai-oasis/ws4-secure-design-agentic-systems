@@ -516,6 +516,9 @@ come from. §7.2 takes up why the rates themselves cannot be stated yet.
 | Attempted or observed aggregate consumption across the delegation subtree crossing the applicable budget | A consumption refused or held by the accounting authority is a preventive-control event; an observed excess is evidence of a control failure (§4) | Legitimate fan-out can produce high consumption within budget or a refused over-budget attempt without malicious intent. Distinguish those cases from an observed excess; the profile depends on the deployment's task and fan-out shape |
 | Executed capability outside the agent's declared set | The discriminator named in §7.2: undeclared-but-executed | An incomplete or stale declaration, which is a defect in the declaration rather than noise in the signal |
 
+Signals and counters derived from enforcement decisions count the verdict applied to each
+invocation, as its evidence record carries it, not a reused decision.
+
 **The evidence contract.** These are the fields that let a party who was not present and does not
 trust the operator reconstruct what happened. Each is REQUIRED unless the row says otherwise. The
 mapping to concrete schema fields belongs in the practical guide, pinned to an OCSF version, with
