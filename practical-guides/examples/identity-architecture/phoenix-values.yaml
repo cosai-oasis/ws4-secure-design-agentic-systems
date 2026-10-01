@@ -1,0 +1,15 @@
+components:
+  otel:
+    enabled: true
+  phoenix:
+    enabled: true
+
+otel:
+  collector:
+    phoenixConfig:
+      service:
+        pipelines:
+          traces/phoenix:
+            receivers: [otlp]
+            processors: [memory_limiter, batch]
+            exporters: [otlp/phoenix]

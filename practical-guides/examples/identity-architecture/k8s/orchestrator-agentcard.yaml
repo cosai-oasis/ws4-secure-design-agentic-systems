@@ -1,0 +1,13 @@
+apiVersion: agent.rossoctl.dev/v1alpha1
+kind: AgentCard
+metadata:
+  name: orchestrator-agent-card
+  namespace: agents
+spec:
+  syncPeriod: "30s"
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: orchestrator-agent
+  identityBinding:
+    strict: true
