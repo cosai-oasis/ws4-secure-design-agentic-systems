@@ -32,6 +32,7 @@ status: "Working draft. Not approved. Tracks issue #172."
   - [7.1 What to log](#71-what-to-log)
   - [7.2 The false-positive profile](#72-the-false-positive-profile)
   - [7.3 Measuring containment](#73-measuring-containment)
+  - [7.4 Evidence sufficiency for absence claims](#74-evidence-sufficiency-for-absence-claims)
 - [8. A vetted-sandbox commons](#8-a-vetted-sandbox-commons)
 - [9. Positions](#9-positions)
 - [10. Takeaways and conclusion](#10-takeaways-and-conclusion)
@@ -640,6 +641,30 @@ field substitutes for the other. An unknown stop reason can accompany a verified
 outcome, and a known stop reason can leave the outcome `pending`.
 
 The practical guide should bind these concepts to the selected OCSF revision and coordinate any schema gaps with the WS2 telemetry work. This section defines the information needed for the measurement without assuming that one existing stop-reason field represents all of it. Evidence of an earlier decision remains evidence; it must not authorize replay or bypass a mediation step (§3).
+
+### 7.4 Evidence sufficiency for absence claims
+
+An empty event field cannot establish that nothing happened. The producer may not have been able to see the event, or the observation may have missed part of the interval. This rule applies to a stated property, invocation, time interval and scope. It comes from the [#189 discussion](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/189), split out of [#149](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/149).
+
+| ID | Clause | Source |
+| --- | --- | --- |
+| C1 | Use `not_established` as defined in section 7: the observation could not be established, with the missing premise recorded. After the applicable verification has run, an absence claim that the admissible observations justify neither passing nor failing remains `not_established`. Name the unresolved proof obligation and bind the result to the property, invocation, interval and scope checked. This does not redefine the observation states: an unknown action outcome remains `pending`, including when the reporting window ends. | [aeoess](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/189#issuecomment-5629517996), [darklordVirtual](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/189#issuecomment-5630431104) |
+| C2 | Malformed input, an unsupported verification path, parser failure, and internal verifier error are processing failures. They are never `not_established`; otherwise a broken verifier becomes conformant by returning the third value. | [aeoess](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/189#issuecomment-5629517996), [imran-siddique](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/189#issuecomment-5671639059) |
+| C3 | Outcomes are asymmetric. An admissible observation of the prohibited event within the evaluated scope can settle `fail` without complete coverage. A self-reported write is not an admission on its own: without independent observation it stays `not_established`, even if the record is signed or reports a write. No observed event without established coverage is also `not_established`. Admissibility for the property is distinct from structural validity of the record. | [aeoess](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/189#issuecomment-5672256489), [Levaj2000](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/189#issuecomment-5672817487), [imran-siddique](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/pull/219#issuecomment-5904200879) |
+| C4 | A claim that no event occurred over a scope passes only when the producer could see the relevant field for the invocation and the observation covers the evaluated interval. A present but empty field needs the same premises as a missing field. If either premise is unestablished or bound to another scope, return `not_established` with the missing obligation. Coverage can be established by another verifier surface. | [aeoess](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/189#issuecomment-5702083982), [darklordVirtual](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/189#issuecomment-5630431104), [imran-siddique](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/189#issuecomment-5739339967) |
+| C5 | Coverage must be bound to the claim or invocation it covers. A complete record for one call cannot establish completeness for another. Matching identifiers alone do not prove that binding; an authenticated identifier inside the observation still needs an independently established join to the evaluated invocation. | [chernistry](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/189#issuecomment-5710166163), [imran-siddique](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/189#issuecomment-5745298467) |
+| C6 | Checker input and harness expectation stay structurally separate. The expected verdict and obligation are authored, so they are never visible to the inference that derives the result. | [darklordVirtual](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/189#issuecomment-5630431104), [aeoess](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/189#issuecomment-5638613689) |
+
+The checker receives the property, evidence and evaluation context, including declared producer capabilities and the independently established binding to the observed invocation. It returns the verdict, the unmet obligation for `not_established`, and a binding that identifies the property and context it checked. Runtime outcome is evidence, never a verdict. The harness holds the expected verdict and obligation separately and grades committed fixtures read-only; rebuilding before grading can silently repair a tampered expectation.
+
+Record the observation vantage: who observed the event, which inputs they could see, and who could forge or suppress those inputs. Record the coverage denominator: the invocation, resources, fields and interval actually observed, including known gaps. These facts determine which claims the record can support; a declared independent observer or an empty event field does not establish them. The [agent-evidence-vocabulary](https://github.com/probityai/agent-evidence-vocabulary/blob/main/vocabulary.yaml) provides informative names for these facts. Implementers do not need that repository to apply this rule.
+
+[Candidate conformance cases](https://github.com/astrogilda/ws4-secure-design-agentic-systems/tree/conformance/rfc-189-observed-effect/conformance/RFC-189), led by @astrogilda and @aeoess, exercise producer visibility, interval coverage and claim binding. They remain non-normative until this text is approved. The passing Observed Effect cases assume an independently anchored expected prior commitment; they test use of that premise, not its real-world provenance. Case 10 returns `not_established` under C3 for a self-reported write without independent observation.
+
+**Open items.**
+- Gap naming: distinguish incomplete coverage without a located gap from a well-formed unknown coverage state.
+- Claim binding: establish which independent witness anchors the expected prior commitment before the invocation, and how its provenance is checked. Matching identifiers or a digest copied from the record do not establish that join.
+- Observation vantage: settle the separate case of a claim of independent observation made from the observed party's own vantage. The self-reported write decision in C3 does not settle that claim.
 
 ---
 
