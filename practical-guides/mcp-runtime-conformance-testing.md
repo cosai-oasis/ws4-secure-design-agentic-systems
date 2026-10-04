@@ -15,7 +15,12 @@ This guide describes how to apply runtime conformance testing to MCP servers, us
 open-source [cosai-mcp](https://github.com/ragsvasan/cosai-mcp) scanner as a reference
 implementation. cosai-mcp is a black-box JSON-RPC prober and stateful conformance harness
 that tests a live MCP server against all 12 threat categories defined in the
-[CoSAI MCP Security Taxonomy](../model-context-protocol-security.md).
+[CoSAI MCP Security Taxonomy](../whitepapers/model-context-protocol-security.md).
+
+The guide tracks **CoSAI MCP Security v2.0** (August 2026) and **MCP 2026-07-28**: the
+scanner speaks both the stateless 2026-07-28 protocol and the earlier `initialize`-based
+versions, and can check a deployment against a v2.0 Security Assurance Profile level
+(see [Verifying an assurance level](#verifying-a-v20-security-assurance-profile-level)).
 
 ---
 
@@ -45,7 +50,7 @@ different class of threats:
 | Engine | Covers | Mechanism |
 |--------|--------|-----------|
 | **Black-box prober** | T1, T3, T8, T10 (partial T2/T6/T11) | One-shot JSON-RPC probes over Streamable HTTP |
-| **Stateful conformance harness** | T2, T6, T7 | Full `initialize` → multi-turn scripted scenarios |
+| **Stateful conformance harness** | T2, T6, T7 | Full handshake (2026-07-28 `server/discover`, or legacy `initialize`) → multi-turn scripted scenarios |
 | **Middleware instrumentation** | T4, T9, T12 | In-process middleware; detection requires being in the call path |
 
 > **Important:** Black-box probes alone cannot fully test T4 (prompt injection boundary),
@@ -98,6 +103,21 @@ Exit codes are fail-closed:
 - `2` — scanner internal error (treated as failure by CI)
 - `3` — target unreachable
 
+### Protocol eras (MCP 2026-07-28)
+
+MCP 2026-07-28 removed the `initialize` handshake and `Mcp-Session-Id`: clients call
+`server/discover`, and every request carries its identity and protocol version in
+`_meta` plus the `MCP-Protocol-Version`, `Mcp-Method` and `Mcp-Name` headers. The
+scanner is a dual-era client:
+
+- By default (`--protocol-era auto`) it tries `server/discover` first and falls back to
+  the legacy `initialize` handshake only for servers that do not recognise it. The era is
+  detected once per scan and used for every probe.
+- A server that is recognisably 2026-07-28 but rejects the client's version is reported
+  `SCAN-INCOMPLETE`. It is **never downgraded** to the legacy handshake, because a
+  downgrade path is itself a v2.0 finding.
+- `--protocol-era modern` or `legacy` pins one era.
+
 ---
 
 ## T1–T12 Coverage Map
@@ -114,6 +134,13 @@ taken against a live server.
 | T01-002-p1/p2 | Sends a JWT signed with the wrong key | Server rejects with 401 |
 | T01-003-p1/p2 | Replays a previously used JTI value | Server rejects (replay cache enforced) |
 | T01-004-p1/p2 | Sends a DPoP proof with mismatched `htu`/`htm` | Server rejects DPoP binding failure |
+| T01-007-p1 | Unauthenticated `tools/call` whose `_meta` claims an identity and capabilities (2026-07-28) | Server ignores `_meta` claims for authorization and rejects |
+| T01-008-p1 | Lists tools with a valid token issued for a **different** resource (RFC 8707 audience) | Server rejects the foreign-audience token |
+
+T01-008 needs `--foreign-audience-token`: a short-lived (under one hour) token for a
+sacrificial test resource. The token is disclosed to the server under test, so never use
+one for a production resource. The scan also checks RFC 9728 Protected Resource Metadata
+passively, using same-origin requests only.
 
 ### T2 — Missing Access Control (Stateful)
 
@@ -136,6 +163,12 @@ With adaptive probing enabled (default), payloads are synthesized to conform to 
 server's actual `inputSchema` — injecting adversarial values into real parameter positions
 rather than fictional ones.
 
+### T5 — Inadequate Data Protection
+
+| Probe | What the probe tests |
+|-------|---------------------|
+| T05-003-p1 | Tool results marked `cacheScope: public` (2026-07-28), which shared intermediaries may serve to other users; user- or tenant-specific results must be private |
+
 ### T6 — Integrity/Verification (Stateful)
 
 - **T6-SC-001:** Calls `tools/list` twice in the same session; asserts the manifest is identical.
@@ -144,6 +177,15 @@ rather than fictional ones.
 ### T7 — Session Security Failures (Stateful)
 
 - **T7-SC-001:** Tests session identity preservation across tool calls in the same session.
+
+MCP 2026-07-28 probes (black-box):
+
+| Probe | What the probe tests |
+|-------|---------------------|
+| T07-004-p1/p2 | `Mcp-Method` / `Mcp-Name` headers that disagree with the JSON-RPC body; a gateway routing on headers would apply the wrong policy. Server must reject the mismatch |
+| T07-005-p1 | An unknown protocol version in `_meta` and `MCP-Protocol-Version`; server must answer `-32022` (UnsupportedProtocolVersion) listing what it supports |
+| T07-006-p1 | A legacy `initialize` handshake against a 2026-07-28 server; a retained legacy path must enforce the same per-request authorization |
+| T07-007-p1/p2 | Task enumeration and guessable task IDs (Tasks extension); handles must be CSPRNG-generated, opaque, and authorized per caller |
 
 ### T8 — Network Binding Failures
 
@@ -166,6 +208,8 @@ rather than fictional ones.
 | Probe | What the probe tests |
 |-------|---------------------|
 | T11-001-p1/p2 | Calls a tool name not in the server's manifest; asserts JSON-RPC `-32601` (Method Not Found) |
+
+| T11-002-p1 | Whether `server/discover` still advertises deprecated protocol-level Logging as a telemetry channel (2026-07-28) |
 
 > A server that returns `{"result": {"isError": false}}` for an unknown tool name is
 > non-compliant with the MCP JSON-RPC spec and may be vulnerable to tool name confusion.
@@ -208,6 +252,36 @@ gh api repos/{owner}/{repo}/code-scanning/sarifs \
 
 ---
 
+## Verifying a v2.0 Security Assurance Profile level
+
+CoSAI MCP Security v2.0 §3.3 defines four assurance levels (L1 Sandbox, L2 Internal,
+L3 Production, L4 Regulated), and §3.3.5 calls for automated tooling that verifies a
+claimed level. The scanner checks one deployment against a level:
+
+```bash
+cosai scan https://mcp.example.com/mcp --auth-token "$MCP_TOKEN" \
+  --assurance-level 3 --evidence ./evidence
+```
+
+A black-box scan can *disprove* many controls but *prove* only a few. Each control gets
+one verdict:
+
+- **`pass`**: a probe proved the control.
+- **`fail`**: a probe disproved it.
+- **`attested`**: the operator supplied hashed evidence via `--evidence`.
+- **`unverified`**: nothing above applies.
+- **`not_required`**: the control does not apply at the claimed level.
+
+A level is `met` only when every MUST control passes, and `met_with_attestation` when the
+remainder are attested. The level claim, scan scope and evidence hashes go into the
+signed scorecard.
+
+The [evidence-per-level annex](https://github.com/ragsvasan/cosai-mcp/blob/main/docs/EVIDENCE_PER_LEVEL.md)
+answers v2.0 open question #4. For each control and level, it lists the requirement, what
+the scanner can establish on its own, and what an operator should attest.
+
+---
+
 ## Server-Side Defense Library
 
 [mcp-armor](https://github.com/ragsvasan/mcp-armor) is the companion server-side
@@ -223,6 +297,16 @@ from mcp_armor.adapters.fastapi import ArmorMiddleware
 guard = CoSAIGuard.from_config("cosai.yaml")
 app.add_middleware(ArmorMiddleware, guard=guard)
 ```
+
+For MCP 2026-07-28 and CoSAI v2.0, mcp-armor adds the following, opt-in and currently
+unreleased:
+
+- **Envelope checks:** request-envelope validation (header ↔ body and `_meta` ↔
+  authenticated principal) and stateless (session-less) requests behind its ASGI
+  middleware or sidecar.
+- **Sealed state and handles:** sealed `requestState` and server-held task handles.
+- **Telemetry:** W3C trace-context rules and OCSF API Activity audit events with keyed
+  parameter digests.
 
 ---
 
@@ -241,8 +325,9 @@ to this guide.
 
 ## References
 
-- [CoSAI MCP Security Taxonomy (T1–T12)](../model-context-protocol-security.md)
+- [CoSAI MCP Security v2.0 (T1–T12)](../whitepapers/model-context-protocol-security.md)
 - [cosai-mcp scanner](https://github.com/ragsvasan/cosai-mcp) — Apache 2.0
 - [mcp-armor server SDK](https://github.com/ragsvasan/mcp-armor) — Apache 2.0
 - [OWASP MCP Top 10](https://owasp.org/www-project-mcp-top-10/)
-- [MCP Specification 2025-03-26](https://spec.modelcontextprotocol.io/)
+- [MCP Specification](https://modelcontextprotocol.io/specification/): 2026-07-28 (stateless), with 2025-03-26 through 2025-11-25 still supported by the scanner
+- [cosai-mcp evidence-per-level annex](https://github.com/ragsvasan/cosai-mcp/blob/main/docs/EVIDENCE_PER_LEVEL.md): CoSAI v2.0 §3.3 controls
