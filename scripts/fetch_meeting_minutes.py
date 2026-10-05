@@ -56,9 +56,21 @@ SOURCES = [
         "subdir": "ws4",
         # Fallback when a per-meeting subfolder hasn't been filed yet:
         # match Gemini notes shared directly with the user.
-        "shared_name_contains": "CoSAI WS4 recurring meeting",
+        # Drive `name contains` filter only — keep it to the part of the title
+        # that survives a series rename. The regex below does the real filtering,
+        # so this being broad (it also returns the Agent Credentials and Trust
+        # Graph docs) is harmless.
+        "shared_name_contains": "CoSAI WS4",
+        # The series was recreated in Sep 2026: "recurring meeting" became
+        # "weekly meeting (updated invite)". Matching the old literal silently
+        # dropped every week after the rename — no error, exit 0. Accept either
+        # wording plus an optional parenthetical, and reject the sibling series
+        # ("CoSAI WS4: Agent Credentials", "CoSAI WS4 Trust Graph Sync").
+        "shared_title_prefix_pattern": (
+            r"CoSAI WS4 (?:recurring|weekly) meeting(?: \([^)]*\))?"
+        ),
         "shared_title_pattern": (
-            r"^CoSAI WS4 recurring meeting - "
+            r"^CoSAI WS4 (?:recurring|weekly) meeting(?: \([^)]*\))? - "
             r"(?P<y>\d{4})/(?P<m>\d{2})/(?P<d>\d{2})"
         ),
         "shared_folder_name_template": "WS4 {y}{m}{d}",
@@ -159,6 +171,22 @@ SOURCES = [
         "shared_name_contains": "CoSAI WS4: Agent Credentials",
         "shared_title_pattern": (
             r"^CoSAI WS4: Agent Credentials - "
+            r"(?P<y>\d{4})/(?P<m>\d{2})/(?P<d>\d{2})"
+        ),
+        "shared_folder_name_template": "{y}-{m}-{d}",
+    },
+    {
+        "name": "Trust-Graph",
+        "type": "drive",
+        # Added after the 2026-09-24 sync surfaced only because the chair sent
+        # the link directly. The notes sit loose in this folder, so the loose-doc
+        # pass carries them; shared-with-me alone returns nothing, because Drive
+        # sets sharedWithMe on the shared folder and not on the docs inside it.
+        "folder_id": "1jnvmtw62-L3j0ssNRR6bnx4pks4c5ApM",
+        "subdir": "trust-graph",
+        "shared_name_contains": "CoSAI WS4 Trust Graph Sync",
+        "shared_title_pattern": (
+            r"^CoSAI WS4 Trust Graph Sync - "
             r"(?P<y>\d{4})/(?P<m>\d{2})/(?P<d>\d{2})"
         ),
         "shared_folder_name_template": "{y}-{m}-{d}",
@@ -450,6 +478,11 @@ def fetch_drive_source(source, output_dir, skip_existing):
     """
     fetched = skipped = no_notes = errors = 0
 
+    # Shared-only sources have no folder of their own; the shared-with-me pass
+    # is the only one that can reach them.
+    if not source.get("folder_id"):
+        return 0, 0, 0, 0
+
     print(f"\n[{source['name']}] Listing meeting folders...")
     folders = list_meeting_folders(source["folder_id"])
     print(f"[{source['name']}] Found {len(folders)} meeting folders")
@@ -504,6 +537,24 @@ def fetch_drive_source(source, output_dir, skip_existing):
     return fetched, skipped, no_notes, errors
 
 
+def series_prefix_pattern(source):
+    """Regex fragment matching the series-name portion of a notes title.
+
+    `shared_name_contains` serves two incompatible purposes: it is the literal
+    passed to Drive's `name contains` filter, and it was also re.escape()d to
+    rebuild companion-artifact patterns. Those conflict the moment a Meet series
+    is renamed, because the query literal has to shrink to the stable substring
+    while the companion pattern still needs the full series name. A source can
+    now set `shared_title_prefix_pattern` to decouple them; without it, the old
+    behaviour is preserved exactly.
+    """
+    explicit = source.get("shared_title_prefix_pattern")
+    if explicit:
+        return explicit
+    contains = source.get("shared_name_contains")
+    return re.escape(contains) if contains else None
+
+
 def _notes_doc_first(f):
     """Sort key preferring Gemini notes over any other doc sharing a meeting's
     title prefix (transcripts, recaps). The title patterns match on the prefix
@@ -526,7 +577,7 @@ def fetch_drive_loose_docs(source, output_dir, skip_existing):
     """
     pattern = source.get("shared_title_pattern")
     template = source.get("shared_folder_name_template")
-    if not (pattern and template):
+    if not (pattern and template and source.get("folder_id")):
         return 0, 0, 0
 
     fetched = skipped = errors = 0
@@ -582,9 +633,10 @@ def fetch_drive_loose_docs(source, output_dir, skip_existing):
     if not name_contains:
         return fetched, skipped, errors
 
+    prefix = series_prefix_pattern(source)
     for spec in COMPANION_ARTIFACTS:
         cpat = re.compile(
-            rf"^{re.escape(name_contains)} - "
+            rf"^{prefix} - "
             rf"(?P<y>\d{{4}})/(?P<m>\d{{2}})/(?P<d>\d{{2}}) .* "
             rf"{re.escape(spec['title_suffix'])}$"
         )
@@ -695,9 +747,10 @@ def fetch_drive_shared_fallback(source, output_dir, skip_existing):
     # attendance (a Sheet) are neither Docs nor each other. The title pattern is
     # rebuilt per kind rather than reusing shared_title_pattern, which is
     # anchored on "Notes by Gemini".
+    prefix = series_prefix_pattern(source)
     for spec in COMPANION_ARTIFACTS:
         cpat = re.compile(
-            rf"^{re.escape(name_contains)} - "
+            rf"^{prefix} - "
             rf"(?P<y>\d{{4}})/(?P<m>\d{{2}})/(?P<d>\d{{2}}) .* "
             rf"{re.escape(spec['title_suffix'])}$"
         )
