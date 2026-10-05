@@ -664,12 +664,20 @@ The checker receives the property, evidence and evaluation context, including de
 
 Record the observation vantage: who observed the event, which inputs they could see, and who could forge or suppress those inputs. Record the coverage denominator: the invocation, resources, fields and interval actually observed, including known gaps. These facts determine which claims the record can support; a declared independent observer or an empty event field does not establish them. The [agent-evidence-vocabulary](https://github.com/probityai/agent-evidence-vocabulary/blob/main/vocabulary.yaml) provides informative names for these facts. Implementers do not need that repository to apply this rule.
 
+**When an observer is independent.** C3 and C4 depend on whether an observation comes from a party independent of the producer it describes. Recording the observation vantage helps a verifier only if independence can be tested. An observer is independent of a producer when all three conditions hold and the record shows each:
+
+- It sits outside the producer's trust domain (the set of components that can be compromised together; §7), so no single compromise reaches both;
+- Its identity and measured state are established by a party other than the producer, for example by attestation evidence appraised against reference values;
+- The keys that sign its observations are outside the producer's reach.
+
+An observation from an observer that fails any condition counts as self-reported under C3. Independence holds between one observer and one producer, so it is recorded per claim, as C5 requires of coverage. This test does not define the verifier surface that establishes coverage (C4); it states what any such surface must show before its observations count as independent.
+
 [Candidate conformance cases](https://github.com/astrogilda/ws4-secure-design-agentic-systems/tree/conformance/rfc-189-observed-effect/conformance/RFC-189), led by @astrogilda and @aeoess, exercise producer visibility, interval coverage and claim binding. They remain non-normative until this text is approved. The passing Observed Effect cases assume an independently anchored expected prior commitment; they test use of that premise, not its real-world provenance. Case 10 returns `not_established` under C3 for a self-reported write without independent observation.
 
 **Open items.**
 - Gap naming: distinguish incomplete coverage without a located gap from a well-formed unknown coverage state.
-- Claim binding: establish which independent witness anchors the expected prior commitment before the invocation, and how its provenance is checked. Matching identifiers or a digest copied from the record do not establish that join.
-- Observation vantage: settle the separate case of a claim of independent observation made from the observed party's own vantage. The self-reported write decision in C3 does not settle that claim.
+- Claim binding: an observer that meets the independence test may anchor the expected prior commitment, and the test's second condition is how its provenance is checked. Still open: how that commitment is joined to the invocation before the invocation runs. Matching identifiers or a digest copied from the record do not establish that join.
+- Observation vantage (proposed resolution): a claim of independent observation made from the observed party's own vantage fails the first condition of the independence test, and is self-reported under C3.
 
 ---
 
