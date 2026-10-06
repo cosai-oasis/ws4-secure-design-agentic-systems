@@ -602,7 +602,7 @@ A vetted sandbox should be able to demonstrate, mechanically and before an agent
 - **The evidence is produced and is verifiable.** That the events §7 requires are emitted, that they carry the correlation key, and that their integrity protection can be checked by someone who does not trust the operator. A containment claim whose evidence cannot be verified is a claim with nothing behind it (§6.3).
 - **The reachable set is enumerated and current.** That the deployment can state what the agent can reach, by any path in its effective reach, and that the enumeration matches what is deployed (§6.1).
 
-The demonstration should be re-runnable, not a one-time certification: the properties above are deployment configuration, and configuration drifts. The practical form is a pre-run check whose failure prevents the run, which is the difference between a sandbox that is vetted and a sandbox that was vetted once.
+The demonstration should be re-runnable, not a one-time certification: the properties above are deployment configuration, and configuration drifts. The practical form is a pre-run check whose failure prevents the run, which is the difference between a sandbox that is vetted and a sandbox that was vetted once. The result is identified by a content digest and referenced from the run's evidence records (§7.1), so a demonstration from one run cannot stand in for another. A demonstration also has a validity window: for a long-running agent the check repeats during the run, and a claim whose last demonstration has lapsed is not a current claim.
 
 ### 8.3 A worked criterion: container-runtime access
 
