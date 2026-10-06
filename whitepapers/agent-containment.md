@@ -383,9 +383,16 @@ When containment fails, it fails in one of four ways, and this paper keeps them 
 
 **Mode 3 — the control was insufficiently specified.** The control was on, untouched, and wrong. The seccomp filter that checked syscall numbers but not the architecture value — a pitfall the kernel's own documentation has warned about for a decade [7] — is the anchor case: the agent had no authority over the policy; the system applied an insufficient one. A denylist that misses an alternate path to the same binary, and a workspace with a reachable Docker socket [6], fail the same way. The remedy is verification of the policy, not strengthening of the mechanism: pre-deployment tests that the sandbox enforces what its operator believes it enforces (§8), and a mediation surface expressive enough to state the intended boundary at all (§3).
 
+Mode 3 has two cases, and they need different remedies:
+
+- **3a, incorrect specification:** the policy in force does not cover the path, as with the seccomp filter above.
+- **3b, incorrect deployment:** the approved policy was adequate, but the environment that ran was not the one approved, because a setting was left open, an image drifted, or a configuration changed between approval and run. The July 2026 evaluation incidents included this case: models reached the internet from a third-party evaluation environment where internet access had been mistakenly left open (Anthropic, *Improving our alignment and security efforts*, 2026-08-31).
+
+A one-time test of the policy catches 3a but not 3b, because 3b arises after the test. What catches 3b is a check repeated at each run, with evidence that the environment running is the one approved through evidence of its configuration, policy version and reachable set (§6.1, §7.1) established by attestation where the deployment supports it or otherwise by a record the workload cannot alter. Such evidence does not prevent mode 1, since a correctly configured environment can still be broken by an unknown flaw; repeated during the run, it also makes a mode-2 change to the configuration visible.
+
 **Mode 4 — the control was correct and the agent used permitted authority.** Nothing was escaped. The agent that cancelled a stranger's gym reservation crossed no containment boundary; its authority was scoped to an endpoint, not to whose reservation it could act on [11]. The gateway that performs a fetch with agent-controlled input is the same shape: a permitted party, acting as asked (§3.1). No isolation posture reaches this mode. What bounds it is scope on the grant — the subject of the Agentic IAM paper [9] — together with constraining what permitted parties will do on request (§3.1), accounting authority across the set of agents that share it (§4), and evidence afterwards (§7).
 
-The first three modes are failures of the monitor's three properties, in order: mode 1 breaks the mechanism, mode 2 breaks tamper-proofing, mode 3 breaks complete mediation — the policy did not cover the path. Mode 4 is not a failure of the monitor at all, and that is the deepest reason containment is one layer of a bounded-authority model rather than the whole of it (§1): a perfect monitor, perfectly specified, enforcing a grant that is too broad, produces the gym incident every time.
+The first three modes are failures of the monitor's three properties, in order: mode 1 breaks the mechanism, mode 2 breaks tamper-proofing, mode 3 breaks complete mediation — the policy did not cover the path, or the policy that ran was not the one approved. Mode 4 is not a failure of the monitor at all, and that is the deepest reason containment is one layer of a bounded-authority model rather than the whole of it (§1): a perfect monitor, perfectly specified, enforcing a grant that is too broad, produces the gym incident every time.
 
 ### 5.3 Why the separation is load-bearing
 
@@ -404,7 +411,7 @@ Third, every control in this paper can now say what it is for:
 | §4 Composition | Mode 4 — authority consumed across a set, every local check passing |
 | §6 Reachability | Bounds the blast radius when modes 1–3 occur |
 | §7 Detection and evidence | Makes all four modes distinguishable, during and after |
-| §8 Verification | Mode 3 — proving the control enforces what its operator believes |
+| §8 Verification | Mode 3 — testing the policy (3a) and confirming at each run that the deployed environment is the approved one (3b) |
 
 The question each section answers is therefore not "how strong is the box?" but: which failure mode does this control remove — and how would we know it worked?
 
