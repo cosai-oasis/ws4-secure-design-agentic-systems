@@ -689,7 +689,7 @@ The checker receives the property, evidence and evaluation context, including de
 
 Record the observation vantage: who observed the event, which inputs they could see, and who could forge or suppress those inputs. Record the coverage denominator: the invocation, resources, fields and interval actually observed, including known gaps. These facts determine which claims the record can support; a declared independent observer or an empty event field does not establish them. The [agent-evidence-vocabulary](https://github.com/probityai/agent-evidence-vocabulary/blob/main/vocabulary.yaml) provides informative names for these facts. Implementers do not need that repository to apply this rule.
 
-[Candidate conformance cases](https://github.com/astrogilda/ws4-secure-design-agentic-systems/tree/conformance/rfc-189-observed-effect/conformance/RFC-189), led by @astrogilda and @aeoess, exercise producer visibility, interval coverage and claim binding. They remain non-normative until this text is approved. The passing Observed Effect cases assume an independently anchored expected prior commitment; they test use of that premise, not its real-world provenance. Case 10 returns `not_established` under C3 for a self-reported write without independent observation.
+[Candidate conformance cases](https://github.com/astrogilda/ws4-secure-design-agentic-systems/tree/7deaf432/conformance/RFC-189), led by @astrogilda and @aeoess, exercise producer visibility, interval coverage and claim binding. They are pinned to a revision rather than a branch, for the same reason this paper pins its OCSF references: a reader must be able to see the cases this text was written against. They remain non-normative until this text is approved. The passing Observed Effect cases assume an independently anchored expected prior commitment; they test use of that premise, not its real-world provenance. Case 10 returns `not_established` under C3 for a self-reported write without independent observation.
 
 **Open items.**
 - Gap naming: distinguish incomplete coverage without a located gap from a well-formed unknown coverage state.
@@ -874,7 +874,7 @@ note below.
 - @imolloy — §1.1, §3.1, §6, and the confused-deputy naming in §3.1
 - @Santoshkumarpuppala — §3 the gateway fail-safe default and the recorded-reliance verdict clause, §7.1 verdict counting
 - @astrogilda — §7.4 evidence sufficiency for absence claims
-- @aeoess — §7.4 clauses C1–C4 and C6, and the conformance-case analysis behind them
+- Tymofii Pidlisnyi, Agent Passport System — §7.4 clauses C1–C4 and C6, and the conformance-case analysis behind them
 - @darklordVirtual — §7.4 clauses C1, C4 and C6
 - @chernistry — §3's recorded-reliance clause, §7.4 clause C5
 - @ryjen — §3's effective-reach invariant and its receipts corollary
