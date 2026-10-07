@@ -1,5 +1,5 @@
 {
-  "$comment": "Sample containment evidence record from a software-only producer. Every row of the CoSAI WS4 agent-containment paper's §7.1 evidence contract is filled. Principal chain, policy digest, runtime identity, build and model values are taken from a real run (Bernstein 3.20.0, run 20260920-165918); the tool call, catalog digest and accounting figures are illustrative because that producer does not journal tool calls yet. The hash chain and the checkpoint signature are real and can be recomputed; see README.md.",
+  "$comment": "Sample containment evidence record from a software-only producer. Every row of the CoSAI WS4 agent-containment paper's §7.1 evidence contract is filled. Principal chain, policy digest, runtime identity, build and model values are taken from a real run (Bernstein 3.20.0, run 20260920-165918); the tool call, catalog digest, assurance-boundary statement and accounting figures are illustrative because that producer does not journal tool calls yet. The hash chain and the checkpoint signature are real and can be recomputed; see README.md.",
   "record_format": "cosai-ws4/agent-containment/evidence-sample",
   "producer": {
     "platform": "software-only",
@@ -13,7 +13,7 @@
     "checkpoint": {
       "sequence_id": "seq:bernstein.run/run/20260920-165918/containment-evidence-sample",
       "index": 2,
-      "entry_hash": "sha256:d0cb00c5078bbc6d835ae8f2ba8fc7aa6045ccaf86c52ddf1fa3d7d82ec1b524",
+      "entry_hash": "sha256:0ce967d8144ad5c76c97856ce3fd387aff1b5ff98fc22c8b6e64146e71df67db",
       "collection_scope": {
         "declared": "every tool call dispatched by workers of run 20260920-165918",
         "omitted_before_recording": {
@@ -27,11 +27,11 @@
       },
       "signature": {
         "alg": "EdDSA",
-        "value": "-WtfVbfaSM0NPYTrkBMChgvXjhkRxspDLDbdxkDW7lD2EocYj3KD_cWjQkcE0io6uRrIW3Mb18w9jk_gBrHzAQ",
+        "value": "8nhpYtut9XN15tCHcZzEAiUTTFOtYw2Q4GdVc3Yoineb_iSFVnsny4RA6FpFIjjUgwjygFrszHq1iLDMxEkBBg",
         "signer": {
           "kty": "OKP",
           "crv": "Ed25519",
-          "x": "6qdAijiYRYlvLZJnMTXxd_rjzLm0My12632-xsX7WOo",
+          "x": "ZWYVWADXLAO_DoNBRjB0mr5lMVXEmBwHzKYUpInqq6M",
           "note": "key generated for this sample; a producer signs checkpoints with its runtime identity key"
         }
       }
@@ -109,6 +109,27 @@
         "identified_by": "content digest of the policy bundle in force at the decision",
         "enforcement_mode": "enforce"
       },
+      "assurance_boundary": {
+        "statement_digest": "sha256:c76b3b06431f476feb9e1008c9742348a18895990da3d8806923647cb1a1842c",
+        "identified_by": "content digest of `statement` in its RFC 8785 canonical form, as it stood at the decision",
+        "statement": {
+          "as_of": "2026-09-20T17:00:41Z",
+          "covered": [
+            "tool calls shell.exec, fs.read, fs.write and git.commit made by the worker: each crosses spiffe://bernstein.run/orchestrator#sandbox before it executes, and executes inside the task worktree",
+            "network egress by the worker: refused by the sandbox at dispatch for every call in this task"
+          ],
+          "excluded": [
+            "the operator's shell on the host: it can produce the same file and repository effects without crossing the sandbox, and the operator session is outside this producer's collection scope",
+            "execution on the model provider's side: any tool the provider runs for the model is not mediated by this orchestrator",
+            "host processes not launched through the sandbox: no path they take into the worktree is mediated"
+          ],
+          "allow_fallback": {
+            "status": "absent",
+            "reason": "when no policy decision can be obtained the invocation is refused; no allow fallback is configured for this run, so no path is excluded on that ground"
+          }
+        },
+        "meaning": "records the scope the containment claim asserted at this decision and nothing more: it does not prove that enforcement covered every route, an excluded path is not shown closed, and an included path is not shown mediated on the strength of this row alone"
+      },
       "tool_catalog": {
         "version": "sha256:f7ec98868a2f2ab40a5c2638ccabdcbfea3415aa795b37049ed8c8ce618634a5",
         "identified_by": "content digest of the catalog as the actor saw it at this invocation",
@@ -172,13 +193,13 @@
       },
       "index": 0,
       "prev_hash": "",
-      "entry_hash": "sha256:0c8bfaf57456a731cadbd2ac349e159a3ef721dfd4822e46fb199a34dd9801ef"
+      "entry_hash": "sha256:6b187df7a47c012a1d3394b1afd5345fd543110e6f12d3d722589579ba556f46"
     },
     {
       "kind": "accounting_decision",
       "recorded_at": "2026-09-20T17:00:41Z",
       "references": {
-        "decision_entry_hash": "sha256:0c8bfaf57456a731cadbd2ac349e159a3ef721dfd4822e46fb199a34dd9801ef",
+        "decision_entry_hash": "sha256:6b187df7a47c012a1d3394b1afd5345fd543110e6f12d3d722589579ba556f46",
         "action_id": "call:20260920-165918/7f8f9bdabf7a/0007"
       },
       "authority": "spiffe://bernstein.run/orchestrator#accounting",
@@ -219,14 +240,14 @@
       },
       "reservation_ref": "reservation:20260920-165918/7f8f9bdabf7a/0007",
       "index": 1,
-      "prev_hash": "sha256:0c8bfaf57456a731cadbd2ac349e159a3ef721dfd4822e46fb199a34dd9801ef",
-      "entry_hash": "sha256:281d59f653ada70275828ca266bad67d4f33e0f96c410a58bb9e5a3612c8ba12"
+      "prev_hash": "sha256:6b187df7a47c012a1d3394b1afd5345fd543110e6f12d3d722589579ba556f46",
+      "entry_hash": "sha256:517d7f48ce82dbd72e17939ece6fd7e64746377088de78d201ec4c69a3468a76"
     },
     {
       "kind": "outcome",
       "recorded_at": "2026-09-20T17:01:00Z",
       "references": {
-        "decision_entry_hash": "sha256:0c8bfaf57456a731cadbd2ac349e159a3ef721dfd4822e46fb199a34dd9801ef",
+        "decision_entry_hash": "sha256:6b187df7a47c012a1d3394b1afd5345fd543110e6f12d3d722589579ba556f46",
         "action_id": "call:20260920-165918/7f8f9bdabf7a/0007"
       },
       "outcome": {
@@ -243,11 +264,11 @@
         "consumed": {
           "usd": 0.0
         },
-        "reconciled_with": "sha256:281d59f653ada70275828ca266bad67d4f33e0f96c410a58bb9e5a3612c8ba12"
+        "reconciled_with": "sha256:517d7f48ce82dbd72e17939ece6fd7e64746377088de78d201ec4c69a3468a76"
       },
       "index": 2,
-      "prev_hash": "sha256:281d59f653ada70275828ca266bad67d4f33e0f96c410a58bb9e5a3612c8ba12",
-      "entry_hash": "sha256:d0cb00c5078bbc6d835ae8f2ba8fc7aa6045ccaf86c52ddf1fa3d7d82ec1b524"
+      "prev_hash": "sha256:517d7f48ce82dbd72e17939ece6fd7e64746377088de78d201ec4c69a3468a76",
+      "entry_hash": "sha256:0ce967d8144ad5c76c97856ce3fd387aff1b5ff98fc22c8b6e64146e71df67db"
     }
   ]
 }
