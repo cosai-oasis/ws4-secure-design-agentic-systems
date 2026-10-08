@@ -872,7 +872,7 @@ note below.
 - @skvcool-rgb — §4, and §1.1's deployment-shape spine
 - @getglad — §1 the bounded-authority frame, §2 the three axes, §6
 - @imolloy — §1.1, §3.1, §6, and the confused-deputy naming in §3.1
-- @Santoshkumarpuppala — §3 the gateway fail-safe default and the recorded-reliance verdict clause, §7.1 verdict counting
+- Santosh Kumar Puppala, Independent researcher — §3 the gateway fail-safe default and the recorded-reliance verdict clause, §7.1 verdict counting
 - @astrogilda — §7.4 evidence sufficiency for absence claims
 - Tymofii Pidlisnyi, Agent Passport System — §7.4 clauses C1–C4 and C6, and the conformance-case analysis behind them
 - @darklordVirtual — §7.4 clauses C1, C4 and C6
