@@ -1,0 +1,13 @@
+operator-chart:
+  controllerManager:
+    container:
+      image:
+        repository: localhost:5000/rossoctl-operator
+        tag: latest
+        pullPolicy: IfNotPresent
+  defaults:
+    images:
+      authbridge: localhost:5000/authbridge:latest
+      pullPolicy: IfNotPresent
+    proxy:
+      transparentPort: 8083
