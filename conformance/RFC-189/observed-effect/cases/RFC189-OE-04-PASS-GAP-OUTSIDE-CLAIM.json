@@ -1,0 +1,50 @@
+{
+ "against": {
+  "commit": "84604125869469926968acdf433501f87d1d1665",
+  "document": "whitepapers/agent-containment.md",
+  "section": "7.4"
+ },
+ "checker_input": {
+  "context": {
+   "anchored_commitment_digest": "4753a5e66bc217eed2e38849eb51d4a9b654181595909a3cb477060d2327052c",
+   "claim_ref": "iv-0301",
+   "observer_key_basis": "published test key, MANIFEST.json keys.observer in vectors-observed-effect; anchored out of band, never read from the record",
+   "observer_public_key": "4f2a59edc8367deb40047ce83ee7f5ce711a57d93abbda9d1ce8588c56a3ce88",
+   "producer_capability": {
+    "claim_ref": "iv-0301",
+    "visible_write_paths": [
+     "/srv/app/"
+    ]
+   }
+  },
+  "evidence": {
+   "observed_effect": {
+    "sha256": "5b9ea5001ad5ce1abc5502040062e45e14b03586c309675f1e43c709410d974e",
+    "slug": "mutation-none-with-a-named-gap-in-scope",
+    "source": "agent-evidence-vectors==0.16.0",
+    "vector": "v5b9ea5001ad5ce1a"
+   }
+  },
+  "property": {
+   "name": "no_write_in_scope",
+   "scope": [
+    "/srv/app/src/"
+   ],
+   "statement": "no write occurred under these paths during the evaluated interval"
+  }
+ },
+ "clauses": [
+  "C4",
+  "C5"
+ ],
+ "expected": {
+  "unmet_obligation": null,
+  "verdict": "pass"
+ },
+ "id": "RFC189-OE-04-PASS-GAP-OUTSIDE-CLAIM",
+ "note": "Same record as 03, narrower claim. The named gap lies outside this claim's scope, so the claim is fully covered. Naming the gap is what makes this answerable.",
+ "open_item_dependencies": [
+  "claim_binding"
+ ],
+ "status": "candidate"
+}

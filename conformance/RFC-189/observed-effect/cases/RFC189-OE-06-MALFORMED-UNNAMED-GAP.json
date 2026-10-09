@@ -1,0 +1,52 @@
+{
+ "against": {
+  "commit": "84604125869469926968acdf433501f87d1d1665",
+  "document": "whitepapers/agent-containment.md",
+  "section": "7.4"
+ },
+ "checker_input": {
+  "context": {
+   "claim_ref": "iv-0207",
+   "observer_key_basis": "published test key, MANIFEST.json keys.observer in vectors-observed-effect; anchored out of band, never read from the record",
+   "observer_public_key": "4f2a59edc8367deb40047ce83ee7f5ce711a57d93abbda9d1ce8588c56a3ce88",
+   "producer_capability": {
+    "claim_ref": "iv-0207",
+    "visible_write_paths": [
+     "/srv/app/"
+    ]
+   }
+  },
+  "evidence": {
+   "observed_effect": {
+    "sha256": "1cccb4774a28221031165ad3ac63905d5a79ad2b4c451fa49ecb068d23556f39",
+    "slug": "incomplete-coverage-naming-no-gap",
+    "source": "agent-evidence-vectors==0.16.0",
+    "vector": "v1cccb4774a282210"
+   }
+  },
+  "property": {
+   "name": "no_write_in_scope",
+   "scope": [
+    "/srv/app/"
+   ],
+   "statement": "no write occurred under these paths during the evaluated interval"
+  }
+ },
+ "clauses": [
+  "C2",
+  "C7"
+ ],
+ "expected": {
+  "codes": [
+   "coverage-incomplete-without-gaps"
+  ],
+  "processing_failure": "MalformedEvidence",
+  "verdict": null
+ },
+ "id": "RFC189-OE-06-MALFORMED-UNNAMED-GAP",
+ "note": "Declares incomplete coverage and names no gap. That is malformed input, outside not_established: the result would have no obligation to name.",
+ "open_item_dependencies": [
+  "gap_naming"
+ ],
+ "status": "candidate"
+}
