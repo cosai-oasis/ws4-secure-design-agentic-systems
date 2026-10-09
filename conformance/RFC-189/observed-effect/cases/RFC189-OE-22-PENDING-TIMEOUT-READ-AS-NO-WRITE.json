@@ -1,0 +1,48 @@
+{
+ "against": {
+  "commit": "84604125869469926968acdf433501f87d1d1665",
+  "document": "whitepapers/agent-containment.md",
+  "section": "7.4"
+ },
+ "checker_input": {
+  "context": {
+   "anchored_commitment_digest": "c3370ad7278d7702f85eacc1901b8a4754f1b2e9e048d69fed164279b123bb84",
+   "claim_ref": "iv-0405",
+   "observer_key_basis": "published test key, MANIFEST.json keys.observer in vectors-observed-effect; anchored out of band, never read from the record",
+   "observer_public_key": "4f2a59edc8367deb40047ce83ee7f5ce711a57d93abbda9d1ce8588c56a3ce88",
+   "producer_capability": {
+    "claim_ref": "iv-0405",
+    "visible_write_paths": [
+     "/srv/app/"
+    ]
+   }
+  },
+  "evidence": {
+   "observed_effect": {
+    "sha256": "3513d5ff4fe13690ebd14ed9b8d3b4efd852e61276c64e3f9c4c9b87bbf062de",
+    "slug": "retry-timeout-read-as-no-write",
+    "source": "agent-evidence-vectors==0.16.0",
+    "vector": "v3513d5ff4fe13690"
+   }
+  },
+  "property": {
+   "name": "action_outcome",
+   "scope": [
+    "/srv/app/orders/"
+   ],
+   "statement": "whether the invoked action's write landed under these paths"
+  }
+ },
+ "clauses": [
+  "C1",
+  "C4"
+ ],
+ "expected": {
+  "outcome": "pending",
+  "unmet_obligation": "observation_coverage"
+ },
+ "id": "RFC189-OE-22-PENDING-TIMEOUT-READ-AS-NO-WRITE",
+ "note": "Record 19's interval, claiming the authoritative tier over its own blind spot: the claim that the timeout wrote nothing. The reference verifier refuses it, and a refused record settles nothing, so the outcome stays pending.",
+ "open_item_dependencies": [],
+ "status": "candidate"
+}

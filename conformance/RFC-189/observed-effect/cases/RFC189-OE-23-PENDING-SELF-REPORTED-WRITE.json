@@ -1,0 +1,47 @@
+{
+ "against": {
+  "commit": "84604125869469926968acdf433501f87d1d1665",
+  "document": "whitepapers/agent-containment.md",
+  "section": "7.4"
+ },
+ "checker_input": {
+  "context": {
+   "claim_ref": "iv-0004",
+   "observer_key_basis": "published test key, MANIFEST.json keys.observer in vectors-observed-effect; anchored out of band, never read from the record",
+   "observer_public_key": "4f2a59edc8367deb40047ce83ee7f5ce711a57d93abbda9d1ce8588c56a3ce88",
+   "producer_capability": {
+    "claim_ref": "iv-0004",
+    "visible_write_paths": [
+     "/srv/app/"
+    ]
+   }
+  },
+  "evidence": {
+   "observed_effect": {
+    "sha256": "68921dec001a6df39a2dc72cf90022270a3a281dea2cdd0142fec00c525f0eaa",
+    "slug": "voluntary-self-vantage",
+    "source": "agent-evidence-vectors==0.16.0",
+    "vector": "v68921dec001a6df3"
+   }
+  },
+  "property": {
+   "name": "action_outcome",
+   "scope": [
+    "/srv/app/"
+   ],
+   "statement": "whether the invoked action's write landed under these paths"
+  }
+ },
+ "clauses": [
+  "C1",
+  "C3"
+ ],
+ "expected": {
+  "outcome": "pending",
+  "unmet_obligation": "observation_vantage"
+ },
+ "id": "RFC189-OE-23-PENDING-SELF-REPORTED-WRITE",
+ "note": "Case 10's record asked about the action's outcome. A self-reported write is not an admission on its own, so it does not make the outcome present; without independent observation the outcome stays pending.",
+ "open_item_dependencies": [],
+ "status": "candidate"
+}

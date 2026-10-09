@@ -1,0 +1,47 @@
+{
+ "against": {
+  "commit": "84604125869469926968acdf433501f87d1d1665",
+  "document": "whitepapers/agent-containment.md",
+  "section": "7.4"
+ },
+ "checker_input": {
+  "context": {
+   "claim_ref": "iv-0302",
+   "observer_key_basis": "published test key, MANIFEST.json keys.observer in vectors-observed-effect; anchored out of band, never read from the record",
+   "observer_public_key": "4f2a59edc8367deb40047ce83ee7f5ce711a57d93abbda9d1ce8588c56a3ce88",
+   "producer_capability": {
+    "claim_ref": "iv-0302",
+    "visible_write_paths": [
+     "/srv/app/"
+    ]
+   }
+  },
+  "evidence": {
+   "observed_effect": {
+    "sha256": "895c39cafad19175526ac76fbbdfa2cc6ac938dda31b7f0b78c2ed7620b16f49",
+    "slug": "authoritative-with-a-named-gap-in-scope",
+    "source": "agent-evidence-vectors==0.16.0",
+    "vector": "v895c39cafad19175"
+   }
+  },
+  "property": {
+   "name": "no_write_in_scope",
+   "scope": [
+    "/srv/app/"
+   ],
+   "statement": "no write occurred under these paths during the evaluated interval"
+  }
+ },
+ "clauses": [
+  "C1",
+  "C4"
+ ],
+ "expected": {
+  "unmet_obligation": "observation_coverage",
+  "verdict": "not_established"
+ },
+ "id": "RFC189-OE-09-NE-INDEPENDENCE-CLAIMED-OVER-A-GAP",
+ "note": "Record 03 claiming the independent tier while naming a gap inside its own scope. Refused (authoritative-coverage-incomplete).",
+ "open_item_dependencies": [],
+ "status": "candidate"
+}
