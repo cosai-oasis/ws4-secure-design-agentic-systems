@@ -1,0 +1,261 @@
+{
+  "record_id": "urn:uuid:01926b4c-1234-7abc-9def-000000000101",
+  "record_issuer": "spiffe://trust.example/registry/agent-registrar",
+  "schema_version": "odis.registration.record.v1",
+  "record_version": 7,
+  "agent_id": "spiffe://trust.example/agent/payments-processor",
+  "valid_until": "2026-10-14T00:00:00.000000Z",
+  "lifecycle_state": "active",
+  "sponsor_ref": "urn:example:hr:employee:000123",
+  "owner_ref": "urn:example:org:team:payments-platform",
+  "approved_runtime_issuers": [
+    "spiffe://trust.example/spire/server",
+    "https://attestation.example/tdx-verifier"
+  ],
+  "approved_software_refs": [
+    {
+      "ref_type": "software-artifact",
+      "role": "harness-image",
+      "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "media_type": "application/vnd.oci.image.manifest.v1+json",
+      "locator": "registry.example/payments-processor@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "ref_type": "software-artifact",
+      "role": "base-image",
+      "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    {
+      "ref_type": "provenance",
+      "format": "slsa-provenance-v1",
+      "subject_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "builder_id": "https://github.com/example/payments-processor/.github/workflows/release.yml@refs/heads/main",
+      "provenance_uri": "oci://registry.example/payments-processor:sha256-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.att",
+      "transparency_entry_id": "108e9186e8c5677a000000000000000000000000000000000000000000000000"
+    },
+    {
+      "ref_type": "sbom",
+      "format": "cyclonedx",
+      "schema_version": "CycloneDX 1.6",
+      "document_id": "urn:uuid:3e671687-395b-41f5-a30f-a58921a69b79",
+      "digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "uri": "https://sbom.example/payments-processor/7.json",
+      "integrity_use": "inventory-only"
+    },
+    {
+      "ref_type": "source-bundle",
+      "format": "agent-plugins-1.0.0",
+      "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    },
+    {
+      "ref_type": "composition",
+      "profile": "agentrust-composition-v0",
+      "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "digest_input": "rfc8785-of-extension-object",
+      "locator": "#/extensions/agentrust-composition-v0"
+    }
+  ],
+  "trust_domain": "trust.example",
+  "policy_profile_ref": "https://policy.example/bundles/payments@3.2.0#sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+  "permitted_delegation_modes": [
+    "pre-authorized",
+    "out-of-band-approval"
+  ],
+  "provider_entitlements": {
+    "spiffe://trust.example/mcp/ledger": {
+      "mode": "bridge",
+      "allowed_actions": [
+        "finance:ledger:read",
+        "finance:ledger:write"
+      ],
+      "egress_destinations": [
+        "ledger.internal.example"
+      ]
+    },
+    "spiffe://trust.example/mcp/kyc": {
+      "mode": "native",
+      "allowed_actions": [
+        "kyc:record:lookup"
+      ],
+      "egress_destinations": []
+    }
+  },
+  "created_at": "2026-06-01T09:00:00.000000Z",
+  "updated_at": "2026-10-07T12:00:00.000000Z",
+  "extensions": {
+    "agentrust-composition-v0": {
+      "crypto_profile": "standard",
+      "canonicalization": {
+        "record_digest_input": "exact-issued-payload",
+        "canonical_profile": "rfc8785",
+        "null_handling": "preserve"
+      },
+      "intent": {
+        "statement": "Reconcile approved invoices against the ledger and queue payments for human release."
+      },
+      "system_prompt": {
+        "hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "hash_algorithm": "SHA-256",
+        "version": "4.1.0",
+        "classification": "confidential",
+        "language": "en",
+        "assurance_test": {
+          "suite_id": "example/prompt-behaviour-suite",
+          "suite_version": "1.3.0",
+          "harness_version": "promptcheck/0.9.2",
+          "result": "passed",
+          "assessed_at": "2026-10-06T18:00:00Z",
+          "scenario_count": 240,
+          "evidence_uri": "https://assess.example/runs/8812",
+          "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+        }
+      },
+      "policy_bundle": {
+        "hash": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "policy_language": "cedar",
+        "version": "3.2.0",
+        "enforcement_mode": "enforce",
+        "scope": [
+          "finance:ledger:write"
+        ]
+      },
+      "model_identity": {
+        "provider": "example-provider",
+        "model_id": "example-model-large",
+        "version": "2026-09-01",
+        "quantization": "none",
+        "deployment_type": "confidential-inference",
+        "model_hash": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "model_attestation_type": "hash-bound"
+      },
+      "tool_catalog": {
+        "catalog_hash": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "allow_dynamic_registration": false,
+        "rug_pull_policy": "deny-and-hold",
+        "tools": [
+          {
+            "tool_id": "com.example.ledger.post_entry",
+            "tool_name": "post_entry",
+            "endpoint_id": "spiffe://trust.example/mcp/ledger",
+            "schema_hash": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+            "description_hash": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+            "version": "2.0.1",
+            "permission_scope": "Ledger::Entry",
+            "egress_destinations": [
+              "ledger.internal.example"
+            ]
+          },
+          {
+            "tool_id": "com.example.kyc.lookup",
+            "tool_name": "lookup",
+            "endpoint_id": "spiffe://trust.example/mcp/kyc",
+            "schema_hash": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+            "description_hash": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+            "version": "1.4.0",
+            "egress_destinations": []
+          }
+        ],
+        "tool_servers": [
+          {
+            "server_id": "spiffe://trust.example/mcp/ledger",
+            "image_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+            "slsa_level": 3,
+            "phase2_attested": true
+          },
+          {
+            "server_id": "spiffe://trust.example/mcp/kyc",
+            "image_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+            "slsa_level": 2,
+            "phase2_attested": false
+          }
+        ]
+      },
+      "rag_corpus": {
+        "corpus_id": "invoices-policy-kb",
+        "merkle_root": "sha256:abababababababababababababababababababababababababababababababab",
+        "document_count": 1842,
+        "ingestion_policy_hash": "sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+        "vector_store": "pgvector/0.7.4",
+        "embedding_model": "example-embed-v3",
+        "last_updated": "2026-10-05T22:00:00Z",
+        "poisoning_scan": {
+          "scanner_version": "lakera-scan/1.4.2",
+          "scanned_at": "2026-10-06T02:00:00Z",
+          "result": "clean",
+          "subject_digest": "sha256:abababababababababababababababababababababababababababababababab"
+        }
+      },
+      "memory_baseline": {
+        "baseline_id": "01926b4c-1234-7abc-9def-000000000202",
+        "snapshot_hash": "sha256:efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef",
+        "memory_type": "persistent",
+        "store": "redis/7.2",
+        "approved_at": "2026-10-06T03:00:00Z",
+        "ttl_seconds": 604800,
+        "drift_policy": "deny-on-drift",
+        "check_interval_seconds": 900,
+        "checkpoint_protocol": "agent-manifest-v0.2-3.2.6.2"
+      },
+      "audit_commitment": {
+        "trace_type": "merkle-log",
+        "audit_chain_root": "sha256:1212121212121212121212121212121212121212121212121212121212121212",
+        "audit_chain_uri": "https://audit.example/payments-processor",
+        "signing_key_id": "tdx-sealed:payments-processor:audit:3",
+        "audit_key_sealed": true,
+        "entry_count": 120488,
+        "first_entry_at": "2026-06-01T09:05:00Z",
+        "last_entry_at": "2026-10-07T11:59:00Z"
+      },
+      "reference_values": {
+        "platform": "intel-tdx",
+        "mrtd": "sha384:343434343434343434343434343434343434343434343434343434343434343434343434343434343434343434343434",
+        "launch_binding": "rtmr3-extends-composition-digest",
+        "required_assurance": {
+          "instance_to_software": "platform-asserted",
+          "instance_to_key": "hardware-bound"
+        },
+        "max_evidence_age_seconds": 300
+      },
+      "human_oversight": {
+        "required": true,
+        "registration_approvals_ref": "https://approvals.example/registrations/payments-processor/7",
+        "escalation_policy": {
+          "escalation_target": "spiffe://trust.example/oncall/payments",
+          "timeout_action": "deny"
+        },
+        "interrupt_endpoint": "https://control.example/agents/payments-processor/interrupt",
+        "override_mechanism": "suspend-and-hold",
+        "monitoring_endpoint": "https://control.example/agents/payments-processor/status"
+      },
+      "governance": {
+        "authorized_updaters": [
+          "urn:example:org:role:payments-agent-admins"
+        ],
+        "update_requires_approval": true
+      },
+      "regulatory": {
+        "log_retention": {
+          "minimum_retention_days": 1825,
+          "retention_enforced_by": "urn:example:system:audit-archive"
+        },
+        "data_scope": {
+          "personal_data_categories": [
+            "payment-account"
+          ],
+          "legal_basis": [
+            "art6-1-b"
+          ],
+          "automated_decision_making": false
+        },
+        "operational_lifecycle": {
+          "expected_lifetime_days": 365,
+          "reissuance_triggers": [
+            "model_version_change",
+            "policy_major_version",
+            "tool_schema_change"
+          ]
+        }
+      }
+    }
+  }
+}
