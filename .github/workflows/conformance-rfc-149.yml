@@ -1,0 +1,50 @@
+name: RFC-149 declaration-to-action cases
+
+on:
+  pull_request:
+    paths:
+      - "conformance/RFC-149/**"
+      - ".github/workflows/conformance-rfc-149.yml"
+  push:
+    branches:
+      - main
+      - conformance/rfc-149-registration-record
+    paths:
+      - "conformance/RFC-149/**"
+      - ".github/workflows/conformance-rfc-149.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  declaration-to-action:
+    name: Declaration-to-action cases
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: conformance/RFC-149/declaration-to-action
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.24"
+          cache: false
+      - run: python -m pip install --require-hashes -r requirements.txt
+      - name: Install the artifact-binding reader at the same tag
+        run: |
+          go install github.com/probityai/agent-evidence-vectors/cmd/aee-verify@v0.17.5
+          echo "AEE_VERIFY=$(go env GOPATH)/bin/aee-verify" >> "$GITHUB_ENV"
+      - name: Check the pinned corpora against their own manifests
+        run: |
+          agent-evidence-vectors --corpus vectors-agent-audit-record
+          "$AEE_VERIFY" "$(python -c 'from importlib import resources; print(resources.files("agent_evidence_vectors").joinpath("corpora", "vectors-artifact-binding"))')"
+      - run: python run.py

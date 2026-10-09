@@ -1,0 +1,37 @@
+{
+ "accept": {
+  "consumer_result": {
+   "result": "pass",
+   "unmet_obligation": null
+  },
+  "corpus": "vectors-artifact-binding",
+  "member": "vd05d2e7059332fd5",
+  "reader_expected": {
+   "verdict": "verified"
+  },
+  "sha256": "37ff774ee7479c855f9f444898e331d886b640ac2cee5f88e842413f2890292a"
+ },
+ "differs_in": "the binding is correctly signed by a key the relying party did not pin",
+ "id": "RR-02-UNACCEPTED-SIGNER",
+ "note": "A valid signature is integrity and attribution only. Whether an unaccepted signer is fail or not_established turns on who may update a record (RFC-149 unresolved question 4).",
+ "reader": "aee-verify",
+ "record": {
+  "pointer": "/extensions/agentrust-composition-v0/governance/authorized_updaters"
+ },
+ "reject": {
+  "consumer_result": {
+   "result": "fail",
+   "unmet_obligation": null
+  },
+  "corpus": "vectors-artifact-binding",
+  "member": "vee1d041fe793404e",
+  "reader_expected": {
+   "verdict": "failed"
+  },
+  "sha256": "b77a8f3203778204319592137ffed918c8d3db3408f5d57033a1963eb2f09d13"
+ },
+ "relationship": "signer_authorization",
+ "rfc_scope": "who-may-update",
+ "source": "agent-evidence-vectors==0.17.5",
+ "status": "candidate"
+}
