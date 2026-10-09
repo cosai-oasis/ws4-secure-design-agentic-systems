@@ -1,0 +1,37 @@
+{
+ "accept": {
+  "consumer_result": {
+   "result": "pass",
+   "unmet_obligation": null
+  },
+  "corpus": "vectors-artifact-binding",
+  "member": "vd05d2e7059332fd5",
+  "reader_expected": {
+   "verdict": "verified"
+  },
+  "sha256": "37ff774ee7479c855f9f444898e331d886b640ac2cee5f88e842413f2890292a"
+ },
+ "differs_in": "a named dependency the binding does not cover",
+ "id": "RR-04-TOOL-SERVER-NOT-COVERED",
+ "note": "A tool server the record names, with no digest the evidence covers, is a coverage gap.",
+ "reader": "aee-verify",
+ "record": {
+  "pointer": "/extensions/agentrust-composition-v0/tool_catalog/tool_servers"
+ },
+ "reject": {
+  "consumer_result": {
+   "result": "not_established",
+   "unmet_obligation": "dependency_coverage"
+  },
+  "corpus": "vectors-artifact-binding",
+  "member": "vfa81facc1464c1d6",
+  "reader_expected": {
+   "verdict": "not-established"
+  },
+  "sha256": "f90ca279a1d91bc166c6fcb5cf960d0560872c8dfdb8feb1c76c6cad0b8d4929"
+ },
+ "relationship": "instance_to_software",
+ "rfc_scope": "deployment-profile",
+ "source": "agent-evidence-vectors==0.17.5",
+ "status": "candidate"
+}

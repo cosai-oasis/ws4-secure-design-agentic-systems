@@ -1,0 +1,6 @@
+# The reference readers and the published corpora. Stdlib only; Python 3.13+.
+# The artifact-binding corpus is read by aee-verify from the Go module at the
+# same tag: go install github.com/probityai/agent-evidence-vectors/cmd/aee-verify@v0.17.5
+agent-evidence-vectors==0.17.5 \
+    --hash=sha256:91145476b3acb1fb5935115eb7c3e71ba08446aca0d7a3f77782b44806736bc9 \
+    --hash=sha256:e8e3b1144e4b95995ff6082205ca4d6f9d62b8733b003980b99d19606872ebd9
