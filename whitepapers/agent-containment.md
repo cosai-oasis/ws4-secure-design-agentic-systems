@@ -667,8 +667,10 @@ Record the observation vantage: who observed the event, which inputs they could 
 **When an observer is independent.** C3 and C4 depend on whether an observation comes from a party independent of the producer it describes. Recording the observation vantage helps a verifier only if independence can be tested. An observer is independent of a producer when all three conditions hold and the record shows each:
 
 - It sits outside the producer's trust domain (the set of components that can be compromised together; §7), so no single compromise reaches both;
-- Its identity and measured state are established by a party other than the producer, for example by attestation evidence appraised against reference values;
-- The keys that sign its observations are outside the producer's reach.
+- Its identity rests on a basis the producer cannot issue, alter or revoke: attestation evidence appraised against reference values where the deployment shape supports it (§1.1), and otherwise an external basis identified in the record;
+- Control of the keys that sign its observations is established by evidence; distinct key identifiers do not establish it.
+
+Each condition must be established by evidence carried in or referenced from the record. A declaration of vantage, origin or key identity does not establish independence, for the same reason a declared independent observer does not establish observation vantage. The evidence can come from trusted evaluation context and does not require hardware attestation.
 
 An observation from an observer that fails any condition counts as self-reported under C3. Independence holds between one observer and one producer, so it is recorded per claim, as C5 requires of coverage. This test does not define the verifier surface that establishes coverage (C4); it states what any such surface must show before its observations count as independent.
 
