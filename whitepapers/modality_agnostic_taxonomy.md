@@ -87,7 +87,7 @@ This revision integrates feedback from NIST AML, MITRE ATLAS, STRIDE, CoSAI / OW
 
 > [!WARNING]
 > **TODO:** Add/extract from Abstract section
-![Motivation](./images/diagram.svg)
+![Motivation](./images/motivation_picture.svg)
 ## 2\. Defining The Core Mechanism
 
 Traditional threat modeling identifies trust boundaries between users, processes, services, and networks. Multimodal AI introduces additional semantic and representational boundaries where the same artifact can acquire a different meaning, authority, or computational effect across humans, guards, models, transformations, and downstream consumers. The mechanism taxonomy is intended to make these AI-specific perimeter gaps explicit.
