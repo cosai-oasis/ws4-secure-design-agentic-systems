@@ -88,6 +88,8 @@ This revision integrates feedback from NIST AML, MITRE ATLAS, STRIDE, CoSAI / OW
 > [!WARNING]
 > **TODO:** Add/extract from Abstract section
 ![Motivation](./images/motivation_picture.svg)
+
+![Comparison with existing standards](./images/Standards_gaps.svg)
 ## 2\. Defining The Core Mechanism
 
 Traditional threat modeling identifies trust boundaries between users, processes, services, and networks. Multimodal AI introduces additional semantic and representational boundaries where the same artifact can acquire a different meaning, authority, or computational effect across humans, guards, models, transformations, and downstream consumers. The mechanism taxonomy is intended to make these AI-specific perimeter gaps explicit.
@@ -111,68 +113,7 @@ Because the three dimensions describe the same attack from different angles, a s
 #### 2.1.1 Taxonomy Diagram
 
 
-```mermaid
-%%{init: {"flowchart": {"curve": "stepAfter", "nodeSpacing": 12, "rankSpacing": 40, "wrappingWidth": 340}}}%%
-flowchart LR
-    classDef root fill:#2b2b28,stroke:#2b2b28,color:#fff
-    classDef dim fill:#185fa5,stroke:#0c447c,color:#fff
-    classDef fam fill:#e6f1fb,stroke:#185fa5,color:#0c447c
-    classDef leaf fill:#fff,stroke:#333,color:#111
-
-    M("<b>Mechanism</b><br/>M = ⟨B, R, S⟩"):::root
-
-    M --- B("<b>Boundary</b><br/>Why it's possible"):::dim
-    M --- R("<b>Representation</b><br/>How it's embodied"):::dim
-    M --- S("<b>Processing stage</b><br/>Where it acts"):::dim
-
-    %% Boundary
-    B --- Meaning("Meaning"):::fam
-    B --- Authority("Authority"):::fam
-    B --- Cost("Cost"):::fam
-
-    Meaning --- m1("Human–machine perception"):::leaf
-    Meaning --- m2("Guard-model capability"):::leaf
-    Meaning --- m3("Parser / interpreter differential"):::leaf
-    Meaning --- m4("Transform consistency"):::leaf
-    Meaning --- m5("Semantic stability"):::leaf
-    Meaning --- m6("Check-use consistency"):::leaf
-
-    Authority --- a1("Delegation authority"):::leaf
-    Authority --- a2("Authorization stability"):::leaf
-    Authority --- a3("Grant persistence"):::leaf
-    Authority --- a4("Data-control"):::leaf
-    Authority --- a5("Decision-action"):::leaf
-    Authority --- a6("Output-consumer"):::leaf
-
-    Cost --- c1("Resource accounting"):::leaf
-
-    %% Representation
-    R --- Forms("Forms"):::fam
-    R --- Modifiers("Modifiers"):::fam
-
-    Forms --- f1("Overt semantic"):::leaf
-    Forms --- f2("Encoded / obfuscated"):::leaf
-    Forms --- f3("Steganographic"):::leaf
-    Forms --- f4("Adversarially optimized"):::leaf
-
-    Modifiers --- x1("Transformation-activated"):::leaf
-    Modifiers --- x2("Fragmented / distributed"):::leaf
-    Modifiers --- x3("Sequence-dependent"):::leaf
-    Modifiers --- x4("Processing-triggered · intrinsic"):::leaf
-    Modifiers --- x5("Processing-triggered · semantic"):::leaf
-
-    %% Processing stage
-    S --- s1("Ingestion"):::leaf
-    S --- s2("Transformation"):::leaf
-    S --- s3("Perception / decoding"):::leaf
-    S --- s4("Interpretation / decision"):::leaf
-    S --- s5("Generation"):::leaf
-    S --- s6("Action"):::leaf
-    S --- s7("Consumption"):::leaf
-    S --- s8("Feedback"):::leaf
-```
-
-*Figure 2\. Taxonomy tree. Depth: black root → dark blue dimensions → light blue families → outlined classes.*
+![Taxonomy Diagram](./images/taxonomy_diagram.svg)
 
 ### 2.2 Examples
 
