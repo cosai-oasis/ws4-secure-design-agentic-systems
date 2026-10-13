@@ -55,7 +55,9 @@
   "verdict": "pass"
  },
  "id": "RFC189-IND-01-PASS-ATTESTED-IDENTITY",
- "note": "All three conditions established by evidence; identity by attestation appraised against reference values.",
- "open_item_dependencies": [],
+ "note": "All three conditions name evidence the producer neither controls nor established; identity by attestation appraised against reference values. The checker takes that evidence as a stipulated premise and does not appraise it, so the pass holds given that evidence.",
+ "open_item_dependencies": [
+  "independence_evidence"
+ ],
  "status": "candidate"
 }

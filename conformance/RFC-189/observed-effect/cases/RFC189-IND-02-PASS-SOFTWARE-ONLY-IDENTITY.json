@@ -55,7 +55,9 @@
   "verdict": "pass"
  },
  "id": "RFC189-IND-02-PASS-SOFTWARE-ONLY-IDENTITY",
- "note": "All three conditions established by evidence in a software-only shape (section 1.1): identity rests on an external basis, no attestation.",
- "open_item_dependencies": [],
+ "note": "All three conditions name evidence the producer neither controls nor established, in a software-only shape (section 1.1): identity rests on an external basis, no attestation. The pass holds given that evidence, which the checker takes as a stipulated premise and does not appraise.",
+ "open_item_dependencies": [
+  "independence_evidence"
+ ],
  "status": "candidate"
 }

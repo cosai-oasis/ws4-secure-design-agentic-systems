@@ -81,6 +81,26 @@ The checker returns the evaluated property, path scope, claim reference, observe
 
 C1 keeps an unknown action outcome `pending` when the reporting window ends. Cases 19 to 24 test that sentence with the lost-response retry records: a tool completes a write, its response is lost, and the agent retries. The `action_outcome` property reads the same evidence as `no_write_in_scope` in section 7's observation states. An observed write is `present`, an established absence is `absent`, and everything else is `pending` with its unmet obligation. In cases 20 and 22 the interval is sealed, so the window has ended, and the outcome still reads `pending`; a checker that turns it into `not_established` fails both. Case 23 is C3 applied to the outcome: a self-reported write does not make the outcome `present`. A refused or malformed record stays a processing failure on this axis too.
 
+## Observer independence
+
+Cases IND-01 to IND-11 test the three-condition independence test proposed for 7.4 in [#255](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/pull/255), as worded at `672b8c50`. That text is not merged, so these cases pin `672b8c50` instead of `84604125`, and `run.py` refuses either set pinned to the other's commit. The `observer_independence` property asks whether the observer of a record is independent of one named producer for one claim. Each of the three conditions (trust domain, identity basis, key control) needs an entry that names who controls the thing it is about, who established that, and where the evidence is.
+
+| Case | Input | Expected | Clauses |
+| --- | --- | --- | --- |
+| IND-01 | all three conditions carry evidence; identity by appraised attestation | `pass`, given the stipulated evidence | C3 |
+| IND-02 | all three conditions carry evidence; software-only identity on an external basis | `pass`, given the stipulated evidence | C3 |
+| IND-03 | no trust-domain entry | `not_established` / `observer_trust_domain` | C3 |
+| IND-04 | the producer controls the trust domain | `not_established` / `observer_trust_domain` | C3 |
+| IND-05 | identity declared, no evidence reference | `not_established` / `observer_identity_basis` | C3 |
+| IND-06 | identity issued by the producer | `not_established` / `observer_identity_basis` | C3 |
+| IND-07 | no key-control entry; distinct key identifiers do not stand in | `not_established` / `observer_key_control` | C3 |
+| IND-08 | key control established by the producer | `not_established` / `observer_key_control` | C3 |
+| IND-09 | full evidence, but the record sits at the observed party's own vantage | `not_established` / `observation_vantage` | C3 |
+| IND-10 | full evidence, but the record covers a different interval | `not_established` / `observation_coverage` | C3, C5 |
+| IND-11 | every entry names `fabricated-external-ltd` and `does/not/exist.json` | `pass`: the documented limitation below | C3 |
+
+The text lets the evidence for each condition come from trusted evaluation context, and the checker takes the evidence it is given as a stipulated premise. It never opens `evidence_ref`, checks a digest or asks who produced the file. A `pass` therefore holds given that evidence, which the result carries back in `evaluation.context.independence_evidence`; it is not independence the checker verified, and its reason says so. IND-11 is the limitation, built by @aeoess in [review on #256](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/pull/256#pullrequestreview-5473107355): fabricated parties and a reference to a file that does not exist still pass. Resolving the reference and checking its digest would not close it, because that only establishes which bytes were read, not who produced them or whether they apply to this observer, producer and claim.
+
 ## The three open items, and the cases that depend on them
 
 Section 7.4 names three open items. Each case file lists the ones its expected result depends on in `open_item_dependencies`, and the list is measured rather than written by hand: `test_checker.OpenItemDependencies` settles each item the other way, reruns every case, and fails unless the cases whose outcome changes are exactly the cases that declare the dependency.
@@ -90,6 +110,12 @@ Section 7.4 names three open items. Each case file lists the ones its expected r
 | Gap naming | incomplete coverage that locates no gap is a well-formed unknown coverage state, so the claim is `not_established` | 06 |
 | Claim binding | the checker requires provenance evidence for the prior commitment, which these fixtures only stipulate | 01, 02, 03, 04, 05, 16, 17, 18, 19, 20, 21, 24 |
 | Observation vantage | a claim of independent observation from the observed party's own vantage is a processing failure of its own | 08 |
+
+The same list also carries one premise the cases stipulate rather than an open item of the text, measured the same way:
+
+| Stipulated premise | Settled the other way, for the measurement | Cases whose result changes |
+| --- | --- | --- |
+| Independence evidence | the checker appraises each `evidence_ref`, and these fixtures carry nothing it could appraise | IND-01, IND-02, IND-11 |
 
 Case 10 depends on none of them: C3 settles it. Cases 22 and 23 depend on none either, because their records are refused or self-reported before any binding question arises. The claim-binding row is the dependency @aeoess measured on [#219](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/pull/219#issuecomment-5937888670) for cases 01 to 05 and 16 to 18, now extended to the new cases and held by a test.
 

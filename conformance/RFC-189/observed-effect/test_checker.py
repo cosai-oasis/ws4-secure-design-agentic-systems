@@ -304,9 +304,30 @@ OPEN_ITEMS: dict[
     ),
 }
 
+# Premises the cases stipulate rather than open items of the text, settled the
+# other way and measured the same way.
+# - independence_evidence: the independence text lets each condition's
+#   evidence come from trusted evaluation context, and the checker takes the
+#   supplied evidence as given. Settled the other way, the checker appraises
+#   each evidence_ref, and these fixtures carry none it could appraise.
+STIPULATED_PREMISES: dict[
+    str,
+    tuple[
+        Callable[[], AbstractContextManager[Any]],
+        Callable[[dict[str, Any]], dict[str, Any]],
+    ],
+] = {
+    "independence_evidence": (
+        lambda: patch.object(checker, "_evidence_stipulated", lambda entry: False),
+        _unchanged,
+    ),
+}
+
+DEPENDENCIES = {**OPEN_ITEMS, **STIPULATED_PREMISES}
+
 
 def cases_changed_by(item: str) -> set[str]:
-    resolve, rewrite = OPEN_ITEMS[item]
+    resolve, rewrite = DEPENDENCIES[item]
     changed = set()
     for case_id in case_ids():
         inp = run.build_input(load(case_id))
@@ -354,6 +375,33 @@ class ObserverIndependence(unittest.TestCase):
                         ("not_established", obligation),
                     )
 
+    def test_a_pass_says_it_holds_given_unappraised_evidence(self) -> None:
+        got = checker.evaluate(self.base())
+        self.assertEqual(got["verdict"], "pass")
+        self.assertIn("stipulated premise", got["reason"])
+        self.assertIn("does not appraise", got["reason"])
+        self.assertNotIn("established by evidence", got["reason"])
+
+    def test_fabricated_evidence_passes_as_the_documented_limitation(self) -> None:
+        inp = run.build_input(load("RFC189-IND-11-PASS-FABRICATED-EVIDENCE-LIMITATION"))
+        entries = inp["context"]["independence_evidence"].values()
+        self.assertTrue(all(e["evidence_ref"] == "does/not/exist.json" for e in entries))
+        self.assertFalse(os.path.exists(os.path.join(HERE, "does/not/exist.json")))
+        got = checker.evaluate(inp)
+        self.assertEqual(got["verdict"], "pass")
+        self.assertEqual(
+            got["evaluation"]["context"]["independence_evidence"],
+            inp["context"]["independence_evidence"],
+        )
+
+    def test_unappraised_evidence_names_the_first_condition(self) -> None:
+        with patch.object(checker, "_evidence_stipulated", lambda entry: False):
+            got = checker.evaluate(self.base())
+        self.assertEqual(
+            (got["verdict"], got["unmet_obligation"]),
+            ("not_established", checker.INDEPENDENCE_CONDITIONS[0][1]),
+        )
+
     def test_each_condition_fails_alone_as_a_declaration(self) -> None:
         for name, obligation in checker.INDEPENDENCE_CONDITIONS:
             inp = self.base()
@@ -367,7 +415,7 @@ class OpenItemDependencies(unittest.TestCase):
     """A case's declared open-item dependencies are measured, not authored."""
 
     def test_declared_dependencies_match_the_measured_ones(self) -> None:
-        for item in OPEN_ITEMS:
+        for item in DEPENDENCIES:
             declared = {
                 case_id
                 for case_id in case_ids()
@@ -376,10 +424,17 @@ class OpenItemDependencies(unittest.TestCase):
             with self.subTest(open_item=item):
                 self.assertEqual(cases_changed_by(item), declared)
 
-    def test_every_declared_item_is_an_open_item_of_the_text(self) -> None:
+    def test_every_declared_item_is_an_open_item_or_a_stipulated_premise(self) -> None:
         for case_id in case_ids():
             for item in load(case_id)["open_item_dependencies"]:
-                self.assertIn(item, OPEN_ITEMS, case_id)
+                self.assertIn(item, DEPENDENCIES, case_id)
+
+    def test_every_independence_pass_declares_the_stipulated_premise(self) -> None:
+        for case_id in case_ids():
+            case = load(case_id)
+            if case_id.startswith("RFC189-IND-") and case["expected"]["verdict"] == "pass":
+                with self.subTest(case=case_id):
+                    self.assertIn("independence_evidence", case["open_item_dependencies"])
 
 
 if __name__ == "__main__":

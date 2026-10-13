@@ -23,6 +23,15 @@ Properties implemented:
   scope, reported in section 7's observation states: `present`, `absent` or
   `pending`. C1 keeps an unknown action outcome `pending` after the reporting
   window ends; it never becomes `not_established`.
+- `observer_independence`, the three-condition independence test proposed for
+  section 7.4: "the observer of this record is independent of the named
+  producer for this claim." The text lets each condition's evidence come from
+  trusted evaluation context. This checker takes that evidence as a stipulated
+  premise: it decides whether every condition names evidence the producer
+  neither controls nor established, and it never resolves or appraises the
+  `evidence_ref` it is given. Its `pass` holds given that evidence, which the
+  result carries back in `evaluation`; it is not independence the checker
+  verified.
 
 The outcome axes stay apart, as C1 and C2 require:
 
@@ -70,6 +79,7 @@ PRODUCER_CAPABILITY_COVERAGE = "producer_capability_coverage"
 # The independence test proposed for section 7.4 on #240: three conditions,
 # each established by evidence carried in or referenced from the record. The
 # order is the order the text lists them, and the first unmet one is named.
+# The evidence itself is a stipulated premise here (see _evidence_stipulated).
 INDEPENDENCE_CONDITIONS = (
     ("trust_domain", "observer_trust_domain"),
     ("identity_basis", "observer_identity_basis"),
@@ -286,7 +296,9 @@ def _independence_verdict(ctx: dict[str, Any], raw: bytes) -> dict[str, Any]:
     this claim". Each condition needs an evidence entry that names who controls
     the thing it is about, who established that, and where the evidence is. An
     entry without `evidence_ref` is a declaration; an entry the producer
-    controls or established is the producer testifying about itself."""
+    controls or established is the producer testifying about itself. An entry
+    that passes both checks is accepted as a stipulated premise, never
+    appraised; `pass` means the verdict holds given that evidence."""
     admitted = _admit(raw, ctx)
     if "refused" in admitted:
         return admitted["refused"]
@@ -322,12 +334,37 @@ def _independence_verdict(ctx: dict[str, Any], raw: bytes) -> dict[str, Any]:
                 f"{name}: {held} is the producer {producer!r}; the producer cannot "
                 "establish its own observer's independence",
             )
+    for name, obligation in INDEPENDENCE_CONDITIONS:
+        if not _evidence_stipulated(evidence[name]):
+            return _not_established(
+                obligation,
+                f"{name}: the evidence at {evidence[name]['evidence_ref']!r} was not "
+                "appraised, and a named reference does not establish the condition",
+            )
     return {
         "verdict": "pass",
         "unmet_obligation": None,
-        "reason": "each independence condition is established by evidence that the "
-        "producer neither controls nor issued",
+        "reason": "each independence condition names evidence that the producer "
+        "neither controls nor established; the verdict holds given that evidence, "
+        "which this checker takes as a stipulated premise and does not appraise",
     }
+
+
+def _evidence_stipulated(entry: dict[str, str]) -> bool:
+    """The stipulated premise behind every observer_independence pass.
+
+    The independence text lets the evidence for each condition come from
+    trusted evaluation context, so this checker accepts the supplied entry as
+    appraised: it never opens `evidence_ref`, checks its digest, or asks who
+    produced it. Resolving the reference would only establish which bytes were
+    read, not who produced them or whether they apply to this observer,
+    producer and claim. Case IND-11 is the limit this leaves: fabricated
+    parties and a reference to a file that does not exist still pass.
+    test_checker settles the premise the other way, by making this return
+    False, to measure which cases depend on it.
+    """
+    del entry
+    return True
 
 
 def _absence_verdict(
