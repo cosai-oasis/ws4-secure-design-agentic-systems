@@ -38,6 +38,7 @@ status: "Working draft, all sections drafted. Not reviewed, not approved. Tracks
   - [5.1 The property, named](#51-the-property-named)
   - [5.2 The four failure modes](#52-the-four-failure-modes)
   - [5.3 Why the separation is load-bearing](#53-why-the-separation-is-load-bearing)
+  - [5.4 Threat sources and trust assumptions](#54-threat-sources-and-trust-assumptions)
 - [6. Reachability and blast radius](#6-reachability-and-blast-radius)
   - [6.1 A control, not a hygiene metric](#61-a-control-not-a-hygiene-metric)
   - [6.2 Which reachable systems are yours](#62-which-reachable-systems-are-yours)
@@ -111,6 +112,8 @@ One more piece of shared vocabulary carries through every layer. When a control 
 This paper is also the containment publication the WS2 *Zero Trust for AI Systems* paper announces [16]: that paper fixes the architecture — where identity, delegation, and policy decision points sit relative to the AI Threat Boundary — and this one specifies the containment layer inside it.
 
 For the executive who reads no further: the question to put to your teams is not "is this agent sandboxed?" It is the one this paper builds toward — *what would this agent do if it decided to test its limits, and how would we know?* If the answer to *how would we know* is "we wouldn't," nothing else in this paper is working yet.
+
+What this paper assumes about each layer — the threats it defends against, what it relies on, and what it does not claim — is collected in §5.4.
 
 ### 1.1 Deployment shapes and what containment can mean in each
 
@@ -432,6 +435,24 @@ Third, every control in this paper can now say what it is for:
 | §8 Verification | Mode 3 — proving the control enforces what its operator believes |
 
 The question each section answers is therefore not "how strong is the box?" but: which failure mode does this control remove — and how would we know it worked?
+
+### 5.4 Threat sources and trust assumptions
+
+The sections above establish what a monitor must be and how it fails. This subsection collects, in one place, what this paper assumes a deployment is defending against, which components it relies on, what each must hold for the argument to stand, and what it does not claim. Nothing here is new: each row points at the section that establishes it, and that section governs.
+
+| Threat source | Component relied on | Property it must hold | Not claimed |
+| :---- | :---- | :---- | :---- |
+| The agent's own model, which may seek to exceed its bounds | None — no property of the model is relied on | — | Model-level safety training and refusals are out of scope; the paper assumes a model that wants to escape (anti-scope) |
+| Untrusted content reaching the agent's context — documents, tool results, retrieved data (§2.3) | The inbound enforcement point | Content from an untrusted source never acquires the authority of an instruction (§2.3) | The controls themselves are not specified here; the input-sanitization guide and the MCP paper's untrusted-content guidance remain the how-to (§2.3) |
+| A permitted party performing an action on the agent's request — model-side retrieval, search, interpreters, connectors (§3.1) | Constraints on what the permitted party will do, not only on whether the agent may ask | The deputy's action is bounded — method-limited, bandwidth-limited, non-reflective where the channel cannot be removed (§3.1) | Where a provider-side capability cannot be bounded, the path is excluded from the claimed assurance boundary rather than assumed closed (§3) |
+| Other agents, including peers inside the same organization (§9.2) | §2.3's inbound property, §3's effective reach, and §4's accounting, each read across agents rather than within one | A message from another agent carries no more instruction authority than a web page; a recruitable peer is a path to an effect; recruitment is consumption (§9.2) | The jailbreak technique itself is out of scope; that is model-level safety (§9.2) |
+| Any consequential action the agent can take | The reference monitor at each mediation surface (§5.1) | Complete mediation over the effects claimed, placement outside the agent's reach, and verifiability read as *evidenced* (§5.1) | A path not mediated is not partially mediated; it is unmediated, and must be stated as an exclusion (§3). A monitor inside the agent's reach is not a monitor (§5.2, mode 2) |
+| A set of agents sharing one principal, individually compliant (§4) | The accounting authority holding the aggregate over the delegation subtree | Atomic compare-and-consume, and a fail-safe default: past its latency bound the action is refused or held for confirmation, never allowed (§4.3) | Post-hoc totals do not establish atomic enforcement; per-agent controls cannot see this failure at all (§4) |
+| An outside reviewer with no reason to believe the operator (§7.1) | The evidence record each monitor emits | Every field on every record; a determined absence written as `absent` and missing visibility as `not_established`; nothing replayable held as authority (§3, §7.1) | The detection signals stay out of this row: they are allowed to be noisy, heuristic and tuned per deployment (§7.1, §7.2). A trajectory emitted by the agent's own framework cannot testify about that agent's containment (§9.1) |
+| Systems the agent reaches that belong to someone else (§6.2) | Nothing within the operator's control | — | The §7 contract cannot require retention, cooperation or record quality of a third party; reconstruction depends on them, and the claim narrows accordingly (§6.3) |
+| A deployment shape that removes isolation entirely (§1.1) | The provider, under contract | The identical requirements, demanded as procurement rather than built as engineering (§1.1) | Where nothing can be interposed at the request layer, containment is wholly a procurement requirement, and this paper is the specification of what to demand (§1.1) |
+
+Two readings of this table are wrong and worth naming. It is not a claim that these threats are exhaustive; it is a statement of what the paper's argument rests on, so that a reader can test each assumption against their own deployment. And a component appearing here is not thereby trustworthy — the point of §5.2 is that each of these can fail, and §7's evidence contract exists so that a failure can be told from a success after the fact.
 
 ---
 
@@ -902,7 +923,7 @@ note below.
 - @adeinega — §8.3 the container-runtime criterion
 - @rithikha — §8.2 binding the demonstration to the run
 - @billbrietstout — §9.2 scope discipline
-- @navneet-keshav — the mode-composition finding in §5.2 (threat-modeling review)
+- @navneet-keshav — the mode-composition finding in §5.2, and §5.4's threat and trust-assumption summary (threat-modeling review)
 - @Johncavanaugh-IIS — the audience decision (Q5)
 - Dmytro Negodiuk, Negodiuk LLC, §7.2 self-test traffic kept out of the counts
 
