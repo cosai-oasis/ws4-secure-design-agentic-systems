@@ -10,9 +10,10 @@ The 2026-10-07 WS4 call made the registration record the single source of truth 
 | --- | --- |
 | RFC-149 scope | `3a38845e`, the head of #210 after the 2026-10-07 revision |
 | Sample record | `record/sample-registration-record.json`, a byte copy of `RFCs/mappings/sample-registration-record.json` at ws4-odis `2b9718ad` (#35), sha256 `7cb8b127...b19a4` |
-| Evidence and readers | `agent-evidence-vectors==0.17.5` (hash-pinned in `requirements.txt`) and `aee-verify` from the Go module at `v0.17.5` |
+| Evidence | `declaration-to-action/records/`, byte copies from agent-evidence-vectors 0.17.5: the 17 agent audit records the pairs name with their corpus `MANIFEST.json`, and the artifact-binding corpus whole, since `aee-verify` reads it as one signed manifest |
+| Readers | `auditrecord` from `agent-evidence-vectors==0.17.5` (hash-pinned in `requirements.txt`) and `aee-verify` from the Go module at `v0.17.5`; the workflow runs both over the committed records |
 
-The evidence is read from the published package, not copied into this tree. Each pair pins the sha256 of both members, and where the corpus records which accepted member a rejected one was derived from, `run.py` checks that it is the accept side of the same pair.
+The signed records each pair names are committed under `records/`, so the set lives in this repository. Each pair pins the sha256 of both records, and where the corpus records which accepted member a rejected one was derived from, `run.py` checks that it is the accept side of the same pair. `run.py --records-only` checks the digests, pointers and derivations with nothing installed; the readers then check the verdicts, and any other verifier can be run over the same files.
 
 ## Pairs that run
 
@@ -78,4 +79,5 @@ cd conformance/RFC-149/declaration-to-action
 python -m pip install --require-hashes -r requirements.txt
 go install github.com/probityai/agent-evidence-vectors/cmd/aee-verify@v0.17.5
 python run.py    # read-only; non-zero on any mismatch
+python run.py --records-only    # nothing installed: digests, pointers and derivations
 ```

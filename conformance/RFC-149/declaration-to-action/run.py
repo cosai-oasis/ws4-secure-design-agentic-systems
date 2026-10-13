@@ -1,24 +1,27 @@
-"""Check every RFC-149 declaration-to-action pair against the pinned readers.
+"""Check every RFC-149 declaration-to-action pair against the committed records.
 
 Each pair names a field of the sample Agent Registration Record from
-cosai-oasis/ws4-odis#35 by JSON pointer, and two members of a published corpus:
-one the reader accepts and one it rejects, differing in one field. The harness
-checks the parts that are facts:
+cosai-oasis/ws4-odis#35 by JSON pointer, and two signed records under
+`records/`: one the reader accepts and one it rejects, differing in one field.
+The records are byte copies of corpus members from agent-evidence-vectors
+0.17.5. The harness checks the parts that are facts:
 
 - the vendored sample record has the bytes it was copied with, and the pointer
   resolves in it;
-- each member's bytes match the digest the pair pins;
+- each committed record matches the digest the pair pins;
 - where the corpus records which member a reject was derived from, it is the
   accept member of the same pair;
-- the pinned reader reaches the stated verdict on both members.
+- the reader reaches the stated verdict on both committed records.
 
 The consumer result on each side is the candidate expectation for review under
 RFC-149; the harness checks that it is well formed and that an open result
 names its unmet obligation. Nothing is written; any mismatch exits non-zero.
 
-Readers: `auditrecord` from the `agent-evidence-vectors` package, and
-`aee-verify` (the Go reader at the same tag) for the artifact-binding corpus,
-found on PATH or through $AEE_VERIFY.
+Readers: `auditrecord` from the `agent-evidence-vectors` package for the agent
+audit record corpus, and `aee-verify` (the Go reader at the same tag) for the
+artifact-binding corpus, found on PATH or through $AEE_VERIFY. Both read the
+committed bytes. With --records-only no reader runs, and only the digests,
+pointers and derivations are checked.
 """
 
 from __future__ import annotations
@@ -30,10 +33,8 @@ import shutil
 import subprocess
 import sys
 from functools import cache
-from importlib import resources
+from pathlib import Path
 from typing import Any
-
-from agent_evidence_vectors import auditrecord
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SOURCE = "agent-evidence-vectors==0.17.5"
@@ -51,8 +52,12 @@ RESULTS = frozenset({"pass", "fail", "not_established", "processing_failure"})
 READERS = {"vectors-artifact-binding": "aee-verify", "vectors-agent-audit-record": "auditrecord"}
 
 
-def corpus(name: str) -> Any:
-    return resources.files("agent_evidence_vectors").joinpath("corpora", name)
+# Byte copies of the corpus members the pairs name, from agent-evidence-vectors 0.17.5.
+RECORDS = Path(HERE, "records")
+
+
+def corpus(name: str) -> Path:
+    return RECORDS / name
 
 
 @cache
@@ -87,6 +92,8 @@ def aee_verify_verdicts(name: str) -> dict[str, str]:
 def read(name: str, member: str) -> dict[str, Any]:
     if READERS[name] == "aee-verify":
         return {"verdict": aee_verify_verdicts(name)[member]}
+    from agent_evidence_vectors import auditrecord
+
     meta = manifest(name)
     report = auditrecord.verify(
         member_bytes(name, member),
@@ -110,13 +117,13 @@ def resolve(document: Any, pointer: str) -> Any:
     return node
 
 
-def check_side(label: str, side: dict[str, Any]) -> list[str]:
+def check_side(label: str, side: dict[str, Any], readers: bool) -> list[str]:
     problems = []
     name, member = side["corpus"], side["member"]
     digest = hashlib.sha256(member_bytes(name, member)).hexdigest()
     if digest != side["sha256"]:
         problems.append(f"{label}: member hashes to {digest}, pair pins {side['sha256']}")
-    got = read(name, member)
+    got = read(name, member) if readers else side["reader_expected"]
     if got != side["reader_expected"]:
         problems.append(f"{label}: reader returned {got}, pair expects {side['reader_expected']}")
     result = side["consumer_result"]
@@ -127,7 +134,7 @@ def check_side(label: str, side: dict[str, Any]) -> list[str]:
     return problems
 
 
-def check(pair: dict[str, Any], record: Any) -> list[str]:
+def check(pair: dict[str, Any], record: Any, readers: bool) -> list[str]:
     problems = []
     if pair.get("status") != STATUS:
         problems.append(f"status is {pair.get('status')!r}, not {STATUS!r}")
@@ -147,12 +154,13 @@ def check(pair: dict[str, Any], record: Any) -> list[str]:
         problems.append(f"the corpus derives the reject member from {parent}, not from the accept member")
     if accept["consumer_result"]["result"] == "processing_failure":
         problems.append("the accept member must be one the reader accepts")
-    problems += check_side("accept", accept)
-    problems += check_side("reject", reject)
+    problems += check_side("accept", accept, readers)
+    problems += check_side("reject", reject, readers)
     return problems
 
 
 def main() -> int:
+    readers = "--records-only" not in sys.argv[1:]
     with open(RECORD_PATH, "rb") as fh:
         raw = fh.read()
     if hashlib.sha256(raw).hexdigest() != RECORD_SHA256:
@@ -169,14 +177,15 @@ def main() -> int:
         with open(os.path.join(pair_dir, name), encoding="utf-8") as fh:
             pair = json.load(fh)
         try:
-            problems = check(pair, record)
+            problems = check(pair, record, readers)
         except (OSError, KeyError, ValueError, subprocess.CalledProcessError) as exc:
             problems = [f"{type(exc).__name__}: {exc}"]
         bad += bool(problems)
         print(f"{'FAIL' if problems else 'ok  '} {pair.get('id', name)}")
         for problem in problems:
             print(f"     {problem}")
-    print(f"{len(names) - bad} of {len(names)} pairs check against {SOURCE}")
+    graded = "graded by the readers" if readers else "checked without a reader (--records-only)"
+    print(f"{len(names) - bad} of {len(names)} pairs check against the committed records, {graded}")
     return 1 if bad else 0
 
 
