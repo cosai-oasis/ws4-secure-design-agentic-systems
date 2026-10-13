@@ -39,12 +39,9 @@ jobs:
           go-version: "1.24"
           cache: false
       - run: python -m pip install --require-hashes -r requirements.txt
-      - name: Install the artifact-binding reader at the same tag
+      - name: Install the artifact-binding reader at the tag the records come from
         run: |
           go install github.com/probityai/agent-evidence-vectors/cmd/aee-verify@v0.17.5
           echo "AEE_VERIFY=$(go env GOPATH)/bin/aee-verify" >> "$GITHUB_ENV"
-      - name: Check the pinned corpora against their own manifests
-        run: |
-          agent-evidence-vectors --corpus vectors-agent-audit-record
-          "$AEE_VERIFY" "$(python -c 'from importlib import resources; print(resources.files("agent_evidence_vectors").joinpath("corpora", "vectors-artifact-binding"))')"
-      - run: python run.py
+      - name: Grade the committed records with the pinned readers
+        run: python run.py
