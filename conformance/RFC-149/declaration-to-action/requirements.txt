@@ -1,4 +1,4 @@
-# The readers the workflow runs over the committed records in records/. Stdlib
+# The readers run.py uses over the committed records in records/. Stdlib
 # only; Python 3.13+. The artifact-binding records are read by aee-verify from
 # the Go module at the same tag: go install github.com/probityai/agent-evidence-vectors/cmd/aee-verify@v0.17.5
 agent-evidence-vectors==0.17.5 \
