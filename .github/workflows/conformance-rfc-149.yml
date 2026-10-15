@@ -1,0 +1,63 @@
+name: RFC-149 declaration-to-action cases
+
+# Runs only on pull requests that change the RFC-149 cases, or by hand.
+on:
+  pull_request:
+    paths:
+      - "conformance/RFC-149/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  records:
+    name: Committed records, nothing installed
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: conformance/RFC-149/declaration-to-action
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - name: Check digests, pointers and derivations with the standard library only
+        run: python run.py --records-only
+
+  readers:
+    name: Verdicts from the pinned readers
+    needs: records
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: conformance/RFC-149/declaration-to-action
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.24"
+          cache: false
+      - name: Install auditrecord from the hash-pinned release
+        run: python -m pip install --require-hashes --no-deps -r requirements.txt
+      - name: Install aee-verify at the tag the records come from
+        env:
+          GOTOOLCHAIN: local
+        run: |
+          go install github.com/probityai/agent-evidence-vectors/cmd/aee-verify@v0.17.5
+          echo "AEE_VERIFY=$(go env GOPATH)/bin/aee-verify" >> "$GITHUB_ENV"
+      - name: Grade the committed records
+        run: python run.py
