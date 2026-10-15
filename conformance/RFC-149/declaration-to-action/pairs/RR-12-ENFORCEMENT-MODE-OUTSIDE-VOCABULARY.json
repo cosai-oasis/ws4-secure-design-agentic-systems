@@ -1,0 +1,42 @@
+{
+ "accept": {
+  "consumer_result": {
+   "result": "pass",
+   "unmet_obligation": null
+  },
+  "corpus": "vectors-agent-audit-record",
+  "member": "vc2422b8f120772ce",
+  "reader_expected": {
+   "codes": [],
+   "tier": "authoritative",
+   "verdict": "valid"
+  },
+  "sha256": "c2422b8f120772ceffb3f3c716f4f1324de5a1d68b941d27bf105f64d4cbaaf5"
+ },
+ "differs_in": "an enforcement value outside the closed set",
+ "id": "RR-12-ENFORCEMENT-MODE-OUTSIDE-VOCABULARY",
+ "note": "enforcement_mode needs one closed vocabulary; Agent Manifest and TRACE enums differ today (mapping, Mapping 2).",
+ "reader": "auditrecord",
+ "record": {
+  "pointer": "/extensions/agentrust-composition-v0/policy_bundle/enforcement_mode"
+ },
+ "reject": {
+  "consumer_result": {
+   "result": "processing_failure",
+   "unmet_obligation": null
+  },
+  "corpus": "vectors-agent-audit-record",
+  "member": "v205d0d2f5021e563",
+  "reader_expected": {
+   "codes": [
+    "value-outside-vocabulary"
+   ],
+   "verdict": "malformed"
+  },
+  "sha256": "205d0d2f5021e563d3ba07a25a5e79ff62c62580bc08fffe8d6e90efe865b473"
+ },
+ "relationship": "policy",
+ "rfc_scope": "policy-profile-ref",
+ "source": "agent-evidence-vectors==0.17.5",
+ "status": "candidate"
+}

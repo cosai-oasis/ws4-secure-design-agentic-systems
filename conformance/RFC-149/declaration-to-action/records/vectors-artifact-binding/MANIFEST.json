@@ -1,0 +1,142 @@
+{
+  "contract": "artifact-binding/v1",
+  "contractSpec": "spec/artifact-binding/v1.md",
+  "corpusDigest": "e26e5a50267f4f09052f3349388f703d0a332a41cf325a4d248e21414070cbef",
+  "counts": {
+    "failed": 4,
+    "notEstablished": 2,
+    "verified": 2
+  },
+  "keyNote": "A published TEST key. The corpus is regenerable by anyone, which is the point: a suite a stranger cannot rebuild is one they must trust.",
+  "note": "Three verdicts, not two. An implementation that collapses not-established into verified or into failed scores zero on the three members that expect it, rather than passing by accident.",
+  "profile": "harbor/single-step/v1",
+  "publicKey": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+  "suite": "artifact-binding-conformance",
+  "vectors": [
+    {
+      "case": "cases/atif-pointer-mismatch",
+      "cites": "the ATIF pointer disagrees with the document the record hashed, so the record names a trajectory it did not bind",
+      "expected": {
+        "codes": [
+          "atif-document-digest-mismatch"
+        ],
+        "messagesDigest": "966ed208787b453df6b013a6e3f10a01fb36b7ae1687cfdf66a19619b68c0f70",
+        "verdict": "failed"
+      },
+      "id": "v21fa0d3af33d010d",
+      "kind": "reject",
+      "manifest": "cases/atif-pointer-mismatch/trial/binding/manifest.json",
+      "signature": "cases/atif-pointer-mismatch/trial/binding/manifest.sig",
+      "trial": "cases/atif-pointer-mismatch/trial"
+    },
+    {
+      "case": "cases/required-role-absent",
+      "cites": "a required-role file is gone. Neither a pass nor a plain failure: the record cannot be checked to a conclusion and says so",
+      "expected": {
+        "codes": [
+          "artifact-absent"
+        ],
+        "messagesDigest": "7ea7a7bf83467d5a9b64f52caa6f1f64769633777774e35ab377efc4107d4b4b",
+        "verdict": "not-established"
+      },
+      "id": "v63555b6f69adb453",
+      "kind": "reject",
+      "manifest": "cases/required-role-absent/trial/binding/manifest.json",
+      "signature": "cases/required-role-absent/trial/binding/manifest.sig",
+      "trial": "cases/required-role-absent/trial"
+    },
+    {
+      "case": "cases/non-canonical-encoding",
+      "cites": "indented JSON with a VALID signature over those indented bytes. A signature-only verifier accepts this and a second implementation rejects it, which is the disagreement the canonical rule removes",
+      "expected": {
+        "codes": [
+          "manifest-encoding-not-canonical"
+        ],
+        "messagesDigest": "4ff722a03ad55a80cbc6ec6f910ede42083a23d6598d5a6f937a66788184bfee",
+        "verdict": "failed"
+      },
+      "id": "v7020b1fccb496c3b",
+      "kind": "reject",
+      "manifest": "cases/non-canonical-encoding/trial/binding/manifest.json",
+      "signature": "cases/non-canonical-encoding/trial/binding/manifest.sig",
+      "trial": "cases/non-canonical-encoding/trial"
+    },
+    {
+      "case": "cases/regrade-changed-verifier",
+      "cites": "the fourth arm. A second record over the same archive with a different verifier and a different reward; both records validate and the archive digest is shared, so the lineage is checkable",
+      "expected": {
+        "codes": [],
+        "messagesDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "verdict": "verified"
+      },
+      "id": "va8f79964b68a610f",
+      "kind": "accept",
+      "manifest": "cases/regrade-changed-verifier/trial/binding/manifest.json",
+      "signature": "cases/regrade-changed-verifier/trial/binding/manifest.sig",
+      "trial": "cases/regrade-changed-verifier/trial"
+    },
+    {
+      "case": "cases/covered-byte-changed",
+      "cites": "one byte of a covered artifact changed. The verdict must be reached BEFORE any grading is re-run, and the message must name the file",
+      "expected": {
+        "codes": [
+          "artifact-digest-mismatch",
+          "artifact-length-mismatch"
+        ],
+        "messagesDigest": "c43f19461487c3a01fe57d85b973391a92df24bbd3762368bf838610d12e1ce9",
+        "verdict": "failed"
+      },
+      "id": "vb8a8df5360bc6f37",
+      "kind": "reject",
+      "manifest": "cases/covered-byte-changed/trial/binding/manifest.json",
+      "signature": "cases/covered-byte-changed/trial/binding/manifest.sig",
+      "trial": "cases/covered-byte-changed/trial"
+    },
+    {
+      "case": "cases/intact-execute",
+      "cites": "the whole contract in one case: canonical bytes, a pinned signer, every required role, and every covered file hashing to what the record says",
+      "expected": {
+        "codes": [],
+        "messagesDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "verdict": "verified"
+      },
+      "id": "vd05d2e7059332fd5",
+      "kind": "accept",
+      "manifest": "cases/intact-execute/trial/binding/manifest.json",
+      "signature": "cases/intact-execute/trial/binding/manifest.sig",
+      "trial": "cases/intact-execute/trial"
+    },
+    {
+      "case": "cases/wrong-signer",
+      "cites": "a record correctly signed by a key the consumer did not pin. Refused by identity, not by a signature failure that reads like corruption",
+      "expected": {
+        "codes": [
+          "signer-key-mismatch"
+        ],
+        "messagesDigest": "0d299d99a61099c603127c21d9157081b90bf1c64b0abd9b9498b23ce0582b54",
+        "verdict": "failed"
+      },
+      "id": "vee1d041fe793404e",
+      "kind": "reject",
+      "manifest": "cases/wrong-signer/trial/binding/manifest.json",
+      "signature": "cases/wrong-signer/trial/binding/manifest.sig",
+      "trial": "cases/wrong-signer/trial"
+    },
+    {
+      "case": "cases/dependency-incomplete",
+      "cites": "the trajectory names an external subagent document the record does not cover. Declared incomplete rather than silently narrowed",
+      "expected": {
+        "codes": [
+          "dependencies-incomplete"
+        ],
+        "messagesDigest": "1e91019ec41e8555db4aafb4b8195f22538b26768f060be947936584563828b3",
+        "verdict": "not-established"
+      },
+      "id": "vfa81facc1464c1d6",
+      "kind": "reject",
+      "manifest": "cases/dependency-incomplete/trial/binding/manifest.json",
+      "signature": "cases/dependency-incomplete/trial/binding/manifest.sig",
+      "trial": "cases/dependency-incomplete/trial"
+    }
+  ]
+}

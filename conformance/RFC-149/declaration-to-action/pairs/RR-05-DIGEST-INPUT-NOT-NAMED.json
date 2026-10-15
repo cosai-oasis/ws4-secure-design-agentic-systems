@@ -1,0 +1,37 @@
+{
+ "accept": {
+  "consumer_result": {
+   "result": "pass",
+   "unmet_obligation": null
+  },
+  "corpus": "vectors-artifact-binding",
+  "member": "vd05d2e7059332fd5",
+  "reader_expected": {
+   "verdict": "verified"
+  },
+  "sha256": "37ff774ee7479c855f9f444898e331d886b640ac2cee5f88e842413f2890292a"
+ },
+ "differs_in": "a valid signature over a non-canonical encoding",
+ "id": "RR-05-DIGEST-INPUT-NOT-NAMED",
+ "note": "The digest input must be named (ws4-odis#22). Bytes produced under another encoding are refused before any comparison.",
+ "reader": "aee-verify",
+ "record": {
+  "pointer": "/approved_software_refs/5/digest_input"
+ },
+ "reject": {
+  "consumer_result": {
+   "result": "processing_failure",
+   "unmet_obligation": null
+  },
+  "corpus": "vectors-artifact-binding",
+  "member": "v7020b1fccb496c3b",
+  "reader_expected": {
+   "verdict": "failed"
+  },
+  "sha256": "62da31605edc7e2b383426c196b971c73349f7128382b7e3c1e07eda819145e5"
+ },
+ "relationship": "instance_to_software",
+ "rfc_scope": "typed-references",
+ "source": "agent-evidence-vectors==0.17.5",
+ "status": "candidate"
+}

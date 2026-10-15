@@ -1,0 +1,42 @@
+{
+ "accept": {
+  "consumer_result": {
+   "result": "pass",
+   "unmet_obligation": null
+  },
+  "corpus": "vectors-agent-audit-record",
+  "member": "vec049319d25facc6",
+  "reader_expected": {
+   "codes": [],
+   "tier": "authoritative",
+   "verdict": "valid"
+  },
+  "sha256": "ec049319d25facc649d2a418cb1f83310d0fd74e4cc08977eacbfa1c65a6a2b0"
+ },
+ "differs_in": "an oversight block carrying a member the definition does not have",
+ "id": "RR-13-OVERSIGHT-UNDEFINED-MEMBER",
+ "note": "The accept member carries the overseer's record digest, the join a human oversight declaration needs.",
+ "reader": "auditrecord",
+ "record": {
+  "pointer": "/extensions/agentrust-composition-v0/human_oversight"
+ },
+ "reject": {
+  "consumer_result": {
+   "result": "processing_failure",
+   "unmet_obligation": null
+  },
+  "corpus": "vectors-agent-audit-record",
+  "member": "v6838afba287a7d82",
+  "reader_expected": {
+   "codes": [
+    "oversight-malformed"
+   ],
+   "verdict": "malformed"
+  },
+  "sha256": "6838afba287a7d82d5345c61489f7bd59f75a26cc183822287a8300df1224494"
+ },
+ "relationship": "oversight",
+ "rfc_scope": "deployment-profile",
+ "source": "agent-evidence-vectors==0.17.5",
+ "status": "candidate"
+}
