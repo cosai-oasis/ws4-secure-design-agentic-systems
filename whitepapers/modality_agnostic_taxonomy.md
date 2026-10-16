@@ -158,7 +158,7 @@ P(f(a)) \= P(g(a))
 
 An attack exploits the boundary by constructing an artifact for which the invariant fails in a security-relevant way—evading a control, altering a decision, gaining authority, activating downstream behavior, or consuming disproportionate resources.
 
-Security boundaries in agentic systems represent the essential invariants that must hold true across transitions, representations, and processing stages. When an adversarial input causes a system to violate one of these invariants, a security boundary is breached. Boundaries are categorized into three core dimensions: **Meaning**, **Authority**, and **Cost**.
+Security boundaries in agentic systems represent the essential invariants that must hold true across transitions, representations, and processing stages. When an adversarial input causes a system to violate one of these invariants, a security boundary is breached. Boundaries are categorized into four core dimensions: **Meaning**, **Authority**, **Cost**, and **Confidentiality**.
 
 #### 2.2.1.1 Meaning (Semantic Integrity)
 
@@ -178,11 +178,19 @@ Cost boundaries govern resource utilization across decoding, vision processing, 
 
 **Examples:** Pathological media decoding (compression bombs causing memory spikes); recursive agent delegation storms causing rapid API budget exhaustion.
 
+#### 2.2.2.4 Confidentiality (Observation Scope)
+
+Confidentiality boundaries govern who may observe an artifact's content as it moves through the pipeline. The assumed invariant is that every evaluation agrees on the artifact's observation scope: the set of principals and channels allowed to see it. A breach occurs when attacker-supplied input causes protected content to be observed outside that scope, either because one evaluator recognises sensitive content that another misses, or because a transformation, stage or session removes a protection that held earlier.
+
+**Examples:** A text-layer DLP filter passes a screenshot whose pixels contain an account number the multimodal model reads and repeats; an injected instruction makes the agent render a markdown image whose URL query string carries context data to an attacker-controlled host.
+
+*Scope note:* a host or operator observing plaintext during inference is a platform boundary with no adversarial artifact involved. It is left to attestation and confidential-computing frameworks and is not classified here.
+
 ### 2.2.2 The Two Generating Axes
 
 Subclasses are derived systematically by crossing two foundational questions:
 
-1. **Which property is assumed stable?** Meaning (semantic integrity), Authority (authorization scope), or Cost (resource bounding).  
+1. **Which property is assumed stable?** Meaning (semantic integrity), Authority (authorization scope), Cost (resource bounding), or Confidentiality (observation scope).  
 2. **What differs between the two evaluations?** Evaluator, artifact state, input instance, time, or pipeline position.
 
 ### 2.2.3 The Boundary Matrix
@@ -194,7 +202,7 @@ All four newly added agentic control loop boundaries are formally anchored:
 | **Meaning** *(Semantic Integrity)* | Human-Machine Perception; Guard-Model Capability; Parser / Interpreter Differential | **Transform Consistency** | Semantic Stability | **Check-Use Consistency** | *(Context loss / framing loss — deferred)* |
 | **Authority** *(Authorization)* | **Delegation Authority** | *(Reached via Data-Control)* | **Authorization Stability** | **Grant Persistence** | Data-Control; Decision-Action; Output-Consumer |
 | **Cost** *(Availability)* | **Resource Accounting:** Single evaluation pair (Estimated admission cost vs. Incurred operational cost) |  |  |  |  |
-| **Confidentiality**  | **TBD** |  |  |  |  |
+| **Confidentiality** *(Observation Scope)* | **Classification Consistency** (DLP or guard and model disagree on what is sensitive, e.g. text-layer filter vs. pixels) | **Redaction Persistence** (protection applied before a transform does not survive it, e.g. PDF box over an intact text layer, EXIF retained after crop) | **Context Isolation** (content from one user, session or tenant becomes observable in another's context) | **Label Persistence** (sensitivity label assigned at Ingestion is gone by Generation, e.g. a summary of labelled input carries no label) | *(Reached via Output-Consumer and Decision-Action: tool arguments, URLs and rendered output as egress)* |
 
 ### 
 
