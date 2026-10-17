@@ -1,0 +1,5 @@
+# The reference verifier for Observed Effect records, and the published corpus.
+# Stdlib only; requires Python 3.13 or later.
+agent-evidence-vectors==0.16.0 \
+    --hash=sha256:228f37403a6aa9c15aadc183e5ec75bb3b05aecc66031a8c567dcd6b3ba77937 \
+    --hash=sha256:565877af3bd854b41adcdde2872f70c861a400ca77e277d98b4814a2401d616f
