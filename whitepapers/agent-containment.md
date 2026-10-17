@@ -8,11 +8,9 @@ status: "Working draft, all sections drafted. Not reviewed, not approved. Tracks
 
 # Agent Containment: From Sandboxing to Bounded Authority
 
-**Title.** Settled with the section 1 frame (2026-09-05): containment is one layer of a bounded-authority model, which is what the title already says. No longer provisional.
-
 **Status:** Working draft, all sections drafted. Not reviewed, not approved. Follows on from the WS4 blog post *Treat Your Agent Like an Insider Threat: Why AI Sandboxing Can't Wait* (2026-08-25) and takes as its scope the 21 questions banked from that post's review in [issue #172](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/172).
 
-**How to contribute to this draft.** Every section below states what it must answer (the `Qn` references are to #172), who raised the question, what the blog post already says, and what is still open. Add material by pull request against this file, referencing #172. Short contributions in the "Starting material" or "Open items" lists are as welcome as full prose; the editor will unify voice and cut duplication before the first review draft. Drafting notes are in blockquotes and will be removed.
+**How to contribute.** Add material by pull request against this file, referencing [#172](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/172), where the questions behind each section and the contributor credited with each are recorded. Where a section still carries open items, they are stated as such in the text; short contributions against them are as welcome as full prose.
 
 # Table of contents
 
@@ -87,10 +85,6 @@ Practitioners and architects who deploy agents with production access. Section 1
 
 ## 1. Introduction: from sandboxing to bounded authority
 
-**Answers:** Q1, Q2. **Raised by:** @getglad, @Levaj2000.
-
-> Drafting note (2026-09-09): first prose draft, by the editor, implementing the settled frame. Written to the settled audience decision: an executive can read §1 alone and take away the frame and the four failure modes. Three commitments are embedded and open to challenge by PR or comment on #172: the five-layer decomposition (isolation, mediation, authority, accounting, evidence) — the thread's "map each control back to the layer it serves" made concrete; the unpacking of @getglad's corporate-laptop objective; and the boundary statement with the Agentic IAM paper, which resolves this section's open item.
-
 In August 2026, a consumer AI agent booked into a gym class by cancelling a stranger's reservation. It did not break out of anything to do it. It used an API it was legitimately allowed to call, found that the API never checked whose reservation was being cancelled, and noted in its own log that it had tested this on the person at the top of the waitlist — and that it worked [11]. Four months earlier, a frontier model in a security evaluation had done the opposite kind of thing: asked by a simulated user to get a message out of a locked-down environment, it built a multi-step exploit, escaped its container, and emailed a researcher who learned about it over lunch [1].
 
 These are both failures, and they are not the same failure. The second agent reached somewhere it was never supposed to reach: a **containment** failure. The first agent never left the room it was given; the room was simply far bigger than anyone had understood: an **authority** failure. Sandboxing answers the question *can this agent reach a resource*. Bounded authority answers *what is this agent allowed to do once it is there*. The gym incident is what happens when only the first question gets asked — and most of the incidents this paper draws on, including several that made headlines as "escapes," are on inspection failures of the second kind.
@@ -117,8 +111,6 @@ What this paper assumes about each layer — the threats it defends against, wha
 
 ### 1.1 Deployment shapes and what containment can mean in each
 
-**Answers:** Q3, Q4, Q5. **Raised by:** @imolloy, @skvcool-rgb, @Johncavanaugh-IIS.
-
 Which of the five layers you can actually build depends on where the agent runs and who controls it. Three shapes cover most deployments.
 
 **Built and operated.** The organization runs the agent on infrastructure it controls. Every layer is available, and every requirement in this paper is an engineering requirement.
@@ -135,10 +127,6 @@ Sections that follow are written for the first shape and marked, where the disti
 ---
 
 ## 2. The three hardening axes
-
-**Answers:** Q11. **Raised by:** @getglad.
-
-> Drafting note (2026-09-08): first prose draft, by the editor, implementing the settled Q11 decision (axes adopted as the containment layer's internal structure; inbound cross-referenced). Two pieces of new reasoning are open to challenge by PR or comment on #172: the closing argument of 2.3 (inbound is the axis that arms the other two), and 2.2's claim that outbound has two enforcement points answering different questions. The container-runtime paragraph in 2.1 carries the enforcement-point analysis for @adeinega's case and deliberately stops at the analysis — the criterion is §8's, where the subsection is offered to them.
 
 The containment layer decomposes along the direction in which influence travels. **Local**: the agent must not affect the host beyond what is intended. **Outbound**: the agent must not affect systems remote to the host beyond what is intended. **Inbound**: the agent must not be influenced by unintended external signals, whether they originate on the host or remotely. Each axis has its own enforcement point, its own property to hold, and its own way of failing — and conflating them is how a deployment ends up hardened on one axis and open on another.
 
@@ -180,10 +168,6 @@ Sections 3 through 6 now work down this structure: §3 takes the outbound mediat
 
 ## 3. Mediation: the tool call, not the network flow
 
-**Answers:** Q8. **Raised by:** @getglad.
-
-> Drafting note (2026-09-11): first prose draft, by the editor. Two commitments are embedded and open to challenge by PR or comment on #172: the effective-reach invariant is promoted from candidate to this section's normative statement (resolving the open item; credited to @ryjen, with @Levaj2000's receipts refinement), and the "what does the network layer still buy" question is answered with three jobs — closing non-tool paths, backstopping gateway failure, bounding quantity — which is new synthesis, not from the thread. The confused-deputy naming in 3.1 follows @imolloy in #172 and the WS2 Zero Trust paper §3.2.1; the numbered citation lands with the reference consolidation after the open section PRs merge. The x32 case is cited as reported, per Appendix A.1. Addition (2026-10-01): the gateway fail-safe paragraph (from @Santoshkumarpuppala's #192 review, landed via #227) is the normative anchor for the policy-failure case of test A10 in the proposed multimodal action-containment guide (#201): "unavailable policy cannot silently permit execution" (A10's other half, agent-edited policy and disabled mediation, is §5.1's tamper-proof property). It also closes two cases A10 leaves open — the allow fallback as an explicit, time-bounded, per-decision-recorded operator choice whose exclusion lands in the §7.1 assurance-boundary statement, and a rejected credential counting as an answer rather than an outage, never toward a breaker that could turn it into an allow.
-
 Section 2 gave the outbound axis two enforcement points. This section argues that for agent workloads the tool or MCP call — not the network flow — is the primary mediation surface, states the invariant that surface must satisfy, and answers what the network layer still buys once tool-call mediation exists.
 
 **Why the tool call.** A network flow names an endpoint. A tool call names an *action*: a typed operation, with structured arguments, invoked by an attributable principal. Policy can be written against the second in a way it cannot against the first — a named tool call with structured arguments can be authorized, transformed, or refused on its semantics; a TLS stream can only be permitted or blocked on its destination. The blog post's complete-mediation requirement already contains the reason this matters [11]: a reference monitor that answers only *may this agent call this endpoint* still permits the gym cancellation, because the endpoint was permitted and the harm lived in the arguments — whose reservation, not which API. The bound has to reach the authority itself — whose resource, up to what limit — carried in the credential and evaluated per call.
@@ -216,8 +200,6 @@ What the network layer cannot express is the authority semantics: whose resource
 
 ### 3.1 The permitted channel is the exfiltration path
 
-**Answers:** Q9, Q10. **Raised by:** @imolloy, @getglad.
-
 Effective reach includes every fetch a permitted party will perform on the agent's request. Model-side URL retrieval, web search, code interpreters, retrieval connectors — each is network access the agent holds indirectly, and the agent's egress envelope is the union of its own network policy and all of them. A sandbox audit that stops at the workload's own network policy has measured the smaller of the two terms.
 
 The anchor case, cited as reported pending Appendix A.1: in testing across nine frontier models against a hardened sandbox, agents that discovered the x32 seccomp bypass chained it with the LLM API's own built-in URL retrieval to reach external destinations through an otherwise restricted proxy [11]. The only permitted network channel — the inference endpoint itself — became the relay. In §5's terms this second half is mode 4: no control was defeated; a trusted party, outside the sandbox, holding network access the agent lacked, performed a fetch with a payload the agent controlled. It is a confused-deputy problem — the Zero Trust paper's §3.2.1 gives the named treatment [16] — and its structure — the deputy is legitimate, the request is well-formed, the authority is real — is the same structure as the gym incident, one layer down.
@@ -230,11 +212,9 @@ Where the permitted party is a provider the organization does not operate, the c
 
 ## 4. Composition: per-sandbox controls across a set of agents
 
-**Answers:** Q6, Q7. **Raised by:** @skvcool-rgb, @imolloy.
-
 **Purpose.** Show how per-sandbox controls fail to constrain aggregate consumption across a set of agents sharing a principal, and take a position on aggregate accounting: budgets and egress accounted across the set rather than per container.
 
-**Settled (2026-09-05): the position, per @skvcool-rgb in #172.** Aggregate accounting is a control the paper recommends, as a scoped requirement: where the deploying organization controls the principal's authority, a conformant model MUST account budgets and egress across the set of agents sharing a principal (and across a delegation subtree), not only per container; where it does not, the same requirement lands on the provider as procurement (§1.1). Per-container and per-edge invariants are named explicitly as *local invariants that do not compose*.
+Aggregate accounting is a control the paper recommends, as a scoped requirement: where the deploying organization controls the principal's authority, a conformant model MUST account budgets and egress across the set of agents sharing a principal (and across a delegation subtree), not only per container; where it does not, the same requirement lands on the provider as procurement (§1.1). Per-container and per-edge invariants are named explicitly as *local invariants that do not compose*.
 
 ### 4.1 The failure shape
 
@@ -379,10 +359,6 @@ cannot express the constraint, because the constraint is over a set.
 
 ## 5. The enforcement property and four failure modes
 
-**Answers:** Q12, Q13. **Raised by:** @getglad, @imolloy.
-
-> Drafting note (2026-09-08): first prose draft, by the editor. Two commitments are embedded and open to challenge by PR or comment on #172: the vocabulary lands on *reference monitor* with a plain gloss (rather than a new term), and *verifiable* is read evidence-forward per @ryjen. The mapping of modes 1–3 onto the monitor's three properties at the end of 5.2 is new reasoning, not from the thread. Citation numbers are provisional per §11.
-
 Every control in this paper presumes an enforcement point: something that sees the agent's action and decides whether it proceeds. The blog post described that point as "independently enforced, not agent-enforced," which was accurate but informal. A document that will be cited needs the property named, and needs the ways it fails kept apart — because the incidents this body of work draws on do not fail in one way, and the remedies do not interchange.
 
 ### 5.1 The property, named
@@ -458,10 +434,6 @@ Two readings of this table are wrong and worth naming. It is not a claim that th
 
 ## 6. Reachability and blast radius
 
-**Answers:** Q16. **Raised by:** @getglad, @imolloy.
-
-> Drafting note (2026-09-11): first prose draft, by the editor. The central distinction — vulnerability management lowers the probability the boundary fails; reachability minimization bounds the consequence, and only the second is fully within the operator's control — is a synthesis of @getglad's and @imolloy's #172 threads and is open to challenge. The worked example follows the Appendix A.2 evidence rules: the Hugging Face half uses only their disclosure's verified facts, the evaluation-environment half is cited as reported, and none of the unverified figures appear. 6.3 carries @Levaj2000's evidence-boundary extension from #172.
-
 What follows treats reachability minimization as a control in its own right, distinct from vulnerability management — and shows that the distinction decides not only what can be hardened but what can be proven afterwards.
 
 ### 6.1 A control, not a hygiene metric
@@ -498,13 +470,11 @@ For the procured deployment shapes of §1.1, both halves of this section become 
 
 ## 7. Detection and evidence
 
-**Answers:** Q14, Q15. **Raised by:** @Levaj2000, @imran-siddique.
-
 **Purpose.** Carry the detection argument and a schema summary in the paper; put the concrete logging schema in a practical guide alongside the MCP runtime isolation guide.
 
-**Settled (2026-09-05): the two-artifact split, per @Levaj2000 and @imran-siddique in #172.** Detection and evidence are two artifacts against the same event, not one list. Detection wants signals that discriminate an attempt from normal behavior, and is allowed to be noisy, heuristic, and tuned per deployment. Evidence wants the fields that let someone who was not there and does not trust you reconstruct what happened, and must be stable, complete, and boring — and nothing in it may be executable authority (§3). The evidence contract is normative in this paper; the OCSF mapping goes in the practical guide, pinned to an OCSF version, with proposed fields marked as proposed. §7.1 is structured as two tables accordingly.
+Detection and evidence are two artifacts against the same event, not one list. Detection wants signals that discriminate an attempt from normal behavior, and is allowed to be noisy, heuristic, and tuned per deployment. Evidence wants the fields that let someone who was not there and does not trust you reconstruct what happened, and must be stable, complete, and boring — and nothing in it may be executable authority (§3). The evidence contract is normative in this paper; the OCSF mapping goes in the practical guide, pinned to an OCSF version, with proposed fields marked as proposed. §7.1 is structured as two tables accordingly.
 
-**Starting material.** The blog post's "containment that fails loudly" and "tamper-evident logging" bullets: alert on denied syscalls, repeated policy violations, `/proc` inspection, Docker socket and metadata-service probes, blocked DNS and egress, credential-broker denials, and any attempt to alter the sandbox configuration; keep those events outside the agent's write scope; correlate across runs; use OCSF `attestation` and the `record_integrity` profile (OCSF 1.9.0) for tamper evidence [12]. Correction to the supporting narrative, from the A.2 source check: Anthropic's sentence is "the two organizations **we were able to reach** had not previously detected the activity" — narrower than the blog's paraphrase — and Hugging Face *did* detect their own intrusion, via LLM-based triage on anomalies, before OpenAI connected its internal testing to it. The section's argument survives both facts, but must carry them: the strongest counter-example in the field is also the best existing evidence that the detection this section calls for actually works.
+The blog post's "containment that fails loudly" and "tamper-evident logging" bullets: alert on denied syscalls, repeated policy violations, `/proc` inspection, Docker socket and metadata-service probes, blocked DNS and egress, credential-broker denials, and any attempt to alter the sandbox configuration; keep those events outside the agent's write scope; correlate across runs; use OCSF `attestation` and the `record_integrity` profile (OCSF 1.9.0) for tamper evidence [12]. Correction to the supporting narrative, from the A.2 source check: Anthropic's sentence is "the two organizations **we were able to reach** had not previously detected the activity" — narrower than the blog's paraphrase — and Hugging Face *did* detect their own intrusion, via LLM-based triage on anomalies, before OpenAI connected its internal testing to it. The section's argument survives both facts, but must carry them: the strongest counter-example in the field is also the best existing evidence that the detection this section calls for actually works.
 
 **Requirements across §7.** An absence that was determined MUST be distinguishable in the record
 from an absence that was never established. A determined absence carries an explicit value and
@@ -520,8 +490,6 @@ outcome as "not verified by the end of the window", with the window duration.
 **Evidence independence.** Evidence cannot rule out a failure if that same failure could compromise the component that produced, signed or retained it. If an agent escapes its sandbox or disables its gateway (§5.2, modes 1 and 2), evidence produced alongside that control may no longer be trustworthy: logs may be altered or suppressed, and signing keys may no longer show who wrote the record. This paper calls the set of components that can be compromised together a *trust domain*. §9.1 makes this point about trajectories produced by the agent's own framework, and it holds for other controls: a sandbox cannot, by itself, provide independent evidence that it was never escaped, and a gateway on a compromised host cannot independently establish that it was never disabled.
 
 A containment claim that rules out a defeated or disabled control (§5.2, modes 1 and 2) MUST NOT rest solely on evidence from a trust domain that failure could also compromise. The record SHOULD therefore identify the trust domain of its producer, or otherwise make its independence assumptions explicit. Where the deployment shape (§1.1) provides no evidence producer outside the workload's trust domain, the claim narrows accordingly: such evidence can establish what the monitor observed or decided while its integrity is assumed to hold, but it cannot independently rule out modes 1 and 2. As with an unverifiable subject claim (§7.1), this constrains what the record can support; it does not change the underlying enforcement decision.
-
-> Drafting note: §7.2–7.3 and the §7.1 signal qualifications implement the [editor's acceptance on #172](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/172#issuecomment-5698789739). The explicit-absence and actor/subject requirements implement the [additional rulings on #184](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/pull/184#issuecomment-5704988996) and [provenance enum ruling](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/pull/184#issuecomment-5705703733). These editorial commitments remain open to challenge on #172.
 
 ### 7.1 What to log
 
@@ -741,10 +709,6 @@ An observation from an observer that fails any condition counts as self-reported
 
 ## 8. A vetted-sandbox commons
 
-**Answers:** Q17. **Raised by:** @getglad.
-
-> Drafting note (2026-09-26): first prose draft, by the editor. The structural call — §8 states a demonstration requirement and recommends the specification itself as a coordinated follow-on rather than writing a fourth parallel spec inside a whitepaper — resolves the scaffold's open item and is open to challenge on #172. §8.3 is drafted from @adeinega's review question on #181 with credit; the subsection offer stands if they want to take it further. One correction to the earlier drafting note, from checking the source they linked: the qualifying property is the boundary underneath the inner engine, not the engine's location or its privilege level — Docker's own agent-sandbox guidance runs the inner engine inside a microVM and treats the engine as a second layer. Docker's citation is by name pending the reference consolidation, since four open section PRs are adding to the reference list.
-
 The question raised was whether CoSAI has a role in specifying what a vetted agent sandbox must demonstrate, such that implementations can be measured against it. The answer is yes, with a boundary: the role is not another set of isolation requirements, and this section does not attempt one.
 
 ### 8.1 What already exists, and what it does not cover
@@ -797,17 +761,13 @@ The most concrete criterion offered so far came from the review of the skeleton 
 
 ## 9. Positions
 
-**Answers:** Q18, Q19. **Raised by:** @getglad, @imolloy, @billbrietstout.
-
-> Drafting note (2026-09-25): first prose draft, by the editor. The ATIF position rests on two properties of the specification as reviewed in September 2026 — no integrity, signing or tamper-evidence provisions of any kind, and trajectories emitted by the agent framework itself. Both were checked against the specification RFC rather than taken from the thread; a later reviewer should re-check them against the then-current revision, since the position follows from those properties rather than from any judgement about the format's quality. The §9.2 split follows @billbrietstout's own scope-discipline point in the #167 review. Open to challenge by PR or comment on #172.
-
 Two questions were raised in the #167 review that this paper is the natural place to answer. Each gets a position or an explicit out-of-scope with its reason, per the purpose of this section.
 
 ### 9.1 Agent trajectory formats are not the evidence record
 
 **Position: in scope to address, and the position is a boundary rather than an endorsement or a rejection.** Trajectory interchange formats — the Agent Trajectory Interchange Format (ATIF) being the most widely carried, through the Harbor project and NVIDIA's agent toolkit — standardise the logging of an agent's interaction history: user messages, internal reasoning, tool calls, observations, and, in recent revisions, embedded subagent trajectories. They are valuable, and the convergence of the ecosystem on a shared shape is worth having.
 
-They are not, and do not claim to be, the record this paper's §7 requires. Two structural properties decide it, both true of the specification as reviewed (2026-09):
+They are not, and do not claim to be, the record this paper's §7 requires. Two structural properties decide it, both true of the specification as reviewed (2026-09) and both worth re-checking against the then-current revision, since the position follows from those properties rather than from any judgement about the format's quality:
 
 - **The format carries no integrity provisions.** No hashing, signing, chaining, or tamper-evidence of any kind is specified. A trajectory is therefore tamper-resistant at best — only as trustworthy as the store holding it — where §7's contract requires tamper-*evidence*: alteration detectable by a verifier who does not extend that trust.
 - **The trajectory is emitted by the agent framework itself.** That places the record inside the agent's own reach, which fails the §5 tamper-proof property directly. A record an agent's own runtime produces cannot, by itself, testify about that agent's containment, for the same reason a reference monitor inside the agent's reach is not a reference monitor.
@@ -845,8 +805,6 @@ This paper takes no position on agent-to-agent protocol design, on model evaluat
 
 ## 10. Takeaways and conclusion
 
-> Drafting note (2026-10-06): first prose draft, by the editor, written after sections 1 through 9 settled. The eight takeaways restate each section's settled position; no new reasoning is introduced here. Open to challenge by PR or comment on #172.
-
 **The paper in eight takeaways.**
 
 1. Containment is one layer of bounded authority, not a standalone discipline. Most of the incidents that made headlines as escapes were, on inspection, agents using authority they had legitimately been granted — and the frame decides where the next dollar of hardening goes (§1).
@@ -867,8 +825,6 @@ An agent with bounded authority in the way a corporate laptop has it is not an a
 ---
 
 ## 11. References
-
-> Drafting note: carry forward the blog post's references [^1] through [^15] as the base set and add per section. Numbering below is provisional.
 
 1. Anthropic. *Claude Mythos Preview System Card*, 2026-04-07. https://www-cdn.anthropic.com/7624816413e9b4d2e3ba620c5a5e091b98b190a5/Claude%20Mythos%20Preview%20System%20Card.pdf
 2. OpenAI. *ExploitGym evaluation disclosure*, 2026-07-21. https://openai.com/index/hugging-face-model-evaluation-security-incident/
@@ -907,8 +863,9 @@ An agent with bounded authority in the way a corporate laptop has it is not an a
 **Contributors**
 
 Listed by the section each contributed to, whether by merged text or by the
-reasoning a section rests on. Handles are used where no name was given; see the
-note below.
+reasoning a section rests on. Handles are used where no name was given — if your
+entry is wrong, or you would rather appear under your name and affiliation, say
+so on #172 and the editor will make the change.
 
 - @imran-siddique — §7 detection and evidence, Appendix A
 - @skvcool-rgb — §4, and §1.1's deployment-shape spine
@@ -927,8 +884,6 @@ note below.
 - @Johncavanaugh-IIS — the audience decision (Q5)
 - Dmytro Negodiuk, Negodiuk LLC, §7.2 self-test traffic kept out of the counts
 
-> Drafting note: everyone credited in #172 for a banked question is a contributor to the section that answers it; add yourself here with your first PR. Names or affiliations welcome in place of handles — open a PR against this list, or say the word on #172 and the editor will make the change.
-
 **TSC reviewers**
 
 - Akila Srinivasan, David LaBianca, Jodi Middleton (named 2026-08-25)
@@ -936,8 +891,6 @@ note below.
 ---
 
 ## Appendix A. Evidence receipts
-
-**Answers:** Q20, Q21. **Raised by:** @Levaj2000, @imran-siddique.
 
 **Purpose.** Evidence the blog post could not carry.
 
