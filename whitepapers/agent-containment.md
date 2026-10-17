@@ -79,7 +79,7 @@ Containment of autonomous agents that hold real access: what the boundary is, wh
 
 ### Target audience
 
-Practitioners and architects who deploy agents with production access. Section 1 is written so an executive can read it alone and take away the frame and the four failure modes. (Q5, settled 2026-09-05; raised by @Johncavanaugh-IIS and open since the #167 review — objections welcome by comment on #172, but drafting proceeds on this basis.)
+Practitioners and architects who deploy agents with production access. Section 1 is written so an executive can read it alone and take away the frame and the four failure modes.
 
 ---
 
@@ -101,7 +101,7 @@ The same decomposition, for agents, runs through this paper:
 
 One more piece of shared vocabulary carries through every layer. When a control fails, it fails in one of four ways: the agent **defeated** it (the mechanism broke); the agent **disabled** it (the control was within the agent's own reach); the control was **insufficiently specified** (on, untouched, and wrong); or the control was correct and the agent **used authority it had legitimately been granted**. The gym agent is the fourth. Most of the celebrated incidents are the third or fourth — which matters, because the industry's attention and spending concentrate on the first two. §5 develops this taxonomy; every control in this paper states which failure mode it removes.
 
-**What this paper takes from the IAM paper, and what it leaves there.** It takes the frame — bounded authority as the objective — and two of its principles as given: authority is bound to principal, action, resource, and condition rather than to an endpoint; and delegated authority narrows, never expands, at each hop. It leaves there everything about how identities are issued, authenticated, governed, and revoked. Where §4 of this paper presses on a limit of the per-hop model, it does so explicitly, as an extension. Readers wanting the authority layer in full should read that paper [9]; readers of this one need only the frame.
+**What this paper takes from the IAM paper, and what it leaves there.** It takes the frame — bounded authority as the objective — and two of its principles as given: authority is bound to principal, action, resource, and condition rather than to an endpoint; and delegated authority narrows, never expands, at each hop (that paper's §3.4: scope "SHOULD narrow at each hop and MUST NOT expand beyond the delegating principal's effective permissions"). It leaves there everything about how identities are issued, authenticated, governed, and revoked. Where §4 of this paper presses on a limit of the per-hop model, it does so explicitly, as an extension. Readers wanting the authority layer in full should read that paper [9]; readers of this one need only the frame.
 
 This paper is also the containment publication the WS2 *Zero Trust for AI Systems* paper announces [16]: that paper fixes the architecture — where identity, delegation, and policy decision points sit relative to the AI Threat Boundary — and this one specifies the containment layer inside it.
 
@@ -120,9 +120,6 @@ Which of the five layers you can actually build depends on where the agent runs 
 **The agent that builds its own boxes.** The coding agent that must create and run containers is a shape in its own right: it has a container boundary, but the workload wants to make more of them, so the question is not whether a boundary exists but what it must look like. Handing such an agent the host's container-runtime socket places the enforcement point inside the agent's reach (§2.1); what a sandbox must demonstrate instead is specified in §8.
 
 Sections that follow are written for the first shape and marked, where the distinction bites, for the second.
-
-**Open items.**
-- Per section, mark which requirements are engineering and which become procurement in the procured-and-integrated case.
 
 ---
 
@@ -282,8 +279,11 @@ within the principal's budget*. Two properties make it a control rather than a r
 **Requirements.**
 
 - **R4.1** Where the deploying organisation controls the principal's authority, a conformant model
-  MUST account the enumerated quantities across the set of agents sharing that principal, and
-  across each delegation subtree, evaluated at the consuming action.
+  MUST account, at minimum, egress bytes, distinct egress destinations, spend, and agents spawned
+  — across the set of agents sharing that principal, and across each delegation subtree, evaluated
+  at the consuming action. Further quantities that sum across agents, such as tool invocations,
+  tokens consumed, or records read from a shared store, SHOULD be accounted the same way; which of
+  them matter is a property of the deployment, the minimum above is not.
 - **R4.2** Per-container and per-edge limits MUST be documented as local invariants. A containment
   claim MUST NOT rest on them alone for any quantity that sums across agents.
 - **R4.3** Consumption MUST be atomic (compare-and-consume or per-principal serialisation). A
@@ -332,9 +332,9 @@ someone who was not there (§7; this is the "accounting decision" row of the evi
 The problem is older than agents. The Android permission literature of 2011–2012 treated
 **colluding applications** — two apps whose individual permission sets are benign and whose
 combination exceeds the user's intent, via an inter-app channel — as an inter-application
-information-flow problem to be policed over the *combination*, not per grant (Bugiel et al.,
-*XManDroid*, and the analyses of inter-application communication and permission re-delegation
-from the same period; the exact citations to be confirmed with @imolloy, who raised them). The
+information-flow problem to be policed over the *combination*, not per grant. That literature
+also treated permission re-delegation — one application exercising authority on another's behalf
+— as the same class of problem, which is §3.1's confused deputy under an earlier name. The
 mapping onto agents is direct:
 
 | Android | Agent containment |
@@ -346,14 +346,6 @@ mapping onto agents is direct:
 
 The lesson carried over is the same one the review arrived at independently: a per-grant model
 cannot express the constraint, because the constraint is over a set.
-
-**Open items.**
-- Confirm the colluding-applications citations with @imolloy and add them to §11.
-- Decide whether the enumerated quantity list is normative or illustrative; the authors' position
-  is normative-minimum (egress bytes, destinations, spend, spawn) with the rest RECOMMENDED.
-- Cross-reference the IAM paper's per-hop narrowing requirement by section number once its final
-  numbering is confirmed.
-- Worked example: keep the twelve-worker case, or replace with an incident from §6.
 
 ---
 
