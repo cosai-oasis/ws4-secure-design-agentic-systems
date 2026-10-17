@@ -1,0 +1,27 @@
+apiVersion: agent.rossoctl.dev/v1alpha1
+kind: AgentRuntime
+metadata:
+  name: weather-agent
+  namespace: agents
+  labels:
+    app.kubernetes.io/name: weather-agent
+spec:
+  type: agent
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: weather-agent
+---
+apiVersion: agent.rossoctl.dev/v1alpha1
+kind: AgentRuntime
+metadata:
+  name: orchestrator-agent
+  namespace: agents
+  labels:
+    app.kubernetes.io/name: orchestrator-agent
+spec:
+  type: agent
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: orchestrator-agent
