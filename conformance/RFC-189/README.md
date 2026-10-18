@@ -6,7 +6,7 @@ Case leads, named in section 7.4: @aeoess and @astrogilda ([proposal](https://gi
 
 ## The rule, clause by clause
 
-C1-C6 are the clauses of section 7.4 as merged at `84604125`, worded as there. C7 and C8 remain open proposals. Section 7.4 names them as open items: C7 is gap naming, C8 is the observation vantage claim. Its third open item, the independent witness for the prior commitment, is the C5 binding question below. The case files cite these IDs.
+C1-C6 are the clauses of section 7.4 as merged at `84604125`, worded as there. C7, gap naming, merged into `feat/containment` at `f805565c` (#269). C8 remains an open proposal: the observation vantage claim. Its third open item, the independent witness for the prior commitment, is the C5 binding question below. The case files cite these IDs.
 
 | ID | Clause | Source |
 | --- | --- | --- |
@@ -16,7 +16,7 @@ C1-C6 are the clauses of section 7.4 as merged at `84604125`, worded as there. C
 | C4 | A claim that no event occurred over a scope passes only when the producer could see the relevant field for the invocation and the observation covers the evaluated interval. A present but empty field needs the same premises as a missing field. If either premise is unestablished or bound to another scope, return `not_established` with the missing obligation. Coverage can be established by another verifier surface. | [aeoess](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/189#issuecomment-5702083982), [darklordVirtual](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/189#issuecomment-5630431104), [imran-siddique](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/189#issuecomment-5739339967) |
 | C5 | Coverage must be bound to the claim or invocation it covers. A complete record for one call cannot establish completeness for another. Matching identifiers alone do not prove that binding; an authenticated identifier inside the observation still needs an independently established join to the evaluated invocation. | [chernistry](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/189#issuecomment-5710166163), [imran-siddique](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/189#issuecomment-5745298467) |
 | C6 | Checker input and harness expectation stay structurally separate. The expected verdict and obligation are authored, so they are never visible to the inference that derives the result. | [darklordVirtual](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/189#issuecomment-5630431104), [aeoess](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/189#issuecomment-5638613689) |
-| C7 (open) | An observation that declares incomplete coverage without locating its gap is malformed; explicit unknown coverage can remain `not_established`. | [astrogilda](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/189#issuecomment-5827010158) |
+| C7 | A coverage statement takes one of three well-formed shapes: complete over the evaluated property, invocation, interval and scope; incomplete, with every gap located; or `not_established`, with the reason coverage could not be determined. A statement of incomplete coverage that locates no gap is malformed and, under C2, a processing failure. | [astrogilda](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/189#issuecomment-5827010158), [imran-siddique](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/189#issuecomment-5827685232), merged in [#269](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/pull/269) |
 | C8 (open) | A claim of independent observation made from the observed party's own vantage is refused. It supports neither `pass` nor `fail`. | proposed here, case 08 |
 
 The containment paper's section 7 states the same boundary for evidence records: missing visibility or incomplete observation is `not_established` with its missing premise, and malformed records stay visible as processing failures. These cases exercise both texts.
@@ -47,7 +47,7 @@ The reference verifier in the [agent-evidence-vectors](https://pypi.org/project/
 | 03 | no write seen, a named gap inside the scope | `not_established` / `observation_coverage` | C1, C4 |
 | 04 | record 03, claim narrowed to a path the gap does not touch | `pass` | C4, C5 |
 | 05 | a named gap, and a write observed in scope anyway | `fail` | C3 |
-| 06 | incomplete coverage, no gap named | processing failure, `coverage-incomplete-without-gaps` | C2, C7 (open) |
+| 06 | incomplete coverage, no gap named | processing failure, `coverage-incomplete-without-gaps` | C2, C7 |
 | 07 | complete coverage claimed, gap named in scope | processing failure, `coverage-self-contradictory` | C2 |
 | 08 | the observed party's own record claiming independence | `not_established` / `observation_vantage` | C1, C8 (open) |
 | 09 | record 03 claiming independence over its own gap | `not_established` / `observation_coverage` | C1, C4 |
@@ -66,6 +66,16 @@ The reference verifier in the [agent-evidence-vectors](https://pypi.org/project/
 | 22 | record 19's interval claiming the authoritative tier over its blind spot | outcome `pending` / `observation_coverage` | C1, C4 |
 | 23 | case 10's self-reported write, asked whether the action wrote | outcome `pending` / `observation_vantage` | C1, C3 |
 | 24 | case 01's read-only interval, asked whether the action wrote | outcome `absent` | C4 |
+
+### C7's third shape: coverage that could not be determined
+
+Cases C7-01 to C7-03 are graded against C7 as merged at `f805565c`. They read records from agent-evidence-vectors 0.20.0, where the Observed Effect predicate (0.8.0) carries `coverage.notEstablished`: the observer could not determine its coverage, and the member says why.
+
+| Case | Record | Expected under C7 at `f805565c` | Clauses |
+| --- | --- | --- | --- |
+| C7-01 | no write seen, coverage not established, with its reason | `not_established` / `observation_coverage`, the reason carried | C1, C4, C7 |
+| C7-02 | the same coverage, and writes observed in scope | `fail` | C3, C7 |
+| C7-03 | coverage not established, with an empty reason | processing failure, `coverage-not-established-without-reason` | C2, C7 |
 
 Cases 03, 04 and 05 are the reason naming a gap matters: in all three the checker reads valid records that name /srv/app/vendor/ as unobserved, and it reaches three different verdicts. The same record cannot support "nothing changed under /srv/app/", yet it fully supports "nothing changed under /srv/app/src/", and a write it did see still settles `fail`.
 

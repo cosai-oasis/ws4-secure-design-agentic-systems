@@ -97,6 +97,7 @@ INVALID_CODE_OBLIGATION = {
     "commitment-not-prior": OBSERVATION_VANTAGE,
     "commitment-signature-invalid": OBSERVATION_VANTAGE,
     "authoritative-coverage-incomplete": OBSERVATION_COVERAGE,
+    "authoritative-coverage-not-established": OBSERVATION_COVERAGE,
     "authoritative-empty-path-scope": OBSERVATION_SCOPE,
     "authoritative-without-observed-rows": OBSERVATION_SCOPE,
 }
@@ -428,8 +429,16 @@ def _absence_verdict(
             "reason": f"write(s) observed inside the property scope: {witnesses}",
         }
     # A negative needs complete coverage of the property scope for the interval.
-    # A gap the record names is a gap it did not watch.
+    # A record whose observer could not determine its coverage says why (the third
+    # shape of C7), and no absence can rest on it.
     coverage = observation["coverage"]
+    if "notEstablished" in coverage:
+        return _not_established(
+            OBSERVATION_COVERAGE,
+            "the record could not determine its coverage of the property scope: "
+            f"{coverage['notEstablished']}",
+        )
+    # A gap the record names is a gap it did not watch.
     blind = (
         []
         if coverage["scopeComplete"]

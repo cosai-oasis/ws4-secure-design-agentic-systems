@@ -112,7 +112,19 @@ AGAINST_INDEPENDENCE = {
     "section": "7.4",
     "commit": "672b8c50502274be634b05c6a11a7ad69330936b",
 }
-PINS = {"RFC189-OE-": AGAINST, "RFC189-IND-": AGAINST_INDEPENDENCE}
+# The C7 cases exercise clause C7 (coverage gap naming) as merged into
+# feat/containment by #269. They need the third coverage shape, which the
+# Observed Effect predicate carries from 0.8.0 (agent-evidence-vectors 0.20.0).
+AGAINST_C7 = {
+    "document": "whitepapers/agent-containment.md",
+    "section": "7.4",
+    "commit": "f805565c24f872cfb706451992fd05a1542fa221",
+}
+PINS = {
+    "RFC189-OE-": AGAINST,
+    "RFC189-IND-": AGAINST_INDEPENDENCE,
+    "RFC189-C7-": AGAINST_C7,
+}
 
 
 def check_pin(case: dict[str, Any]) -> None:

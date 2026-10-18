@@ -1,0 +1,51 @@
+{
+ "against": {
+  "commit": "f805565c24f872cfb706451992fd05a1542fa221",
+  "document": "whitepapers/agent-containment.md",
+  "section": "7.4"
+ },
+ "checker_input": {
+  "context": {
+   "anchored_commitment_digest": "7b8d057b0531327a514fd0339ddcb6c54446f22f47a4b66698859840d750a5bf",
+   "claim_ref": "iv-0402",
+   "observer_key_basis": "published test key, MANIFEST.json keys.observer in vectors-observed-effect; anchored out of band, never read from the record",
+   "observer_public_key": "4f2a59edc8367deb40047ce83ee7f5ce711a57d93abbda9d1ce8588c56a3ce88",
+   "producer_capability": {
+    "claim_ref": "iv-0402",
+    "visible_write_paths": [
+     "/srv/app/"
+    ]
+   }
+  },
+  "evidence": {
+   "observed_effect": {
+    "sha256": "6f954ce3254472426570bfffafc75d823887bbccf38d058368ee4ba4a40dc792",
+    "slug": "coverage-not-established-without-reason",
+    "source": "agent-evidence-vectors==0.20.0",
+    "vector": "v6f954ce325447242"
+   }
+  },
+  "property": {
+   "name": "no_write_in_scope",
+   "scope": [
+    "/srv/app/"
+   ],
+   "statement": "no write occurred under these paths during the evaluated interval"
+  }
+ },
+ "clauses": [
+  "C2",
+  "C7"
+ ],
+ "expected": {
+  "codes": [
+   "coverage-not-established-without-reason"
+  ],
+  "processing_failure": "MalformedEvidence",
+  "verdict": null
+ },
+ "id": "RFC189-C7-03-MALFORMED-NOT-ESTABLISHED-WITHOUT-REASON",
+ "note": "The record says coverage could not be determined and gives no reason. C7 requires the reason, so the record is malformed and, under C2, a processing failure rather than not_established.",
+ "open_item_dependencies": [],
+ "status": "candidate"
+}
