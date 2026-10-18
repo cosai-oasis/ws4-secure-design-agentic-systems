@@ -61,3 +61,19 @@ jobs:
           echo "AEE_VERIFY=$(go env GOPATH)/bin/aee-verify" >> "$GITHUB_ENV"
       - name: Grade the committed records
         run: python run.py
+
+  invocation-axes:
+    name: Recorded effect bound to the declared call
+    needs: records
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - name: Install agent-evidence-vectors 0.20.0 by hash
+        run: |
+          echo "agent-evidence-vectors==0.20.0 --hash=sha256:389d09bb67a820beb1154aaf5c2aaa89ed185d5d97ee52e3ccab33b805f24604" > "$RUNNER_TEMP/invocation-axes.txt"
+          python -m pip install --require-hashes --no-deps -r "$RUNNER_TEMP/invocation-axes.txt"
+      - name: Judge one tools/call on package integrity, decision correspondence and observed effect
+        run: agent-evidence-vectors-invocation-axes --output "$RUNNER_TEMP/invocation-axes"
