@@ -518,10 +518,15 @@ flowchart LR
 
 After the taxonomy is ratified, the next deliverable should be a system threat model that instantiates the relevant mechanisms against concrete architectures, attacker capabilities, and assets. Control mapping follows that threat model. The eventual wizard can then ask architecture and threat-context questions, identify applicable mechanism classes, recommend available controls, and surface state-of-the-art research where mature controls do not exist.
 
-## 5\. Takeaways and Conclusion
+## Takeaways and Conclusion
 
-> [!WARNING]
-> **TODO:** Fill in
+- Replaces endless attack lists with a short set of root causes.
+- Better threat modeling for new modalities.
+- Defenses or Controls matched to mechanisms.
+- A shared vocabulary. 
+- Defense coverage gaps become visible. 
+- A repeatable process. 
+
 
 ## 6\. References
 
@@ -542,6 +547,9 @@ Editors: Editor Name (\[Editor.Name@example.com\](mailto:Editor.Name@example.com
 List of active contributors.
 
 ## 8\. Appendix 
+
+> [!WARNING]
+> **TODO:** Are we going to talk about the cross modal scenarios and have we talked enough about it? What was the basis of coming up with the below table?
 
 ### 8.1 Cross-Modal Composition
 
