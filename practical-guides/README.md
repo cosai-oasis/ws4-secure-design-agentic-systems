@@ -9,6 +9,7 @@ Hands-on guides and code examples for securing agentic systems and MCP deploymen
 1. [Input Data Sanitization and Filtering](#input-data-sanitization-and-filtering)
 1. [MCP Secure Tool Design](#mcp-secure-tool-design)
 1. [MCP Runtime Isolation](#mcp-runtime-isolation)
+1. [Action-Layer Containment for Multimodal Agents](#action-layer-containment-for-multimodal-agents)
 
 ## Guides
 
@@ -71,6 +72,16 @@ A cookbook for isolating and securing MCP server runtime environments. Covers th
 - IETF RATS architecture (Passport model and Background Check model)
 - MCP protocol extensions for attestation headers (HTTP SSE and Stdio transports)
 - Reference architecture on Azure Confidential VMs with Intel Trust Authority, including sample client/server code and configuration
+
+---
+
+### [Action-Layer Containment for Multimodal Agents](./multimodal-action-containment.md)
+
+Controls at the point where an agent acts, for agents that take images, audio, video and documents as input. Assumes the model has already been influenced and checks whether each operation stays inside the authority granted for the task.
+
+- Worked example based on a published image-scaling attack that sent calendar data out through auto-approved MCP tool calls
+- Seven enforcement patterns, four with Python examples: executor-side grants, provenance on extracted values, closing alternate routes, approvals bound to an operation hash, decode limits, shared budgets, and fail-closed stop and policy outage
+- An 11-case test matrix where every denied case has an allowed twin, plus what to record and report
 
 ---
 
