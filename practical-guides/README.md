@@ -80,8 +80,12 @@ A cookbook for isolating and securing MCP server runtime environments. Covers th
 Controls at the point where an agent acts, for agents that take images, audio, video and documents as input. Assumes the model has already been influenced and checks whether each operation stays inside the authority granted for the task.
 
 - Worked example based on a published image-scaling attack that sent calendar data out through auto-approved MCP tool calls
-- Seven enforcement patterns, four with Python examples: executor-side grants, provenance on extracted values, closing alternate routes, approvals bound to an operation hash, decode limits, shared budgets, and fail-closed stop and policy outage
+- Seven enforcement patterns: executor-side grants, source labels on values read from media, closing alternate routes, approvals bound to an operation hash, decode limits, shared budgets, and failing closed on stop and policy outage
 - An 11-case test matrix where every denied case has an allowed twin, plus what to record and report
+
+| Example | Threat | Description |
+|---------|--------|-------------|
+| [action_containment](./examples/action_containment/) | Multimodal Prompt Injection | Python for five of the patterns, with a test for each allowed and denied case (`python test_containment.py`) |
 
 ---
 
