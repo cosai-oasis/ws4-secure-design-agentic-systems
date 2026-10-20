@@ -169,6 +169,7 @@ Because the three dimensions describe the same attack from different angles, a s
 
 * **Boundary names** denote the invariant assumed: *Transform Consistency*, *Check-Use Consistency*, *Authorization Stability*, *Grant Persistence*, *Data-Control*.  
 * **Representation names** denote how influence is embodied: *Transform-Activated*, *Sequence-Dependent*, *Fragmented / Distributed*, *Resource-Amplifying*.  
+* **Construction names** denote how the payload was produced: *Manual*, *Black-box Search*, *White-box Optimization*, *Surrogate Transfer*.  
 * **System Processing Stage names** denote a pipeline location: *Ingestion*, *Transformation*, *Perception / Decoding*, *Interpretation / Decision*, *Generation*, *Action*, *Consumption*, *Feedback*.
 
 *Deliberate exception:* **Parser / Interpreter Differential** retains "Differential" because parser differential is established security terminology that maps one-to-one onto existing usage.
@@ -188,7 +189,8 @@ An uploaded image appears benign at the representation reviewed by a human or up
 | :---- | :---- |
 | Boundary – Meaning | Transform Consistency (pre-transform vs. post-transform evaluation) |
 | Boundary – Authority | Data-Control (data role vs. control role) |
-| Representation | Overt Semantic \+ Transformation-Activated modifier |
+| Representation | Processing-Dependent (pre-transform) → Overt Semantic (post-transform) \+ Transformation-Activated modifier |
+| Construction | White-box optimization (pixel optimization against resizing algorithm) |
 | System Processing Stage | Transformation → Interpretation / Decision → Generation → Action |
 | Modality | Image |
 | STRIDE mapping | Elevation of Privilege when the attack exercises unauthorized agent authority; potentially Information Disclosure if data is exfiltrated. |
@@ -203,8 +205,8 @@ The modality-independent claim is not that every implementation is identical. It
 | Modality | Transformation | Concrete instance | Boundary | Representation | Stage |
 | :---- | :---- | :---- | :---- | :---- | :---- |
 | Text | Unicode / entity / URL decode | Message contains \`%0AIgnore%20prior\` or homoglyphs that look benign in the review UI; after decode the model sees a new instruction. | Transform Consistency; Data-Control | Encoded / Obfuscated \+ Transformation-Triggered | Transformation to Interpretation to Action |
-| Image | Resize / crop / OCR reveals instruction | Uploaded image looks like a product photo at review size; after downscale or OCR the model reads \`authorize refund \$500\`. | Transform Consistency; Data-Control | Overt Semantic \+ Transformation-Triggered | Transformation to Perception to Interpretation to Action |
-| Audio | Resample / codec activates spoken command | Clip sounds like music at 48 kHz; after downsample to 16 kHz ASR emits \`transfer funds to account 9912\`. | Transform Consistency; Data-Control | Steganographic \+ Transformation-Triggered | Transformation to Perception to Interpretation to Action |
+| Image | Resize / crop / OCR reveals instruction | Uploaded image looks like a product photo at review size; after downscale or OCR the model reads \`authorize refund \$500\`. | Transform Consistency; Data-Control | Processing-Dependent → Overt Semantic \+ Transformation-Triggered | Transformation to Perception to Interpretation to Action |
+| Audio | Resample / codec activates spoken command | Clip sounds like music at 48 kHz; after downsample to 16 kHz ASR emits \`transfer funds to account 9912\`. | Transform Consistency; Data-Control | Processing-Dependent \+ Transformation-Triggered | Transformation to Perception to Interpretation to Action |
 | Video | Frame sampling omission (existing A3/A16) | Harmful or out-of-contract shot sits between sampled frames; QC model never sees it and certifies the title. | Transformation Differential; Guard-Model Capability | Steganographic; Temporal; Fragmented | Transformation to Perception |
 | Video | Transformation-triggered injection (new) | Slate text is unreadable at source resolution; after player letterbox/OCR the diligence agent treats burned-in text as task instructions. | Transformation Differential; Data-Control; Human-Machine Perception | Overt Semantic \+ Transformation-Triggered | Transformation to Perception to Interpretation to Action |
 | Structured | Deserialization / formula / macro as control | CSV cell or JSON field looks like a SKU; spreadsheet formula or YAML tag coerces into a tool argument that deletes a bucket. | Parser / Interpreter Differential; Data-Control | Encoded / Obfuscated \+ Transformation-Triggered | Transformation to Interpretation to Action |
@@ -263,7 +265,7 @@ All four newly added agentic control loop boundaries are formally anchored:
 
 ### 2.3 Representation
 
-Representation forms are ordered by a single question: **What must a recipient possess in order to recover the adversarial effect?**
+Representation describes **what the recipient observes**, not how the attacker produced the payload. It is ordered by a single question: **What must a recipient possess in order to recover the adversarial effect?**
 
 #### 2.3.1 The Generating Axis
 
@@ -271,8 +273,10 @@ Representation forms are ordered by a single question: **What must a recipient p
 | :---- | :---- | :---- |
 | Overt Semantic | Nothing beyond ordinary interpretation of the channel. | Prompt text; rendered words in an image; spoken instruction; visible GUI cue. |
 | Encoded / Obfuscated | A public or discoverable algorithm—a code, cipher, or decoding step.  | Base64; substitution cipher; QR code; Morse / DTMF; time-box puzzle.  |
-| Steganographic | Knowledge of the embedding channel, which carries no overt meaning.  | Zero-width / statistical text; image pixels or metadata; spectral audio; video compression features. |
-| Adversarially Optimized | Access to target model parameters, or surrogate from which the effect transfers.  | Optimized suffix; adversarial image patch; targeted audio waveform; feature perturbation. |
+| Steganographic | Knowledge of the embedding channel, which carries no overt meaning.  | Zero-width / statistical text; image pixels or metadata; audio watermarks; video compression features. |
+| Processing-Dependent | Recovery of the adversarial effect requires a specific processing pathway; a human or general-purpose system does not recover it. | Adversarial audio waveforms (target model); pre-transform image-scaling payloads (target resizer); adversarial image patches (target vision model); optimized token sequences (target tokenizer + model). |
+
+> **Note on former "Adversarially Optimized" category:** Earlier drafts included a fourth representation form, "Adversarially Optimized," defined by access to target model parameters or a surrogate. Scenario analysis revealed that this conflated observable form with construction method: identical visible payloads received different representation labels depending on whether they were hand-crafted or search-generated, even though a defender inspecting the artifact sees the same thing. Construction method is now recorded separately in Section 2.3.3. The observability property that "Adversarially Optimized" partially captured — that some artifacts are only effective through a specific processing pathway — is now addressed by the Processing-Dependent form, which describes the artifact's observability without implying a particular construction method.
 
 #### 2.3.2 Representation Modifiers
 
@@ -287,9 +291,22 @@ Representation forms are ordered by a single question: **What must a recipient p
 * **Intrinsic Amplification:** The artifact is itself expensive to process, independent of its semantics (e.g., decompression bombs, pathological media bitstreams). *Note: A real media-decoder crash bug is properly classified under Parser / Interpreter Differential; Resource Accounting at the Transformation stage rather than labeling cost as a representation form.*  
 * **Semantic Amplification:** Ordinary semantics induce expensive behavior in the system (e.g., tool-call fan-out, retry storms, recursive agent delegation).
 
+#### 2.3.3 Construction Method
+
+Construction Method is a separate annotation describing **what access the attacker required to produce the payload**. It is orthogonal to Representation: any construction method can produce any representation form. An adversarially optimized waveform may be steganographic; a black-box search may produce overt semantic text. Recording construction separately prevents identical observable payloads from changing representation category merely because their search history differs.
+
+| Construction Method | What it means | Examples |
+| :---- | :---- | :---- |
+| Manual | Human-authored without automated optimization. | Hand-typed prompt injection; text overlay placed on an image; social-engineering phrasing. |
+| Black-box adaptive search | Iterative refinement using output observation only; no model parameter access. | LLM judge scores candidate text overlays; attacker tries prompt variants until one succeeds. |
+| White-box optimization | Optimization using knowledge of target model or pipeline internals (parameters, algorithms, or architecture). Includes gradient-based, sampling-based, and analytical optimization methods. | GCG adversarial suffix; AudioHijack waveform optimization against model weights; least-squares pixel optimization against a resizing algorithm. |
+| Surrogate transfer | Optimized against a surrogate model or pipeline, deployed against a different target. | Adversarial patch trained on an open-source model, tested against a commercial API. |
+
+Construction Method is not a dimension of the core mechanism tuple M. It is a supporting annotation that preserves attacker-capability information relevant to threat characterization (see Section 3.3, NIST AML mapping) without expanding the mechanism record.
+
 ### 2.4 System Processing Stages
 
-System Processing Stage locates the mechanism in the target system. Attacker-side construction is intentionally omitted from the primary pipeline because adversary behavior is better represented by frameworks such as MITRE ATLAS. A mechanism may be annotated with entry, activation, and effect locations across several stages.
+System Processing Stage locates the mechanism in the target system. Attacker-side construction is intentionally omitted from the primary pipeline because adversary behavior is better represented by frameworks such as MITRE ATLAS; construction method is recorded as a supporting annotation (Section 2.3.3). A mechanism may be annotated with entry, activation, and effect locations across several stages.
 
 Pipeline sequence: **Ingestion → Transformation → Perception / Decoding → Interpretation / Decision → Generation → Action / Consumption → Feedback**.
 
@@ -348,18 +365,18 @@ flowchart TB
     ATLAS --> E("Encoded")
     ATLAS --> ST("Steganographic")
     ATLAS --> TT("Transformation-triggered")
-    ATLAS --> AO("Adversarially optimized")
+    ATLAS --> PD("Processing-Dependent")
 
     E --> GM("Guard-Model Capability")
     ST --> HM("Human-Machine Perception")
     TT --> TD("Transformation Differential")
-    AO --> SS("Semantic Stability")
+    PD --> SS("Semantic Stability")
 ```
 
 *Figure 4\. One ATLAS technique can decompose into distinct mechanisms that require different controls.*
 
 
-Prompt Obfuscation is a useful stress test. A Base64 prompt, steganographic image payload, transformation-triggered image-scaling attack, and adversarially optimized multimodal input may all be described behaviorally as obfuscation or bypass. Mechanistically, they cross different boundaries and require different security modules. The mapping is therefore intentionally many-to-many, not one-to-one.  
+Prompt Obfuscation is a useful stress test. A Base64 prompt, steganographic image payload, transformation-triggered image-scaling attack, and a processing-dependent adversarial waveform may all be described behaviorally as obfuscation or bypass. Mechanistically, they cross different boundaries and require different security modules. The mapping is therefore intentionally many-to-many, not one-to-one.  
 ATLAS also motivates representing attack paths as sequences of mechanism instances rather than expanding the core tuple. A filter bypass may lead to Data-Control failure, which may lead to Decision-Action failure, which may then use an Output-Consumer path for exfiltration.
 
 | Mechanism example | This paper (Boundary; Representation; Stage) | ATLAS-style behavior | Why the distinction helps |
@@ -401,7 +418,7 @@ The proposed swimlane for this work is: inference-time perimeter mechanisms for 
 
 | Our concept | External concept | Relationship / use |
 | :---- | :---- | :---- |
-| Adversarially Optimized Representation | NIST adversarial example / evasion | Use NIST terms when equivalent; keep Representation for the cross-modal mechanism level |
+| Construction Method (White-box Optimization, Surrogate Transfer) | NIST adversarial example / evasion | Use NIST terms when equivalent; record construction method as a supporting annotation alongside the representation form |
 | Data-Control Boundary | Prompt injection / control-data language in OWASP AI Exchange / CoSAI | Underlying authorization mechanism under several named techniques |
 | Resource Accounting Boundary | STRIDE DoS; ATLAS resource-consumption behaviors | Mechanism explains why loss is possible; externals name threat and behavior |
 | Output-Consumer Boundary | Output handling / rendering / trusted-output techniques | Generalizes downstream activation beyond text |
@@ -494,7 +511,7 @@ An attack first discovered in video frames predicts a non-obvious vulnerability 
 | **A4: Typographic Prompt Injection** Adversarial instructions rendered visibly in image/video pixels (e.g., overlay, printed slate, t-shirt). | **Data-Control** (plus Transform Consistency)  **Overt Semantic (+ Transform-Activated)**  **Perception** → **Interpretation** → **Action** | **OCR text quarantine** before MLLM | **Covers (Passes)** | **Passes:** Isolates pixel-text, stripping instructions before the model interprets them as control commands. |
 |  |  | **Dense frame sampling** (every \$N\$ ms) | **Misses (Fails)** | **Fails:** The text is already captured on inspected frames. The breach is an authority failure (**Data-Control**), not an omission gap. |
 |  |  | **Cross-modal consistency check** | **Misses (Fails)** | **Fails:** In multimodal inputs with no conflicting audio track, cross-stream consistency checks detect no discrepancy. |
-| **A17: Audio Contradiction / Speech Exploit** Manipulated acoustic track contradicts subtitles/video to exploit model arbitration or speech recognition. | **Semantic Stability** / Guard-Model Capability  **Steganographic / Adversarially Optimized**  **Transformation** → **Perception** | **Cross-modal consistency check** (ASR vs. Subtitles) | **Partial** | **Partial:** Detects divergence across modalities, but cannot prevent execution if model arbitration defaults to audio. |
+| **A17: Audio Contradiction / Speech Exploit** Manipulated acoustic track contradicts subtitles/video to exploit model arbitration or speech recognition. | **Semantic Stability** / Guard-Model Capability  **Processing-Dependent**  Construction: White-box Optimization  **Transformation** → **Perception** | **Cross-modal consistency check** (ASR vs. Subtitles) | **Partial** | **Partial:** Detects divergence across modalities, but cannot prevent execution if model arbitration defaults to audio. |
 |  |  | **Dense frame sampling** (every \$N\$ ms) | **Misses (Fails)** | **Fails:** Operates exclusively on video frames; provides zero visibility into the acoustic perception channel. |
 |  |  | **OCR text quarantine** before MLLM | **Misses (Fails)** | **Fails:** The adversarial signal is acoustic/spectral; pixel-text stripping is completely bypassed. |
 | **Streaming Chunk / Token Fragmentation** Payload split across transport chunks; individual chunks appear benign to per-packet inspection. | **Transform Consistency**  **Fragmented / Distributed; Sequence-Dependent**  **Ingestion** → **Transformation** → **Interpretation** | **Stateful semantic buffering** (sentence/window aggregation) | **Covers (Passes)** | **Passes:** Reassembles units to match the semantic composition granularity evaluated downstream by the model. |
