@@ -242,7 +242,7 @@ Where an agent can acquire tools or other components at runtime, the design eith
 > [!NOTE]
 > Detailed guidance on artifact integrity, provenance, and attestation for models, datasets, and training artifacts is the subject of CoSAI Workstream 1 [AIMM; Signing ML Artifacts], and general supply chain risk management practice is covered by NIST [SP 800-161 Rev 1 Update 1]. This paper does not restate either.
 
-**Gate.** Every component the agent depends on is inventoried, with known provenance and an assigned trust tier.
+**Gate.** Every component the agent depends on, including non-conventional dependencies listed above, is inventoried with an owner, with its provenance verified or the gap recorded, and with an assigned trust tier.
 
 ### 3.3 Development
 
