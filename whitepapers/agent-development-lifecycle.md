@@ -248,7 +248,22 @@ Where an agent can acquire tools or other components at runtime, the design eith
 
 *Repairs assumptions 1 and 2.*
 
-Author the policy surface as a first-class artifact: system instructions with injection-resistant construction; the tool permission manifest, at least privilege per tool; memory retention and filtering policy; trust assignments over retrieval sources; the conditions that trigger human approval; and the instrumentation that will make runtime behavior observable.
+Author the policy surface as a first-class artifact, defining: 
+- system instructions using injection-resistant techniques
+- the tool permission manifest employing least privilege per tool
+- memory retention and filtering policy
+- trust assignments over retrieval sources
+- conditions that trigger human approval
+- instrumentation that will make runtime behavior observable
+
+System instructions MUST be written on the assumption that untrusted content will attempt to override them during runtime.
+
+> [!NOTE]
+> While no single method defeinds fully against prompt injection, a defence-in-depth strategy that employs, amongst other items system prompt techniques, tool permissions, and other mechanisms as outlined above, all work together to minimize the risk and impact of successful prompt injection.
+
+For each constraint on the agent's authority, record whether it is enforced by a control outside the model or depends on the model complying with prose. Trace each element of the policy surface to a decision recorded during [scoping and design](#31-scoping-and-design), e.g., a tool permission to a permitted goal, an approval condition to the blast radius analysis.
+
+Apply instrumentation to allow for [decommissioning](#38-decommissioning) will later need to enumerate. Emit signals when the agent create resources (webhooks, subscriptions, sub-agents, durable memory writes, etc.).
 
 Each of these is versioned, reviewed by someone other than its author, and revertible independently of the code around it.
 
