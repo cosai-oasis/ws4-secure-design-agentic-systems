@@ -333,7 +333,7 @@ What varies is set by the organization, in the way NIST SP 800-53 leaves paramet
 
 Two losses are easy to miss. Other systems and people may have come to depend on capabilities the agent was never documented as providing, and the agent may hold knowledge that exists nowhere else. Both should be enumerated before the receipt closes, and instrumented for at development time, since neither can be recovered afterwards. Decommissioning can also be imposed, when an upstream provider disappears or a dependency breaks. The steps above still apply; some confirmations cannot be obtained, and the receipt records that as an exception rather than pretending otherwise.
 
-**Gate.** Teardown is evidenced rather than asserted. A decommissioning that cannot show what was revoked, what was retained, and when authority ended has not completed. A verifier holding a record signed by this identity can place it before or after that moment, or report that it cannot.
+**Gate.** Teardown is evidenced rather than asserted. A decommissioning that cannot show what was revoked, what was retained, and when authority ended has not completed. A verifier holding a record signed by this identity can place it before or after that moment, or return `not_established` (containment clause C7) when the published terminal state does not let it decide. A relying party treats `not_established` as unproven, never as "before".
 
 ---
 
