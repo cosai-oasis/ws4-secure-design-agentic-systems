@@ -219,7 +219,28 @@ The organization decides what the agent is for and what it may become. Define pe
 
 *Repairs assumptions 1 and 2.*
 
-Establish provenance and trust for everything the agent will incorporate: models, tools, prompt templates, frameworks, and retrieval sources. Verify provenance records and supplier evaluation evidence. Assign a trust tier to each component. Conduct application-specific behavioral testing, since a component's suitability is a question about this use case rather than a general property of the component. Extend inventory practice to cover models, prompts, and tool definitions alongside conventional dependencies.
+Establish provenance and trust for external component the agent incorporates: 
+- models
+- tools
+- prompt templates
+- frameworks
+- retrieval sources
+- any other agents it may consume
+
+Most of these components can carry or emit content the agent could treat as instructions, e.g., tool descriptions, retrieved content, and the outputs of other agents. What matters about such a component is therefore not only whether it is authentic, but how much authority its content is permitted to influence the behaviour of the agent.
+
+Every such component MUST be inventoried with, at a minimum, an accountable owner, its source, and its version identity. Record whether each version is pinned or floating, e.g., as a model behind a provider-managed alias or generic API endpoint. For any floating component, record who controls changes to the component and what notice the supplier commits to prior to such changes. This is important as it is that  notice that triggers re-baselining during [the maintenance phase](#37-maintenance).
+
+Verify each component's origin and integrity to the extent its supplier makes verification possible and record the evidence. If a component can't be inspected, obtain and record supplier-provided evidence and [platform verification](#23-the-agent-entity-is-the-unit-of-scope). Record this gap for the exit gate documentation.
+
+Assign each component a trust tier. The tier is assigned by a named owner and states what authority the component's content may influence. A component whose provenance could not be verified is tiered to reflect that. Tiers are re-evaluated when the supplier, the version, or the evidence changes.
+
+Conduct application-specific behavioral testing of each compoment and record the results as evidence that feeds the behavioral baseline recorded at [admission](#34-admission-and-deployment). This is important as a given component's suitability is a question of its applicability to the current use case rather than a general property of the component.
+
+Where an agent can acquire tools or other components at runtime, the design either prohibits it or applies this same process at the point of acquisition.
+
+> [!NOTE]
+> Detailed guidance on artifact integrity, provenance, and attestation for models, datasets, and training artifacts is the subject of CoSAI Workstream 1 [AIMM; Signing ML Artifacts], and general supply chain risk management practice is covered by NIST [SP 800-161 Rev 1 Update 1]. This paper does not restate either.
 
 **Gate.** Every component the agent depends on is inventoried, with known provenance and an assigned trust tier.
 
