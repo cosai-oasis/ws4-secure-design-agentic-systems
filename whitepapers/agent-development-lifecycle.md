@@ -418,6 +418,9 @@ A reader who disagrees with a phase is invited to attack the assumption it deriv
 [^12]: CoSAI WS4. *Taxonomy for framing and scoping ADLC during security assessments.* https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/130
 [^13]: CoSAI WS4. *RFC: Evidence sufficiency, and what a verifier may conclude when evidence is absent.* https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/189
 [^14]: Weng, Lilian. *Harness Engineering for Self-Improvement*, 4 July 2026. https://lilianweng.github.io/posts/2026-07-04-harness/
+[^15]: CoSAI WS4. *Agent Containment: From Sandboxing to Bounded Authority.* Working draft, tracks issue #172. https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/172
+[^16]: Meta. *Agents Rule of Two: A Practical Approach to AI Agent Security*, 31 October 2025. https://ai.meta.com/blog/practical-ai-agent-security/
+[^17]: Willison, Simon. *The lethal trifecta for AI agents: private data, untrusted content, and external communication*, 16 June 2025. https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/
 [^15]: CoSAI WS2. *AI Shared Responsibility Framework*, May 2026. https://www.coalitionforsecureai.org/wp-content/uploads/2026/05/CoSAI-Shared-Responsibility-Framework.pdf
 
 ---
