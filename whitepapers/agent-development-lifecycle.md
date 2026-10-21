@@ -1,14 +1,12 @@
 ---
 title: "Securing the Agent Development Lifecycle: Five Assumptions That No Longer Hold"
 author: "Workstream 4: Secure Design Patterns for Agentic Systems"
-date: 2026-09-16
-version: 0.2-draft
-status: "Working draft. Not reviewed, not approved."
+date: 2026-10-21
+version: 0.3-draft
+status: "Working draft to. be reviewed"
 ---
 
 # Securing the Agent Development Lifecycle: Five Assumptions That No Longer Hold
-
-**Status:** Working draft. Not reviewed, not approved. Sections 2 and 3 make load-bearing claims and are the parts most in need of argument. Section 5 lists what is still unsettled. Section 6 records the positions the working group has taken so far, with dates and sources, and is the place new positions go as the group argues them out. Review happens on the pull request, not in a separate document.
 
 # Table of contents
 
@@ -55,31 +53,31 @@ status: "Working draft. Not reviewed, not approved."
 
 ## Abstract
 
-Organizations deploying AI agents are applying their existing secure software development practices to them and finding that the practices do not fit. The mismatch is usually read as a maturity problem: the tooling will catch up, the scanners will learn to read prompts. It is structural. Secure development frameworks encode assumptions about how software behaves, and agentic systems violate five of them: that behavior is fixed when the artifact is built, that the reviewable artifact is the code, that identity is a service account, that testing approximates production behavior, and that retirement means deleting the deployment.
+Organizations deploying AI agents are applying their existing secure software development practices to them and finding that the practices do not fit. It usually reads as a maturity problem: the tooling will eventually catch up, let's wait it out. Secure development frameworks encode assumptions about how software behaves, but as you could guess if you come read that document, agentic systems violate a bunch of them that this definitional paper tries to define. Agents are creatures that evolve through time, you can just look at the code of the harness and call it done. Even how they acquire identities, accesses evolve with time. Sometimes they also find those access by themselves (cf hugging face incident).
 
-This paper sets out an agent development lifecycle constructed as a direct response to those five failures. It is a process framework: it states what must be decided, verified, and evidenced, at which point in an agent's life, and by whom. Each of its eight phases is derived from a named assumption that breaks, so a reader who disagrees with a phase can locate and attack the reasoning that produced it rather than the phase itself.
+This paper sets out an agent development lifecycle as a direct response to those failure mode. We defined that framework through phases describing the agent's life. Each of those phases is derived from a named assumption that breaks. We're interested for each phase what must be decided in advance, what must be verified through monitoring. How to find evidences.
 
-The intended outcome is practical. A security team should be able to adapt the controls it already runs instead of starting over, and should be able to say, for any agent in its estate, which obligations have been met and which gate is next.
+The goal of that doc is mostly practical. We're all engineers here, and describing in vague terms is not enough. A security team should be able to adapt the controls it already runs instead of starting over, and should be able to say, for any agent in its estate, which obligations have been met and which gate is next.
 
-### Scope
+### Scope and what we care about
 
-- The lifecycle of an agent as an entity, from the decision to build or acquire one through its verified retirement.
+- The lifecycle of an agent as an entity, from the decision to build or acquire one through its retirement.
 - The security-relevant decisions, gates, and evidence at each phase.
-- The division between what a deploying organization implements in the agent itself and what it must verify of the platforms the agent depends on.
-- Adaptation guidance for organizations already operating a secure development lifecycle.
+- Understanding the division between improving the agent itself and what must be verified on the platforms the agent depends on.
+- Guidance for organizations that have already started this journey of agent development lifecycle.
 
 ### Anti-scope
 
-- **Mechanism design.** How to construct an isolation boundary, an authorization service, or a policy engine. This paper says containment posture must be decided and verified; it does not say how to build the containment.
-- **Identity and delegation protocol specification.** Credential formats, delegation token semantics, and authorization protocol design are prerequisites the lifecycle consumes, treated in their own right elsewhere.
-- **Telemetry schema.** The lifecycle requires that certain events be evidenced. It does not define the wire format or field taxonomy for that evidence.
-- **Conventional package and dependency supply chain practice.** It applies unchanged to an agent's conventional dependencies and is not restated here.
+- **Mechanism design.** We wont enter in details in how to construct an isolation boundary,or a policy engine. We of course will share examples, but we know each organization has specifics that we can't avoid. We will try to rely as much as possible on maturity matrixes.
+- **Telemetry schema.** The lifecycle requires that certain events be evidenced. The workstream won't try to enter into details and opinions on what format to adopt.
+- **Conventional package and dependency supply chain practice.** If you want to read about "classic" SDLC good practices, there are other documents that are more interesting than this one.
 - **The security of code or content an agent produces.** That is a property of the agent's output and belongs to the lifecycle of whatever consumes it. This paper is about the security of the agent itself.
-- **Model development.** Training, tuning, and evaluation of foundation models. Models are consumed by agents as upstream resources.
+- **Model development.** Training, tuning, and evaluation of foundation models. Agents use the model as input, so we don't enter the detail of their craft.
+- **How to deal with AI artifacts.** It's absolutely a trendy subject, how to review so much code, human bottleneck, ai slop. That's not the scope here, we care only about how the agents are released in production.
 
 ### Target audience
 
-- **Agent developers** building and configuring agentic systems.
+- **Software developers** that happen to configure agentic systems and care about their security in production.
 - **Platform and framework teams** providing the infrastructure other teams build agents on.
 - **Security and risk officers** setting policy for what may be deployed, and under what conditions.
 - **Third-party risk teams** evaluating procured agentic products against a defensible checklist.
@@ -89,9 +87,7 @@ The intended outcome is practical. A security team should be able to adapt the c
 
 ## 1. Why agent development needs its own lifecycle
 
-Secure software development frameworks are not wrong about agents. They are silent about them, which is a more specific problem and a more tractable one. Their controls encode assumptions that held well enough for four decades of software and that agentic systems break. Naming the breakages precisely is what earns each phase in section 3 its place, and it is the discipline this paper tries to hold: no phase appears that cannot be traced to a failure below.
-
-One clarification before the argument begins, because the vocabulary is already colliding. A parallel and growing body of work asks how AI agents change the development of *conventional* software: how a team plans, builds, tests, and ships its product faster when agents do much of the work. That is a different subject from this one. Here the agent is the artifact being secured, not the instrument doing the securing. The two lifecycles share terminology and a handful of controls, and they answer different questions.
+Secure software development frameworks just don't really mention agents at all. An agent is a new entity that got introduced relatively recently, and most framework were not written for it. We started that workstream by starting from the failures and build up the different lifecycle phases around it. Here are some assumptions we found out with classic SDLC that just won't apply anymore for agents.
 
 ### 1.1 Five assumptions secure development rests on
 
