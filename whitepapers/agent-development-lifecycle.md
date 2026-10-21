@@ -246,7 +246,7 @@ Where an agent can acquire tools or other components at runtime, the design eith
 
 ### 3.3 Development
 
-*Repairs assumption 2.*
+*Repairs assumptions 1 and 2.*
 
 Author the policy surface as a first-class artifact: system instructions with injection-resistant construction; the tool permission manifest, at least privilege per tool; memory retention and filtering policy; trust assignments over retrieval sources; the conditions that trigger human approval; and the instrumentation that will make runtime behavior observable.
 
