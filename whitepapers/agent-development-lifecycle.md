@@ -27,7 +27,7 @@ status: "Working draft. Not reviewed, not approved."
 - [2. Boundaries of the lifecycle](#2-boundaries-of-the-lifecycle)
   - [2.1 A process framework, not an implementation guide](#21-a-process-framework-not-an-implementation-guide)
   - [2.2 Design time is inside the process](#22-design-time-is-inside-the-process)
-  - [2.3 The agent entity is the unit of scope](#23-the-agent-entity-is-the-unit-of-scope)
+  - [2.3 The agent instance is the unit of scope](#23-the-agent-instance-is-the-unit-of-scope)
   - [2.4 Every agent has an accountable owner](#24-every-agent-has-an-accountable-owner)
 - [3. Lifecycle phases](#3-lifecycle-phases)
   - [3.1 Scoping and design](#31-scoping-and-design)
@@ -171,17 +171,35 @@ Intended use, autonomy bounds, blast radius, data classification, the identity a
 
 This makes design time the first phase rather than a precondition sitting outside the lifecycle. The distinction is not academic. A design activity that sits outside the numbered phases has no gate, produces no required artifact, and is the first thing skipped under delivery pressure.
 
-### 2.3 The agent entity is the unit of scope
+### 2.3 The agent instance is the unit of scope
 
-The lifecycle governs the agent: its instructions, its reasoning core, its input and output handling, and the policies by which it consumes everything else. For the resources an agent depends on (the model, the orchestration platform, the tools, the data stores, the infrastructure), the deploying organization implements consumption controls in the agent and verifies that each platform meets its stated requirements.
+An agent exists in two forms. The definition is a reviewed revision of its instructions, policy surface, model binding, tool manifest, and memory policy. An instance is a running realization of that definition. It holds its own identity, composes its own context, accumulates its own memory, exercises its own delegated authority, and leaves its own fingerprints. One definition may produce thousands of instances, some living for a single request and some for months.
 
-The distinction is between implementing and verifying, and its practical force lands at admission: if a prerequisite platform cannot evidence that it meets a requirement the agent depends on, the agent does not deploy. This keeps the lifecycle tractable. An organization is not required to re-secure its cloud provider in order to deploy an agent. It is required to know what it is depending on, and to have verified the dependency.
+The lifecycle governs the instance. The definition matters because instances inherit from it: obligations established in scoping, supply chain, and development are recorded against a definition revision and bind every instance created from it. But the failures that motivate this paper are realized by instances. Assumption 1 fails per instance, because each composes its behavior at runtime from its own context and memory. Assumption 3 fails per instance, because each holds and passes on authority separately. Assumption 5 fails per instance, because each leaves residue of its own. A lifecycle that tracked only the definition would certify a template and lose sight of everything the template produced.
+
+Within an instance, the lifecycle governs its instructions, its reasoning core, its input and output handling, its identity and delegated authority, the policies by which it consumes everything else, and the durable memory it accumulates. Memory belongs inside the boundary rather than as an external dependency. The instance writes it, it shapes the instance's future behavior, and it is residue when the instance retires.
+
+Three consequences follow. First, an instance exists only by being created from an admitted definition revision, and the issuance of its identity is what binds it to that revision's constraints. Second, an instance created at runtime by another instance, such as a sub-agent, is in scope only if the parent's admitted definition bounds what may be spawned, under what identity, and with what authority. Anything outside those bounds is a separate definition requiring its own admission, because nothing created at runtime can pass a gate after the fact. Third, retiring a definition means retiring every instance of it, which is only possible if the organization knows at all times which instances exist.
+
+For the resources an instance depends on (the model, the orchestration platform, the tools, the data stores, the infrastructure, and any other agent it calls), the deploying organization implements consumption controls in the agent and verifies that each platform meets its stated requirements. An agent called as a tool is a dependency to its caller and a unit of scope in its own owner's lifecycle. A procured agent shifts the balance toward verification, with little left to implement, but the obligations themselves do not change.
+
+The distinction between implementing and verifying has its practical force at admission, and verification is graded rather than binary. Some dependencies will never produce complete evidence: a model served behind an API can change without notice, and its provider will not open its internals. Where a platform's evidence is weaker than the agent's design requires, the difference is closed by compensating controls implemented in the agent and recorded against the dependency's trust tier (section 3.2), or the agent does not deploy. What is never acceptable is a dependency nobody evaluated. This keeps the lifecycle tractable. An organization is not required to re-secure its cloud provider in order to deploy an agent. It is required to know what it depends on, how well it has verified each dependency, and what it did about the difference.
 
 ### 2.4 Every agent has an accountable owner
 
-A named human or organizational owner is accountable for each agent. That relationship survives delegation, is verifiable at runtime, and is explicitly transferred or terminated rather than allowed to lapse.
+Every agent definition, and every instance created from it, resolves at all times to a named human who is accountable for its existence. An organizational unit may hold ownership, but it must resolve to a named individual, because when a team dissolves, its collective accountability evaporates. Ownership is explicitly transferred or terminated, never allowed to lapse.
 
-This is the least technical of the four claims and the one most often missing in practice. Without it there is no answer to who authorized an action, no party with standing to approve retirement, and nobody who notices when an agent outlives the purpose it was commissioned for. Ownership lapse is the most common precondition for the residue problem described in assumption 5.
+Ownership is not the same as authority, and the two are easily conflated. The owner is accountable for the agent existing, for the risk accepted when it was admitted, and for its retirement. The principal is the party whose authority a given action exercises. When a user delegates a task to an instance, the user is the principal for the actions that follow, and the owner is unchanged. Delegation shifts authority; it does not move ownership. For any action, two questions must be answerable: who authorized it, and who is accountable for the agent that performed it. Section 1.1.3 concerns the first. This section concerns the second.
+
+The CoSAI AI Shared Responsibility Framework [^15] divides responsibility for an AI system across five layers, from business use down to the model provider, and answers which party is responsible at each. Ownership answers a narrower question inside the deploying organization: which person answers for this particular agent.
+
+Ownership is verifiable at runtime rather than recorded once. An instance's identity resolves to a registry record naming an active owner, and credential issuance and renewal depend on that owner remaining active. Instances spawned by another instance inherit their parent's owner unless explicitly reassigned at creation. When an owner leaves, changes role, or is reorganized away, the joiner, mover, and leaver events that already govern human access trigger suspension of the agent and its instances. Suspension rather than deletion is the safe default, because an orphaned agent's state and traces are evidence its eventual retirement will need.
+
+This presumes an inventory in which the owner is a field on every definition and instance record, and which can be queried at the moment a credential is issued or an action is checked. Few organizations have one. An asset register reconciled at quarterly review cannot answer a question asked at runtime, and building one that can is engineering work in its own right.
+
+The owner is also where the lifecycle answers *by whom*. The owner approves the design record before procurement or implementation (3.1), accepts residual risk at admission (3.4), sets the conditions under which durable knowledge requires human approval (3.6), and authorizes retirement (3.8). The work behind each of these can be delegated. The accountability for it cannot.
+
+This is the least technical of the four claims and the one most often missing in practice. Without it there is no party with standing to approve retirement, and nobody who notices when an agent outlives the purpose it was commissioned for. Ownership lapse is a common precondition for the residue problem described in assumption 5, and among the cheapest to prevent.
 
 ---
 
@@ -239,13 +257,23 @@ Verification continues too. Prerequisites that passed at admission can regress, 
 
 ### 3.6 Reflection and knowledge consolidation
 
-*Repairs assumptions 1 and 5.*
+*Repairs assumptions 1, 4, and 5.*
 
-The phase that governs what an agent is permitted to learn. Between a completed run and the next one, information may be promoted from ephemeral context into durable memory, or into retrieval sources other agents will read. Promotion is where poisoning becomes persistent, and where an agent's future behavior is silently redefined.
+The phase that governs what an instance is permitted to learn. Information may be promoted from an instance's ephemeral context into its own durable memory, into memory shared across instances of the same definition, or into retrieval sources other agents read. Promotion is where poisoning becomes persistent and where future behavior is silently redefined. It is the point at which one instance's compromise becomes the starting condition of every instance that comes after it.
 
-Enforce memory-write policy. Capture provenance and source attribution for anything retained. Check candidate knowledge against approved policy and authoritative data before it is written. Require human approval for high-impact durable memory. Apply retention labels and rollback markers. Maintain the audit link from a future decision back to the knowledge that informed it.
+Reflection is not a step between runtime and maintenance. It is a gate that fires on every promotion event, concurrently with runtime, for as long as an instance writes anything durable.
 
-**Gate.** Nothing becomes durable without provenance and a policy check. Ephemeral context and approved durable memory are distinguishable at the storage layer, not only by convention.
+The governing principle is that a context which may have been influenced cannot authorize its own persistence. An instance that has just processed untrusted content is the party least able to judge whether that content should be remembered. The decision to promote is therefore made outside the context that proposes it: by deterministic policy, by an evaluator that does not share the proposing context, or, for high-impact knowledge, by a human acting under conditions the owner has set (section 2.4). Where those conditions sit depends on what the agent does. An agent supporting clinical decisions, or one operating a regulated control, warrants human approval for far more of what it retains than an agent drafting internal documents.
+
+Not all knowledge carries the same risk. A record of what happened in a past session informs behavior. A learned fact shapes conclusions. A learned procedure, describing how to perform a task or use a tool, functions as instruction, which makes it policy surface in the sense of assumption 2. Procedural knowledge is promoted only through the review that section 3.3 requires of any other change to the policy surface.
+
+Trust does not improve by being written down. Promoted content keeps the trust tier of its original source rather than acquiring the tier of the store it lands in, so that a retrieval source assigned a high tier in section 3.2 cannot become a channel for laundering low-trust content into authoritative knowledge. Promotion into a store that other instances or other agents read crosses a trust boundary, and is held to a higher bar than promotion into an instance's private memory.
+
+Enforce memory-write policy. Capture provenance for anything retained: its source, the source's trust tier, the instance that proposed it, and the decision that admitted it. Record that provenance when the promotion is decided rather than reconstructing it later: a hash of the promoted content and of the inputs and tool calls that produced it, attested at the moment of the write. Apply the data classification set at scoping to what may be retained. Apply retention labels and rollback markers. Maintain the audit link from a future decision back to the knowledge that informed it.
+
+Accumulated memory is a change to behavior, made in increments that each pass every check. Promotion volume beyond a threshold set at design time, or the passage of a fixed interval, triggers the re-baselining that section 3.7 requires of any other behavioral change.
+
+**Gate.** Nothing becomes durable without provenance and a policy check made outside the proposing context. Ephemeral context and approved durable memory are distinguishable at the storage layer, not only by convention. Everything derived from a given source over a given period can be identified and purged, because the day a source is found to be poisoned is the day that capability is needed.
 
 ### 3.7 Maintenance
 
@@ -294,7 +322,7 @@ Migration cost concentrates in the first and last of these. Most organizations a
 | 1. Behavior fixed at build | Scoping and design | Admission, runtime, maintenance |
 | 2. Reviewable artifact is code | Development | Supply chain, maintenance |
 | 3. Identity is a service account | Admission and deployment | Runtime |
-| 4. Testing approximates production | Admission and deployment | Runtime |
+| 4. Testing approximates production | Admission and deployment | Runtime, reflection and knowledge consolidation |
 | 5. Retirement is deletion | Decommissioning | Reflection and knowledge consolidation |
 
 No assumption is repaired by a single phase, which is the point of framing the lifecycle this way. A gate is only as good as the evidence produced upstream of it and the enforcement downstream.
@@ -369,6 +397,7 @@ A reader who disagrees with a phase is invited to attack the assumption it deriv
 [^12]: CoSAI WS4. *Taxonomy for framing and scoping ADLC during security assessments.* https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/130
 [^13]: CoSAI WS4. *RFC: Evidence sufficiency, and what a verifier may conclude when evidence is absent.* https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/189
 [^14]: Weng, Lilian. *Harness Engineering for Self-Improvement*, 4 July 2026. https://lilianweng.github.io/posts/2026-07-04-harness/
+[^15]: CoSAI WS2. *AI Shared Responsibility Framework*, May 2026. https://www.coalitionforsecureai.org/wp-content/uploads/2026/05/CoSAI-Shared-Responsibility-Framework.pdf
 
 ---
 
@@ -450,7 +479,7 @@ Participants in the lifecycle work from which this paper is drawn, listed alphab
 | 3 | Development | Policy surface under change control at parity with code |
 | 4 | Admission and deployment | Identity bound, prerequisites verified, baseline recorded. Unmet prerequisites block deployment |
 | 5 | Runtime | Continuous enforcement, evidence, and demonstrated intervention capability |
-| 6 | Reflection and knowledge consolidation | Nothing becomes durable without provenance and a policy check |
+| 6 | Reflection and knowledge consolidation | Nothing becomes durable without provenance and a policy check made outside the proposing context. Everything derived from a source can be traced and purged |
 | 7 | Maintenance | No change to the policy surface or a prerequisite reaches production without re-baselining |
 | 8 | Decommissioning | Teardown evidenced, not asserted; terminal state and its effective time published |
 
