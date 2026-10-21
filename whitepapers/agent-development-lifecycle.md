@@ -267,7 +267,7 @@ Apply instrumentation to allow for [decommissioning](#38-decommissioning) will l
 
 Each of these is versioned, reviewed by someone other than its author, and revertible independently of the code around it.
 
-**Gate.** The policy surface is under change control at parity with code, and a reviewer can answer *what authority does this agent hold* by reading it.
+**Gate.** The policy surface is under change control at parity with code, and a reviewer can answer what authority the agent holds, and why, by reading it. Each reviewed revision is identifiable for [admission](#34-admission-and-deployment).
 
 ### 3.4 Admission and deployment
 
