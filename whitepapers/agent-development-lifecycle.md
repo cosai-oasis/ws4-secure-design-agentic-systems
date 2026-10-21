@@ -289,7 +289,9 @@ Enforce continuously what was verified once. The agent presents its identity for
 
 Verification continues too. Prerequisites that passed at admission can regress, and a platform that stops meeting a requirement should surface as an alert rather than as an incident.
 
-**Gate.** Continuous. An agent operating without enforcement, evidence, and intervention capability has left the lifecycle rather than progressed through it.
+Observed effects are evidence only within their recorded coverage. A monitor that attached after a call, was paused, or could not see a channel leaves a gap, and a gap cannot establish that nothing happened in it. The portable result for that check keeps `not_established` (containment clause C7, [#269](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/pull/269)) with its reason and the named gap, such as the interval between the call and the observer attaching, instead of folding it into a pass. The candidate conformance cases for RFC 189 [^13] include this case.
+
+**Gate.** Continuous. An agent operating without enforcement, evidence, and intervention capability has left the lifecycle rather than progressed through it. A gap in the evidence is reported as `not_established` for that gap, never as clean.
 
 ### 3.6 Reflection and knowledge consolidation
 
