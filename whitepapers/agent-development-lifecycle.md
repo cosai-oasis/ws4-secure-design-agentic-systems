@@ -453,11 +453,10 @@ A reader who disagrees with a phase is invited to attack the assumption it deriv
 
 - Courtenay Ngo, Microsoft
 
-**Working group leads**
+**ADLC SIG leads**
 
-- Courtenay Ngo, Microsoft
 - Emrick Donadei, Google
-- Jennings Aske, SailPoint
+- Courtenay Ngo, Microsoft
 - Matthew Gladney, NVIDIA
 - Emeritus: Parul Singh, Red Hat, who wrote the scope document and the working analysis this paper is drawn from
 
@@ -469,20 +468,25 @@ Participants in the lifecycle work from which this paper is drawn, listed alphab
 - Salim Afiune Maya
 - Sanjeev Agarwal
 - Justin Albrethsen
+- Jennings Aske, SailPoint
 - Doyin Awofodu
 - Kevin Calloway
 - John Cavanaugh
 - Brett Connor, Cisco
+- Sankalp Gilda
 - Kathleen Goeschel, Red Hat
 - Yassine Ilmi
 - Jason Keirstead
+- Navneet Keshav, Lenovo
 - David LaBianca, Google
 - Valdez Ladd
 - Chooi Low
 - Victor Lu
+- Mike McPhee
 - Alan Messer
 - Nicolai Nielsen
 - Karttik Panda
+- Swapnil Pawar, Apex Fintech Solutions
 - David Pierce
 - Susmitha Pillarisetty
 - Rithikha Rajamohan
