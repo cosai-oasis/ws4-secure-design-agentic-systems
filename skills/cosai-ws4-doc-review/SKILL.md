@@ -18,7 +18,7 @@ allowed-tools:
 - "Bash(gh pr view:*)"
 - "Bash(gh pr diff:*)"
 - "Bash(gh issue view:*)"
-- "Bash(gh api:*)"
+- "Bash(gh issue list:*)"
 - "Bash(git fetch origin pull/*)"
 - "Bash(git worktree add /tmp/ws4-review-*)"
 - "Bash(git worktree remove /tmp/ws4-review-*)"
@@ -198,7 +198,7 @@ linter cannot do any of this.
    one section exist where they are defined?
 10. **Versioning (§3.5).** Is there a version, a date, and a changelog or
     errata list? For a PR that changes an approved paper's Markdown, does the
-    PR also change its PDF?
+    PR also change its PDF? All merged into `main` must also update the PDF.
 
 #### RFCs (STYLE_GUIDE.md Part 2)
 
@@ -221,8 +221,10 @@ linter cannot do any of this.
    reviewed white paper covering A, B, and C, with a worked example of D" is.
 6. **Relationship to existing work (§2.3).** Check the claim of
    non-duplication yourself. Search `whitepapers/`, `practical-guides/`,
-   `RFCs/`, and the RFC issues (`gh issue list --label rfc --state all` via
-   `gh api` if needed) for overlapping work, and name anything the RFC missed.
+   `RFCs/`, and the RFC issues with
+   `gh issue list --label rfc --state all --limit 1000` for overlapping work,
+   and name anything the RFC missed. Use `gh issue view` to inspect a listed
+   issue when its title alone is insufficient.
 7. **Problem has evidence (§2.3).** Is the gap supported with citations, or
    only asserted?
 8. **Template text (§2.2).** The linter catches verbatim template prompts.

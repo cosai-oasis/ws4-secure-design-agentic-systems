@@ -49,7 +49,7 @@ An RFC proposes a piece of work for the workstream. It is not the work. The RFC 
 
 A reader who has never attended a meeting and has never read the issue thread should be able to understand the RFC and decide whether to support it.
 
-- **Required.** Do not rely on context outside the document. Avoid phrases such as "as discussed in the TSC", "per last week's call", or "Omar's thoughts". State the point and credit people in the Authors list.
+- **Required.** Do not rely on context outside the document. Avoid phrases such as "as discussed in the TSC", "per last week's call", or "Jane Doe's thoughts". State the point and credit people in the Authors list.
 - **Required.** Delete the template's prompt text ("Are there any reasons why we should not do this?") and replace it with your answers. Write "None identified" if that is the answer.
 - **Allowed.** Because an RFC is a process document, it may link to the issue it came from and to related RFCs.
 
