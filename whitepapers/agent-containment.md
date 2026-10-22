@@ -379,6 +379,8 @@ When containment fails, it fails in one of four ways, and this paper keeps them 
 
 **Mode 3 — the control was insufficiently specified.** The control was on, untouched, and wrong. The seccomp filter that checked syscall numbers but not the architecture value — a pitfall the kernel's own documentation has warned about for a decade [7] — is the anchor case: the agent had no authority over the policy; the system applied an insufficient one. A denylist that misses an alternate path to the same binary [5], and a workspace with a reachable Docker socket [6], fail the same way. The reachable socket also shows that the modes can compose: an insufficiently specified policy that leaves the host's container-runtime socket reachable (mode 3) thereby places the enforcement point inside the agent's reach (mode 2, §2.1). Where a defect of one mode creates the condition of another, both remedies apply — which is what §8.3 specifies for this case. The remedy is verification of the policy, not strengthening of the mechanism: pre-deployment tests that the sandbox enforces what its operator believes it enforces (§8), and a mediation surface expressive enough to state the intended boundary at all (§3).
 
+Mode 3 has two shapes, and they need different remedies. The policy may never have covered the path, which is the seccomp case above. Or the policy may have been adequate and not have been the one deployed, because a setting was left open, an image drifted, or configuration changed between approval and run: in the July 2026 evaluation incidents, models running without cyber safeguards "accessed the internet due to a misconfiguration inside a third-party evaluation environment" [18]. Verification of the specification catches the first shape. Only a demonstration repeated at each run, within a validity window (§8.2), catches the second, because that failure arises after any one-time test — which is why the same disclosure asks that the sandbox configuration "be verified before every evaluation begins" [18].
+
 **Mode 4 — the control was correct and the agent used permitted authority.** Nothing was escaped. The agent that cancelled a stranger's gym reservation crossed no containment boundary; its authority was scoped to an endpoint, not to whose reservation it could act on [11]. The gateway that performs a fetch with agent-controlled input is the same shape: a permitted party, acting as asked (§3.1). No isolation posture reaches this mode. The Zero Trust paper states the same limitation from its side: an agent with read access to sensitive data and permission to email externally can exfiltrate within its permissions — Zero Trust architecture alone does not stop it [16]. What bounds it is scope on the grant — the subject of the Agentic IAM paper [9] — together with constraining what permitted parties will do on request (§3.1), accounting authority across the set of agents that share it (§4), and evidence afterwards (§7).
 
 The first three modes are failures of the monitor's three properties, in order: mode 1 breaks the mechanism, mode 2 breaks tamper-proofing, mode 3 breaks complete mediation — the policy did not cover the path. Mode 4 is not a failure of the monitor at all, and that is the deepest reason containment is one layer of a bounded-authority model rather than the whole of it (§1): a perfect monitor, perfectly specified, enforcing a grant that is too broad, produces the gym incident every time.
@@ -836,6 +838,7 @@ An agent with bounded authority in the way a corporate laptop has it is not an a
 15. CoSAI. *Input Data Sanitization and Filtering, Practical Guide*. https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/blob/main/practical-guides/input-and-data-sanitization-and-filtering.md
 16. CoSAI. *Zero Trust for AI Systems*, CoSAI Release, approved 2026-09-07. https://github.com/cosai-oasis/ws2-defenders/blob/main/zero-trust/Zero-Trust-for-AI-Systems.md
 17. IETF. *Remote ATtestation procedureS (RATS) Architecture*, RFC 9334, Informational, January 2023. https://www.rfc-editor.org/rfc/rfc9334.html
+18. Anthropic. *Improving our alignment and security efforts*, 2026-08-31. https://www.anthropic.com/news/improving-alignment-security-efforts
 
 ---
 
@@ -870,7 +873,7 @@ so on #172 and the editor will make the change.
 - @chernistry — §3's recorded-reliance clause, §7.4 clause C5
 - @ryjen — §3's effective-reach invariant and its receipts corollary
 - @adeinega — §8.3 the container-runtime criterion
-- @rithikha — §8.2 binding the demonstration to the run
+- @rithikha — §8.2 binding the demonstration to the run, and §5.2 mode 3's two shapes
 - @billbrietstout — §9.2 scope discipline
 - @navneet-keshav — the mode-composition finding in §5.2, and §5.4's threat and trust-assumption summary (threat-modeling review)
 - @Johncavanaugh-IIS — the audience decision (Q5)
