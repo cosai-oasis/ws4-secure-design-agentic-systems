@@ -170,7 +170,7 @@ flowchart LR
 
 Because the three dimensions describe the same attack from different angles, a single root word (such as "Transformation") could appear in all three slots. To eliminate ambiguity, each slot strictly follows its generating question:
 
-* **Boundary names** denote the invariant assumed: *Transform Consistency*, *Check-Use Consistency*, *Authorization Stability*, *Grant Persistence*, *Data-Control*.  
+* **Boundary names** denote the invariant assumed: *Transform Consistency*, *Check-Use Consistency*, *Authorization Stability*, *Grant Persistence*, *Data-Control*, *Disclosure Stability*, *Context Confinement*.  
 * **Representation names** denote how influence is embodied: *Transform-Activated*, *Sequence-Dependent*, *Fragmented / Distributed*, *Resource-Amplifying*.  
 * **System Processing Stage names** denote a pipeline location: *Ingestion*, *Transformation*, *Perception / Decoding*, *Interpretation / Decision*, *Generation*, *Action*, *Consumption*, *Feedback*.
 
@@ -212,11 +212,31 @@ The modality-independent claim is not that every implementation is identical. It
 | Video | Transformation-triggered injection (new) | Slate text is unreadable at source resolution; after player letterbox/OCR the diligence agent treats burned-in text as task instructions. | Transformation Differential; Data-Control; Human-Machine Perception | Overt Semantic \+ Transformation-Triggered | Transformation to Perception to Interpretation to Action |
 | Structured | Deserialization / formula / macro as control | CSV cell or JSON field looks like a SKU; spreadsheet formula or YAML tag coerces into a tool argument that deletes a bucket. | Parser / Interpreter Differential; Data-Control | Encoded / Obfuscated \+ Transformation-Triggered | Transformation to Interpretation to Action |
 
+#### Worked Example 2: Training-Data Extraction
+
+A crafted prompt causes a language model to emit sequences memorized from its training data. Nothing is injected and no tool is invoked. Memorized content can surface in ordinary use; the adversary selects queries that raise the rate at which it does, by about 150× against the aligned model in the published attack [18]. The same mechanism recurs in image generation, where diffusion models have been made to reproduce training images [19].
+
+| Dimension | Classification |
+| :---- | :---- |
+| Boundary – Confidentiality | Disclosure Stability (the disclosure the policy permits vs. the disclosure an adversary-selected query obtains; the bound must hold across input instances) |
+| Boundary – Authority | None. No authority gain or tool execution is required; disclosure occurs when the emitted content reaches a recipient the policy does not permit. Add Output-Consumer only where downstream processing activates the disclosure path; Context Confinement does not apply unless protected context information is involved. |
+| Representation | Overt Semantic (a divergence prompt such as a single word repeated, or a prefix taken from public text). Optimized prefixes are possible, but the published attacks did not need them. |
+| System Processing Stage | Ingestion → Interpretation / Decision → Generation → Consumption |
+| Modality | Text; image generation [19] |
+| STRIDE mapping | Information Disclosure |
+| ATLAS mapping | AML.T0057 LLM Data Leakage [20] |
+| NIST context | Privacy attack (data extraction, memorization); inference time; query access to the deployed model sufficed for the published attacks [17][18] |
+| Adversary behavior | Repeated queries with crafted prefixes or divergence prompts; membership inference to rank candidate outputs [17] |
+| Attacker assumptions | Black-box query access; no knowledge of the weights; a query budget |
+| Evidence maturity | Demonstrated (GPT-2, 2021 [17]; ChatGPT, gpt-3.5-turbo, 2023 [18]; image diffusion models, 2023 [19]) |
+
+What the classification adds: STRIDE names the harm, ATLAS the behavior and NIST the threat scenario. The boundary names the invariant the deployment relied on: that what the model discloses stays within the policy across input instances. Output screening and training-time measures (deduplication, differential privacy) can reduce leakage. Rate limits can constrain extraction volume; monitoring supports detection and response. Input controls alone do not establish the disclosure bound.
+
 ### 2.2 Boundary Classes
 
 ### 2.2.1 Formal Invariant Definition
 
-An AI security boundary is a relationship between evaluations or states whose required security property the system depends on. Equality is one useful case; authority and cost also require subset and bound relations. Formally: there is a property *P*, two evaluations *f* and *g* applied to an artifact *a*, and an assumed invariant:
+An AI security boundary is a relationship between evaluations or states whose required security property the system depends on. Equality is one useful case; authority, cost and confidentiality also require subset and bound relations. Formally: there is a property *P*, two evaluations *f* and *g* applied to an artifact *a*, and an assumed invariant:
 
 **The Boundary Invariant Axiom:**
 
@@ -224,7 +244,7 @@ P(f(a)) \= P(g(a))
 
 An attack exploits the boundary by constructing an artifact for which the invariant fails in a security-relevant way—evading a control, altering a decision, gaining authority, activating downstream behavior, or consuming disproportionate resources.
 
-Security boundaries in agentic systems represent the essential invariants that must hold true across transitions, representations, and processing stages. When an adversarial input causes a system to violate one of these invariants, a security boundary is breached. Boundaries are categorized into three core dimensions: **Meaning**, **Authority**, and **Cost**.
+Security boundaries in agentic systems represent the essential invariants that must hold true across transitions, representations, and processing stages. When an adversarial input causes a system to violate one of these invariants, a security boundary is breached. Boundaries are categorized into four core dimensions: **Meaning**, **Authority**, **Cost**, and **Confidentiality**.
 
 #### 2.2.1.1 Meaning (Semantic Integrity)
 
@@ -244,11 +264,21 @@ Cost boundaries govern resource utilization across decoding, vision processing, 
 
 **Examples:** Pathological media decoding (compression bombs causing memory spikes); recursive agent delegation storms causing rapid API budget exhaustion.
 
+#### 2.2.2.4 Confidentiality (Disclosure Scope)
+
+Confidentiality boundaries govern what a recipient can recover from the artifacts a system emits. The invariant is a bound rather than an equality, which Section 2.2.1 allows: the information recoverable from an emitted artifact must stay within what the disclosure policy permits that recipient to receive. A breach occurs when an adversarially constructed input causes the system to release information it holds but may not release to that recipient: memorized training data, the system prompt, retrieved documents, credentials present in the context, or another principal's data in a shared context. No authority gain or tool execution is required; disclosure occurs when protected information becomes available to a recipient the policy does not permit. The disclosure policy is the reference for what counts as a breach; recovering text the recipient may read anyway is not a breach of this boundary.
+
+Two boundaries are named. *Disclosure Stability* (instance differs): the permitted disclosure scope must remain bounded across input instances; an adversary may select queries that increase disclosure. *Context Confinement* (position differs): protected context information must remain within its permitted recipients and purposes as it moves into a response, a tool argument, a log entry or a URL. The taxonomy stays multi-label. Add Output-Consumer when downstream processing activates the disclosure path; add Context Confinement when protected context information crosses its permitted recipient or purpose. The steganographic exfiltration rows in Section 3 are read as protected context hidden in generated output that a downstream component transmits to an unauthorized destination; on that reading they meet both conditions, as does M4 in Section 4.2.
+
+**Examples:** Training-data extraction, where divergence or prefix prompts recover memorized sequences [17][18]; system-prompt extraction (MITRE ATLAS AML.T0056, Extract LLM System Prompt [21]) and leakage of connected data or other users' data (AML.T0057, LLM Data Leakage [20]); context data carried out through a rendered link or image (M4 in Section 4.2).
+
+**Scope note:** Extraction is an adversarially constructed input presented at inference time and is in scope (first In Scope bullet). It does not modify training data or weights, which the Anti-Scope excludes.
+
 ### 2.2.2 The Two Generating Axes
 
 Subclasses are derived systematically by crossing two foundational questions:
 
-1. **Which property is assumed stable?** Meaning (semantic integrity), Authority (authorization scope), or Cost (resource bounding).  
+1. **Which property is assumed stable?** Meaning (semantic integrity), Authority (authorization scope), Cost (resource bounding), or Confidentiality (disclosure scope).  
 2. **What differs between the two evaluations?** Evaluator, artifact state, input instance, time, or pipeline position.
 
 ### 2.2.3 The Boundary Matrix
@@ -260,7 +290,7 @@ All four newly added agentic control loop boundaries are formally anchored:
 | **Meaning** *(Semantic Integrity)* | Human-Machine Perception; Guard-Model Capability; Parser / Interpreter Differential | **Transform Consistency** | Semantic Stability | **Check-Use Consistency** | *(Context loss / framing loss — deferred)* |
 | **Authority** *(Authorization)* | **Delegation Authority** | *(Reached via Data-Control)* | **Authorization Stability** | **Grant Persistence** | Data-Control; Decision-Action; Output-Consumer |
 | **Cost** *(Availability)* | **Resource Accounting:** Single evaluation pair (Estimated admission cost vs. Incurred operational cost) |  |  |  |  |
-| **Confidentiality**  | **TBD** |  |  |  |  |
+| **Confidentiality** *(Disclosure Scope)* | *(Output guard vs. recipient — reached via Guard-Model Capability on the output path)* | *(Reached via Transform Consistency on the output path: metadata, zero-width text)* | **Disclosure Stability** | *(Retention across sessions and users — deferred)* | **Context Confinement**; Output-Consumer where downstream processing activates the disclosure path |
 
 ### 
 
@@ -331,11 +361,12 @@ STRIDE provides a mature set of prompts for what security property can be violat
 | Mechanism example | This paper (Boundary; Representation; Stage) | Likely STRIDE mapping | Why the distinction helps |
 | :---- | :---- | :---- | :---- |
 | Compression bomb / pathological decode (e.g. H.264 DoS) | Resource Accounting; Parser / Interpreter Differential; Encoded / Obfuscated; Transformation | Denial of Service | Cost sits on the Resource Accounting boundary. Availability loss is the STRIDE harm. Do not label the cost as a Representation modifier. |
-| Steganographic output exfiltration | Output-Consumer; Steganographic; Generation to Consumption | Information Disclosure; sometimes Repudiation | Steganography is how the data is carried. Disclosure or repudiation is the harm. |
+| Steganographic output exfiltration | Output-Consumer; Context Confinement; Steganographic; Generation to Consumption | Information Disclosure; sometimes Repudiation | Steganography is how the data is carried. Disclosure or repudiation is the harm. |
 | E1 Image scaling injection | Transformation Differential; Data-Control; Overt Semantic \+ Transformation-Triggered; Transformation to Interpretation to Action | Elevation of Privilege; Tampering | Untrusted image content gains control after resize/OCR. Privilege and control-flow integrity are the harms. |
 | E2 Unicode / entity / URL decode injection | Transformation Differential; Data-Control; Encoded / Obfuscated \+ Transformation-Triggered; Transformation to Interpretation to Action | Elevation of Privilege; Tampering | Same pattern as E1 on text. Encoding is Representation; privilege abuse is STRIDE. |
 | E3 Video sampling evasion (QC miss) | Transformation Differential; Guard-Model Capability; Steganographic; Temporal; Fragmented; Transformation to Perception | Repudiation (false QC attestation); Integrity if the certificate is trusted | The miss is incomplete observation, not injection. STRIDE names the trust harm if someone relies on the clean bill. |
 | E4 Manifest BaseURL hijack | Data-Control; Parser / Interpreter Differential; Overt Semantic; Ingestion to Action | Tampering; Elevation of Privilege (hostile fetch target) | Untrusted structured fields steer what is fetched. Tampering is the main harm; privilege rises if the client acts on the new target. |
+| E5 Training-data extraction | Disclosure Stability; Overt Semantic; Ingestion to Consumption | Information Disclosure | No injection and no authority gain; the disclosure is the harm. The boundary names the bound the output crossed; output screening before release is where that bound is checked. |
 
 This framing lets conventional threat modeling remain useful: identify AI-specific semantic or representational boundaries, then ask which STRIDE properties can be violated at each one. It also avoids creating a second impact taxonomy in this paper.
 
@@ -368,11 +399,12 @@ ATLAS also motivates representing attack paths as sequences of mechanism instanc
 | Mechanism example | This paper (Boundary; Representation; Stage) | ATLAS-style behavior | Why the distinction helps |
 | :---- | :---- | :---- | :---- |
 | Compression bomb / pathological decode | Resource Accounting; Parser / Interpreter Differential; Encoded / Obfuscated; Transformation | Resource consumption / availability attack on the pipeline | ATLAS names what the adversary is trying to do to the system. This paper names where cost was under-counted. |
-| Steganographic output exfiltration | Output-Consumer; Steganographic; Generation to Consumption | Exfiltration via covert channel; possible evasion of output inspection | “Steganography” is Representation here. ATLAS covers the exfil/evasion behavior. |
+| Steganographic output exfiltration | Output-Consumer; Context Confinement; Steganographic; Generation to Consumption | Exfiltration via covert channel; possible evasion of output inspection | “Steganography” is Representation here. ATLAS covers the exfil/evasion behavior. |
 | E1 Image scaling injection | Transformation Differential; Data-Control; Overt Semantic \+ Transformation-Triggered; Transformation to Interpretation to Action | Prompt Injection; if the text is only visible after transform, also Prompt Obfuscation | One ATLAS label can cover several mechanisms. Scaling injection needs different controls than Base64 text injection. |
 | E2 Unicode / entity / URL decode injection | Transformation Differential; Data-Control; Encoded / Obfuscated \+ Transformation-Triggered; Transformation to Interpretation to Action | Prompt Obfuscation / encoding bypass; Prompt Injection when it steers control | Same ATLAS family as other obfuscations; Representation and Stage differ from E1. |
 | E3 Video sampling evasion (QC miss) | Transformation Differential; Guard-Model Capability; Steganographic; Temporal; Fragmented; Transformation to Perception | Evasion of detection / incomplete observation (not classic prompt injection) | ATLAS “evasion” is broad. This paper pins the miss to sampling at Transformation to Perception. |
 | E4 Manifest BaseURL hijack | Data-Control; Parser / Interpreter Differential; Overt Semantic; Ingestion to Action | Application abuse / delivery-path manipulation (use ATLAS AI techniques only if an AI component is in the path) | If no model is involved, keep ATLAS light. This paper still labels the Data-Control break on structured input. |
+| E5 Training-data extraction | Disclosure Stability; Overt Semantic; Ingestion to Consumption | LLM Data Leakage (AML.T0057); extraction through the inference interface | ATLAS names the leak. This paper names the invariant that failed: the disclosure bound holds across input instances, including adversary-selected ones. |
 
 ### 3.3 NIST AML: Threat Characterization
 
@@ -391,11 +423,12 @@ This suggests a compact relationship: our taxonomy finds potential gaps in the p
 | Mechanism example | This paper (where / how the perimeter fails) | NIST-style threat scenario (is a plausible adversary able to exercise it?) |
 | :---- | :---- | :---- |
 | Compression bomb / pathological decode | Resource Accounting at Transformation on Encoded media | Goal: availability loss. Capability: craft or host a decode-expensive file. Knowledge: target decoder / transcoder behavior. Access: upload or partner delivery. Lifecycle: inference / processing time, not training. |
-| Steganographic output exfiltration | Output-Consumer; Steganographic at Generation to Consumption | Goal: confidentiality loss. Capability: induce or observe covert outputs. Knowledge: output channel and any monitors. Access: ability to trigger generation and read the channel. Lifecycle: inference / output handling. |
+| Steganographic output exfiltration | Output-Consumer; Context Confinement; Steganographic at Generation to Consumption | Goal: confidentiality loss. Capability: induce or observe covert outputs. Knowledge: output channel and any monitors. Access: ability to trigger generation and read the channel. Lifecycle: inference / output handling. |
 | E1 Image scaling injection | Transformation Differential \+ Data-Control after resize/OCR | Goal: unauthorized agent action. Capability: supply images. Knowledge: preprocessing (size, OCR). Access: upload / screener path. White-box optional. Lifecycle: inference time. |
 | E2 Unicode / entity / URL decode injection | Same boundaries as E1 on text bytes | Goal: unauthorized control. Capability: supply message bytes. Knowledge: which decoders run before the model. Access: chat, email, or ticket text. Lifecycle: inference time. |
 | E3 Video sampling evasion (QC miss) | Guard-Model Capability; Temporal / Fragmented omission before Perception | Goal: false “clean” decision. Capability: place content between sample points. Knowledge: sampler rate / policy. Access: title under QC. Lifecycle: inference / evaluation time. |
 | E4 Manifest BaseURL hijack | Data-Control on structured manifest at Ingestion to Action | Goal: redirect fetches or crash decode. Capability: inject or replace MPD fields. Knowledge: player BaseURL handling. Access: CDN / session path. Lifecycle: runtime delivery. |
+| E5 Training-data extraction | Disclosure Stability at Generation to Consumption on an Overt Semantic prompt | Goal: confidentiality loss (memorized training data). Capability: issue queries and read outputs. Knowledge: black-box; query access sufficed [17][18]. Access: the inference endpoint. Lifecycle: inference time. |
 
 ### 3.4 CoSAI, OWASP AI Exchange, OpenCRE & MOSAIC
 
@@ -409,16 +442,18 @@ The proposed swimlane for this work is: inference-time perimeter mechanisms for 
 | Resource Accounting Boundary | STRIDE DoS; ATLAS resource-consumption behaviors | Mechanism explains why loss is possible; externals name threat and behavior |
 | Output-Consumer Boundary | Output handling / rendering / trusted-output techniques | Generalizes downstream activation beyond text |
 | Transformation Differential | Preprocessing / canonicalization gaps | Related to input validation; not the same as Data-Control alone |
+| Disclosure Stability / Context Confinement Boundaries | NIST AI 100-2 privacy attacks (data reconstruction, membership inference); OWASP AI Exchange "Disclosure in output" and "Model inversion / Membership inference" | Mechanism names the disclosure bound that failed; externals name the attack and the control family |
 | Mechanism records (examples in other sections) | OpenCRE / MOSAIC mappings | Interoperability without adding framework fields to M (Boundary, Representation, System Processing Stage) |
 
 | Mechanism example | This paper concept | External concept (control / requirement family) | Relation | Use |
 | :---- | :---- | :---- | :---- | :---- |
 | Compression bomb / pathological decode | Resource Accounting | Availability / input-cost / parser robustness requirements | Related | Map to DoS and media-parser controls; not an AI-policy CRE |
-| Steganographic output exfiltration | Output-Consumer; Steganographic | Output handling / egress / covert-channel monitoring | Related to broader | Representation stays in this paper; controls live in output-handling CREs |
+| Steganographic output exfiltration | Output-Consumer; Context Confinement; Steganographic | Output handling / egress / covert-channel monitoring | Related to broader | Representation stays in this paper; controls live in output-handling CREs |
 | E1 Image scaling injection | Data-Control; Transformation-Triggered | Prompt injection / untrusted multimodal input handling | Broader (this paper) / related (named injection CREs) | Use injection CREs when they exist; keep Data-Control as the mechanism id |
 | E2 Unicode / entity / URL decode injection | Data-Control; Encoded / Obfuscated | Input validation / canonicalization / encoding controls | Related | Encoding CREs address Representation; Data-Control still names authority failure |
 | E3 Video sampling evasion (QC miss) | Guard-Model Capability; Temporal omission | Monitoring completeness / evaluation coverage | Related | Not a prompt-injection CRE; join to monitoring / assurance requirements |
 | E4 Manifest BaseURL hijack | Data-Control on structured input | Untrusted structured-input / URL allowlist controls | Exact where those CREs exist; else related | Prefer exact application-security CREs when no model is in the path |
+| E5 Training-data extraction | Disclosure Stability; Overt Semantic | Output screening / data minimization / privacy-preserving training requirements; rate limiting | Related | Output screening and training-time measures can reduce leakage; rate limits can constrain extraction volume; the mechanism id stays Disclosure Stability |
 
 ### 3.5 Takeaways from Multimodal Jailbreak Research 
 <!-- TODO: Why do we have this section? -->
@@ -550,7 +585,7 @@ This example applies the six steps above to one hypothetical system. The attacks
 | M1 | Instruction in the PDF text layer or in document and image metadata that the viewer does not show (B1, B4) | Human-Machine Perception; Parser / Interpreter Differential; Data-Control | Overt Semantic (text layer); Steganographic (metadata fields) | Ingestion → Transformation (text and metadata extraction) → Interpretation / Decision → Generation → Action | Elevation of Privilege; Tampering | Demonstrated for documents and retrieved content [14] |
 | M2 | Image-scaling injection in A3 or a rendered page (B3, B4) | Transform Consistency; Data-Control | Overt Semantic + Transformation-Activated | Transformation (downscale) → Perception / Decoding → Interpretation / Decision → Generation → Action | Elevation of Privilege; Tampering | Demonstrated [13]; Worked Example 1 |
 | M3 | Instruction in the vendor record's notes field, returned by the lookup tool (B4 at Feedback, B5) | Data-Control; Decision-Action | Overt Semantic | Feedback → Interpretation / Decision → Generation → Action | Elevation of Privilege | Demonstrated through a tool-returned artifact [15] |
-| M4 | Invoice or vendor data placed in an image URL inside the notification; the chat client fetches it (B6) | Output-Consumer; Human-Machine Perception | Overt Semantic (Encoded / Obfuscated if the data is encoded in the URL) | Generation → Consumption | Information Disclosure | Demonstrated in a chat renderer (CVE-2025-54132 [16]; Introduction) |
+| M4 | Invoice or vendor data placed in an image URL inside the notification; the chat client fetches it (B6) | Output-Consumer; Context Confinement; Human-Machine Perception | Overt Semantic (Encoded / Obfuscated if the data is encoded in the URL) | Generation → Consumption | Information Disclosure | Demonstrated in a chat renderer (CVE-2025-54132 [16]; Introduction) |
 | M5 | PDF or image crafted to be cheap to admit and expensive to render, decode or OCR (B7) | Resource Accounting; Parser / Interpreter Differential | Encoded / Obfuscated (Intrinsic Amplification) | Ingestion → Transformation | Denial of Service | Feasible; see the compression-bomb row in Section 3.1 |
 | M6 | Vendor record changed between approval and execution (B8, B5) | Check-Use Consistency; Decision-Action | Overt Semantic | Feedback (re-read) → Generation → Action | Tampering; Repudiation (the approver approved something else) | Feasible |
 | M7 | Instruction split between the email body and the attachment; each passes the filter alone, the context joins them (B2, B4) | Transform Consistency; Data-Control | Overt Semantic + Fragmented / Distributed | Ingestion → Transformation (aggregation) → Interpretation / Decision → Action | Elevation of Privilege | Feasible; the Section 4.1 pattern across attachments |
@@ -616,6 +651,11 @@ After the taxonomy is ratified, the next deliverable should be a system threat m
 \[14\] Greshake, K., et al. (2023). Not what you've signed up for: Compromising Real-World LLM-Integrated Applications with Indirect Prompt Injection. https\://arxiv.org/abs/2302.12173  
 \[15\] Invariant Labs (2025). GitHub MCP Exploited: Accessing private repositories via MCP (May 26, 2025). https\://invariantlabs.ai/blog/mcp-github-vulnerability  
 \[16\] NVD. CVE-2025-54132 (Cursor, Mermaid image rendering; fixed in 1.3; published Aug 1, 2025). https\://nvd.nist.gov/vuln/detail/CVE-2025-54132  
+\[17\] Carlini, N., et al. (2021). Extracting Training Data from Large Language Models. USENIX Security 2021. https\://arxiv.org/abs/2012.07805  
+\[18\] Nasr, M., et al. (2023). Scalable Extraction of Training Data from (Production) Language Models. https\://arxiv.org/abs/2311.17035  
+\[19\] Carlini, N., et al. (2023). Extracting Training Data from Diffusion Models. USENIX Security 2023. https\://arxiv.org/abs/2301.13188  
+\[20\] MITRE ATLAS. AML.T0057 LLM Data Leakage. https\://atlas.mitre.org/techniques/AML.T0057  
+\[21\] MITRE ATLAS. AML.T0056 Extract LLM System Prompt. https\://atlas.mitre.org/techniques/AML.T0056  
 
 ## 7\. Acknowledgements
 
