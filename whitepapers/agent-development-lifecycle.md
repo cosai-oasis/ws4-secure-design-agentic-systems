@@ -161,11 +161,15 @@ This is a deliberate limit and it does real work. A document explaining how to c
 
 ### 2.2 Design time is inside the process
 
-Because assumption 1 fails and behavior is not fixed at build, the decisions that constrain behavior cannot be discovered during implementation. They must be made deliberately and recorded before anything is procured or written.
+If behavior is not fixed at build time, you can't find out later what the agent was allowed to do by reading its code. Somebody has to decide that up front and write it down, before anything is bought or built. Like any secure development lifecycle, this one designs the agent against stated security requirements and threat-models it against intended and unintended use. [Section 3.1](#31-scoping-and-design) says how.
 
-Intended use, autonomy bounds, blast radius, data classification, the identity and delegation model, containment posture, and the threat model are lifecycle artifacts in their own right. They are the inputs against which every later gate is evaluated. An admission gate cannot pass or fail an agent without a recorded statement of what that agent was supposed to be permitted to do.
+The written result is the design record: intended use, autonomy bounds, blast radius, data classification, the identity and delegation model, containment posture, and the threat model. It is versioned, and the accountable owner ([section 2.4](#24-every-agent-has-an-accountable-owner)) approves it. Every later gate measures the agent against it. Admission can't pass or fail an agent without it.
 
-This makes design time the first phase rather than a precondition sitting outside the lifecycle. The distinction is not academic. A design activity that sits outside the numbered phases has no gate, produces no required artifact, and is the first thing skipped under delivery pressure.
+A small example. A support agent may read tickets, draft replies and post them. Only a human may close a ticket or issue a refund. That is three lines in the design record. Development turns them into tool permissions and one approval condition. Admission checks that they match the record. At runtime a refund call from the agent fails closed, however the request was worded. That last part is the behavior the proposed Risk Map control "Fail-Closed Agent Authorization" [^19] describes: the agent holds a pruned subset of its principal's permissions, and anything outside that subset is refused.
+
+The paper uses the term containment posture from section 2.1 on, so here is what it means. It covers three things: what the agent must not be able to reach (on the host, over the network, through its tools), what must not be able to reach it, and where the boundaries that enforce this sit, outside the agent. Building those boundaries is the containment paper's subject [^18]. This paper only asks that the posture is decided here and verified at admission.
+
+Design time is therefore the first phase. If it sits outside the numbered phases it has no gate and no required output, and nothing stops a team from skipping it.
 
 ### 2.3 The agent instance is the unit of scope
 
@@ -207,9 +211,17 @@ Eight phases. Each is stated with the assumption it repairs and the gate that mu
 
 *Repairs assumption 1.*
 
-The organization decides what the agent is for and what it may become. Define permitted goals, prohibited goals, and escalation paths. Establish autonomy bounds and the blast radius of a worst-case action. Classify the data the agent may read, write, retain, or disclose. Select the identity and delegation model. Set containment posture. Identify which actions require human approval before execution. Produce a threat model.
+The organization decides what the agent is for and what it may become. Define permitted goals, prohibited goals, and escalation paths. Establish autonomy bounds and the blast radius of a worst-case action. Classify the data the agent may read, write, retain, or disclose. Select the identity and delegation model; ODIS's three layers, passport, bridge and router, are the reference model [^20]. Set containment posture ([section 2.2](#22-design-time-is-inside-the-process)). Identify which actions require human approval before execution. Produce a threat model.
 
-**Gate.** These decisions are recorded before procurement or implementation begins. An unrecorded decision is not a decision; it is an assumption that will be discovered during an incident.
+Write these decisions down as the design record, against a definition revision ([section 2.3](#23-the-agent-instance-is-the-unit-of-scope)), so every instance inherits them. Give each decision an identifier; [development](#33-development) and [admission](#34-admission-and-deployment) point back to it. The accountable owner approves the record and someone other than its author reviews it. Detail scales with criticality (blast radius, data classification, autonomy): a low-risk agent gets a short record. Each human-approval condition says which action, who approves, and how long that may take. If the agent can't wait that long, narrow the action or add a fallback instead of dropping the approval later.
+
+The threat model asks how intended and unintended use could get around those decisions. Name the assets and the assumptions about dependencies. Map data and control flows between users, tools, memory, retrieval sources, identity providers, other agents, and the orchestration platform, and mark where trust or authority changes hands, including where images, audio or video are decoded, resized or transcribed. Cover at least identity and privilege abuse, tool misuse, hijacking or tampering through content the agent reads or remembers, and data disclosure through outputs, tools, or memory. Include delegation, and chains of permitted actions that add up to something prohibited.
+
+Two rules of thumb run through the model. The model can be wrong, or steered by something it read, at any moment, so each constraint on the agent's authority says whether a control outside the model enforces it or whether it relies on the model following instructions ([section 3.3](#33-development) carries that into the policy surface). And an agent that in one session reads untrusted content, reaches private data or sensitive systems, and can change state or send data out has the combination that turns a prompt injection into real damage [^16] [^17]. Remove one of the three, or put a control outside the model, or a human, in front of the action.
+
+Each scenario records how harm could happen, what access it needs, the assets, the impact and its priority, and links to the decision it threatens and the planned treatment. For each control requirement, name the owner, the gate that verifies it, and the evidence that gate takes; at this phase every control is a plan. Record the risk you expect to remain and who has to accept it; the owner accepts residual risk at admission, on evidence. Later gates use the model rather than restate it: [admission](#34-admission-and-deployment) verifies the controls and records the behavioral baseline, [runtime](#35-runtime) ties monitoring to the scenarios, and [maintenance](#37-maintenance) reopens the model when something material changes, including upstream.
+
+**Gate.** The design record and the threat model are approved by the accountable owner, versioned, reviewed by someone other than their author, and kept where every later gate can read them, under the same change control as the policy surface, before procurement or implementation starts. Admission checks that the approval came first.
 
 ### 3.2 Supply chain
 
@@ -431,10 +443,12 @@ A reader who disagrees with a phase is invited to attack the assumption it deriv
 [^12]: CoSAI WS4. *Taxonomy for framing and scoping ADLC during security assessments.* https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/130
 [^13]: CoSAI WS4. *RFC: Evidence sufficiency, and what a verifier may conclude when evidence is absent.* https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/189
 [^14]: Weng, Lilian. *Harness Engineering for Self-Improvement*, 4 July 2026. https://lilianweng.github.io/posts/2026-07-04-harness/
-[^15]: CoSAI WS4. *Agent Containment: From Sandboxing to Bounded Authority.* Working draft, tracks issue #172. https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/172
+[^15]: CoSAI WS2. *AI Shared Responsibility Framework*, May 2026. https://www.coalitionforsecureai.org/wp-content/uploads/2026/05/CoSAI-Shared-Responsibility-Framework.pdf
 [^16]: Meta. *Agents Rule of Two: A Practical Approach to AI Agent Security*, 31 October 2025. https://ai.meta.com/blog/practical-ai-agent-security/
 [^17]: Willison, Simon. *The lethal trifecta for AI agents: private data, untrusted content, and external communication*, 16 June 2025. https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/
-[^15]: CoSAI WS2. *AI Shared Responsibility Framework*, May 2026. https://www.coalitionforsecureai.org/wp-content/uploads/2026/05/CoSAI-Shared-Responsibility-Framework.pdf
+[^18]: CoSAI WS4. *Agent Containment: From Sandboxing to Bounded Authority.* Working draft, tracks issue #172. https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/172
+[^19]: CoSAI. *Control: Fail-Closed Agent Authorization.* Proposed Risk Map control, secure-ai-tooling issue #603, 19 October 2026. https://github.com/cosai-oasis/secure-ai-tooling/issues/603
+[^20]: CoSAI WS4. *ODIS: Open Delegation and Identity Standard*, contributor draft, section 3, the three layers. https://github.com/cosai-oasis/ws4-odis/blob/main/RFCs/ODIS.md#3-architectural-model--the-three-layers
 
 ---
 
@@ -515,7 +529,7 @@ Participants in the lifecycle work from which this paper is drawn, listed alphab
 
 | # | Phase | Gate |
 |---|---|---|
-| 1 | Scoping and design | Intended use, autonomy bounds, blast radius, classification, identity model, containment posture, and threat model recorded before procurement |
+| 1 | Scoping and design | Design record approved by the accountable owner before procurement: goals and escalation paths, autonomy bounds, blast radius, data classification, identity and delegation model, containment posture, human-approval conditions, and a versioned threat model with an owner, a verifying gate, and evidence named for each control requirement |
 | 2 | Supply chain | Every component inventoried, with known provenance and an assigned trust tier |
 | 3 | Development | Policy surface under change control at parity with code |
 | 4 | Admission and deployment | Identity bound, prerequisites verified, baseline recorded. Unmet prerequisites block deployment |
