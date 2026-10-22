@@ -3,14 +3,12 @@ title: "Agent Containment: From Sandboxing to Bounded Authority"
 author: "Workstream 4: Secure Design Patterns for Agentic Systems"
 date: 2026-10-07
 version: 0.3-draft
-status: "Working draft, all sections drafted. Not reviewed, not approved. Tracks issue #172."
+status: "Working draft, all sections drafted. Not reviewed, not approved."
 ---
 
 # Agent Containment: From Sandboxing to Bounded Authority
 
-**Status:** Working draft, all sections drafted. Not reviewed, not approved. Follows on from the WS4 blog post *Treat Your Agent Like an Insider Threat: Why AI Sandboxing Can't Wait* (2026-08-25) and takes as its scope the 21 questions banked from that post's review in [issue #172](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/172).
-
-**How to contribute.** Add material by pull request against this file, referencing [#172](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/172), where the questions behind each section and the contributor credited with each are recorded. Where a section still carries open items, they are stated as such in the text; short contributions against them are as welcome as full prose.
+**Status:** Working draft, all sections drafted. Not reviewed, not approved. Follows on from the WS4 blog post *Treat Your Agent Like an Insider Threat: Why AI Sandboxing Can't Wait* (2026-08-25) and takes as its scope the 21 questions banked from that post's review.
 
 # Table of contents
 
@@ -225,7 +223,7 @@ principal**, and across the delegation subtree that principal roots. A set of N 
 its cap, consumes N caps. Nothing in a per-container model fires, because nothing in it ever sees
 the sum.
 
-The #172 review reached this from two directions. From the sandboxing side: a coordinator that
+The review of the blog post reached this from two directions. From the sandboxing side: a coordinator that
 fans work out to twelve workers, each in a compliant sandbox with a 10 MB/day egress limit, moves
 120 MB through twelve distinct destinations without a single local control tripping. From the
 authority side: the approved *Agentic Identity and Access Management* paper requires scope to
@@ -324,8 +322,8 @@ the fact is a different alert — it means the control failed. Both depend on th
 the join key.
 Every consuming-action record MUST carry the principal and the **full** delegation lineage, not only
 the immediate parent, integrity-protected, so that the subtree aggregate can be reconstructed by
-someone who was not there (§7; this is the "accounting decision" row of the evidence contract in
-#172, which has no OCSF home today).
+someone who was not there (§7; this is the "accounting decision" row of the evidence contract,
+which has no OCSF home today).
 
 ### 4.4 Prior art: colluding applications
 
@@ -667,7 +665,7 @@ The practical guide should bind these concepts to the selected OCSF revision and
 
 ### 7.4 Evidence sufficiency for absence claims
 
-An empty event field cannot establish that nothing happened. The producer may not have been able to see the event, or the observation may have missed part of the interval. This rule applies to a stated property, invocation, time interval and scope. It comes from the [#189 discussion](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/189), split out of [#149](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/149).
+An empty event field cannot establish that nothing happened. The producer may not have been able to see the event, or the observation may have missed part of the interval. This rule applies to a stated property, invocation, time interval and scope. 
 
 | ID | Clause | Source |
 | --- | --- | --- |
@@ -759,7 +757,7 @@ The most concrete criterion offered so far came from the review of the skeleton 
 
 ## 9. Positions
 
-Two questions were raised in the #167 review that this paper is the natural place to answer. Each gets a position or an explicit out-of-scope with its reason, per the purpose of this section.
+Two questions were raised in the review of the blog post that this paper is the natural place to answer. Each gets a position or an explicit out-of-scope with its reason, per the purpose of this section.
 
 ### 9.1 Agent trajectory formats are not the evidence record
 
@@ -864,7 +862,7 @@ An agent with bounded authority in the way a corporate laptop has it is not an a
 Listed by the section each contributed to, whether by merged text or by the
 reasoning a section rests on. Handles are used where no name was given — if your
 entry is wrong, or you would rather appear under your name and affiliation, say
-so on #172 and the editor will make the change.
+so to the editor and the change will be made.
 
 - @imran-siddique — §7 detection and evidence, Appendix A
 - @skvcool-rgb — §4, and §1.1's deployment-shape spine
@@ -894,7 +892,7 @@ so on #172 and the editor will make the change.
 **Purpose.** Evidence the blog post could not carry.
 
 - **A.1 The x32/seccomp result.** A publishable receipt: test harness, models and versions, sandbox configuration (Landlock, Docker network isolation, seccomp-BPF), the exact bypass, and the chained LLM-API relay. Until this appendix exists, the paper cites the result as reported, not as verified.
-- **A.2 The OpenAI / Hugging Face / Artifactory chain.** Primary sources read 2026-09-05 (full detail in the #172 comment of that date); status per claim:
+- **A.2 The OpenAI / Hugging Face / Artifactory chain.** Primary sources read 2026-09-05; status per claim:
   - **Established from Hugging Face's disclosure [14]:** the intrusion into Hugging Face started in their data-processing pipeline — a remote-code dataset loader and a template injection in a dataset configuration, reaching a processing worker — followed by escalation to node-level access, credential harvesting, and lateral movement. Artifactory appears nowhere in that account, and the disclosure affirmatively reports the software supply chain verified clean, container images and published packages included. The blog's sentence merging Artifactory into the Hugging Face breach is wrong; §6 carries the corrected telling.
   - **Established from NVD:** at least ten JFrog CVEs published 2026-07-27, nine naming Artifactory, severities up to a privilege-escalation flaw. Published-same-day is not used-in-the-chain; no CVE record connects itself to the incident, and researcher-credit claims trace to news coverage only. "Zero-day" is characterized directly only by Anthropic [3] — singular, and about OpenAI's escape, not the Hugging Face breach.
   - **Unverified, primary source unread (the cited OpenAI page [2] blocks automated fetches; likely primary source is OpenAI's Black Hat presentation):** 17,600 attacker actions; the 4.5-day duration (secondary accounts give a 9–13 July recovery window while a timeline from the presentation runs 7 May–20 July, so the figure's meaning is unestablished); Kubernetes node root via a service-account token; 181 nodes enrolled in the VPN mesh; attempted CI pipeline poisoning; and Artifactory's exact role in the evaluation-environment escape. None of these may be asserted in the paper until read against the primary source; anything still unverified at first draft is dropped.
