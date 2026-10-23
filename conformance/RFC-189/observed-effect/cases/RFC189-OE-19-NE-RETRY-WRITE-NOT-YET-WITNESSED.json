@@ -1,0 +1,50 @@
+{
+ "against": {
+  "commit": "84604125869469926968acdf433501f87d1d1665",
+  "document": "whitepapers/agent-containment.md",
+  "section": "7.4"
+ },
+ "checker_input": {
+  "context": {
+   "anchored_commitment_digest": "d90a6fdb65ce96f0fa70f4d344bfa889f4e3b9b8e2836d0773b02a25b9ef3dab",
+   "claim_ref": "iv-0404",
+   "observer_key_basis": "published test key, MANIFEST.json keys.observer in vectors-observed-effect; anchored out of band, never read from the record",
+   "observer_public_key": "4f2a59edc8367deb40047ce83ee7f5ce711a57d93abbda9d1ce8588c56a3ce88",
+   "producer_capability": {
+    "claim_ref": "iv-0404",
+    "visible_write_paths": [
+     "/srv/app/"
+    ]
+   }
+  },
+  "evidence": {
+   "observed_effect": {
+    "sha256": "a5fc6e9ad1cdfe9e01010ec8098b8eee771fae4ad8f2d1d4e623e2b9c55046cb",
+    "slug": "retry-effect-not-yet-witnessed",
+    "source": "agent-evidence-vectors==0.16.0",
+    "vector": "va5fc6e9ad1cdfe9e"
+   }
+  },
+  "property": {
+   "name": "no_write_in_scope",
+   "scope": [
+    "/srv/app/orders/"
+   ],
+   "statement": "no write occurred under these paths during the evaluated interval"
+  }
+ },
+ "clauses": [
+  "C1",
+  "C4"
+ ],
+ "expected": {
+  "unmet_obligation": "observation_coverage",
+  "verdict": "not_established"
+ },
+ "id": "RFC189-OE-19-NE-RETRY-WRITE-NOT-YET-WITNESSED",
+ "note": "A tool's response was lost and the agent retried. The independent observer sealed the interval without seeing where the order write would land, and names /srv/app/orders/ as a gap. It saw no write, but that does not establish that none occurred there.",
+ "open_item_dependencies": [
+  "claim_binding"
+ ],
+ "status": "candidate"
+}

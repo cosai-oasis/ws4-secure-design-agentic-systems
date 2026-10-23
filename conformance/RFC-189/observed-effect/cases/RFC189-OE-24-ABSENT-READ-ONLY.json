@@ -1,0 +1,49 @@
+{
+ "against": {
+  "commit": "84604125869469926968acdf433501f87d1d1665",
+  "document": "whitepapers/agent-containment.md",
+  "section": "7.4"
+ },
+ "checker_input": {
+  "context": {
+   "anchored_commitment_digest": "aac59d4d47daa996b1d89dcd98002a628fbb46769512769302df44e083f97da6",
+   "claim_ref": "iv-0002",
+   "observer_key_basis": "published test key, MANIFEST.json keys.observer in vectors-observed-effect; anchored out of band, never read from the record",
+   "observer_public_key": "4f2a59edc8367deb40047ce83ee7f5ce711a57d93abbda9d1ce8588c56a3ce88",
+   "producer_capability": {
+    "claim_ref": "iv-0002",
+    "visible_write_paths": [
+     "/srv/app/"
+    ]
+   }
+  },
+  "evidence": {
+   "observed_effect": {
+    "sha256": "162352770f2f6c1cd861685e8e84c85603948b324cfa58752e7ad9dd76747da8",
+    "slug": "mutation-none-read-only",
+    "source": "agent-evidence-vectors==0.16.0",
+    "vector": "v162352770f2f6c1c"
+   }
+  },
+  "property": {
+   "name": "action_outcome",
+   "scope": [
+    "/srv/app/"
+   ],
+   "statement": "whether the invoked action's write landed under these paths"
+  }
+ },
+ "clauses": [
+  "C4"
+ ],
+ "expected": {
+  "outcome": "absent",
+  "unmet_obligation": null
+ },
+ "id": "RFC189-OE-24-ABSENT-READ-ONLY",
+ "note": "Case 01's evidence asked about the action's outcome: complete independent coverage, write visibility for the invocation, and no write observed, so the absence is determined.",
+ "open_item_dependencies": [
+  "claim_binding"
+ ],
+ "status": "candidate"
+}

@@ -1,0 +1,50 @@
+{
+ "against": {
+  "commit": "f805565c24f872cfb706451992fd05a1542fa221",
+  "document": "whitepapers/agent-containment.md",
+  "section": "7.4"
+ },
+ "checker_input": {
+  "context": {
+   "anchored_commitment_digest": "e8e87a1ae54d5fad9ed3b37217112b8700acaa70d0aa2f7b1ce706da52b8e35f",
+   "claim_ref": "iv-0406",
+   "observer_key_basis": "published test key, MANIFEST.json keys.observer in vectors-observed-effect; anchored out of band, never read from the record",
+   "observer_public_key": "4f2a59edc8367deb40047ce83ee7f5ce711a57d93abbda9d1ce8588c56a3ce88",
+   "producer_capability": {
+    "claim_ref": "iv-0406",
+    "visible_write_paths": [
+     "/srv/app/"
+    ]
+   }
+  },
+  "evidence": {
+   "observed_effect": {
+    "sha256": "856e6ba1445290e772ef25f6c24d885b99879d57ac8894716359d4f9a9547902",
+    "slug": "write-observed-with-coverage-not-established",
+    "source": "agent-evidence-vectors==0.20.0",
+    "vector": "v856e6ba1445290e7"
+   }
+  },
+  "property": {
+   "name": "no_write_in_scope",
+   "scope": [
+    "/srv/app/"
+   ],
+   "statement": "no write occurred under these paths during the evaluated interval"
+  }
+ },
+ "clauses": [
+  "C3",
+  "C7"
+ ],
+ "expected": {
+  "unmet_obligation": null,
+  "verdict": "fail"
+ },
+ "id": "RFC189-C7-02-FAIL-WITNESS-COVERAGE-NOT-ESTABLISHED",
+ "note": "The same undetermined coverage, but the observer saw writes under /srv/app/. An admissible observation of the prohibited event settles fail under C3 without complete coverage, as the last sentence of C7 says.",
+ "open_item_dependencies": [
+  "claim_binding"
+ ],
+ "status": "candidate"
+}
