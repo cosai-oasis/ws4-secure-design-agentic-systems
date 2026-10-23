@@ -430,6 +430,14 @@ def _absence_verdict(
     # A negative needs complete coverage of the property scope for the interval.
     # A gap the record names is a gap it did not watch.
     coverage = observation["coverage"]
+    # C7's third shape: the record says coverage could not be determined, and
+    # why. Its empty gap list is not complete coverage, so no negative passes.
+    if coverage.get("notEstablished"):
+        return _not_established(
+            OBSERVATION_COVERAGE,
+            "the record states that coverage could not be determined: "
+            f"{coverage['notEstablished']}",
+        )
     blind = (
         []
         if coverage["scopeComplete"]

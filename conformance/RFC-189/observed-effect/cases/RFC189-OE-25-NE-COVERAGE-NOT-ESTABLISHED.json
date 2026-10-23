@@ -1,0 +1,50 @@
+{
+ "against": {
+  "commit": "84604125869469926968acdf433501f87d1d1665",
+  "document": "whitepapers/agent-containment.md",
+  "section": "7.4"
+ },
+ "checker_input": {
+  "context": {
+   "anchored_commitment_digest": "80887323572156af1b8b842b97a0607a999ebd3079d286f93d43c7dd9787bd83",
+   "claim_ref": "iv-0401",
+   "observer_key_basis": "published test key, MANIFEST.json keys.observer in vectors-observed-effect; anchored out of band, never read from the record",
+   "observer_public_key": "4f2a59edc8367deb40047ce83ee7f5ce711a57d93abbda9d1ce8588c56a3ce88",
+   "producer_capability": {
+    "claim_ref": "iv-0401",
+    "visible_write_paths": [
+     "/srv/app/"
+    ]
+   }
+  },
+  "evidence": {
+   "observed_effect": {
+    "sha256": "af2adbfde5df9b4c416671d4faf19b941f1d9dca503403ac2ec19683b6f8af71",
+    "slug": "coverage-not-established-with-reason",
+    "source": "agent-evidence-vectors==0.25.0",
+    "vector": "vaf2adbfde5df9b4c"
+   }
+  },
+  "property": {
+   "name": "no_write_in_scope",
+   "scope": [
+    "/srv/app/"
+   ],
+   "statement": "no write occurred under these paths during the evaluated interval"
+  }
+ },
+ "clauses": [
+  "C4",
+  "C7"
+ ],
+ "expected": {
+  "unmet_obligation": "observation_coverage",
+  "verdict": "not_established"
+ },
+ "id": "RFC189-OE-25-NE-COVERAGE-NOT-ESTABLISHED",
+ "note": "The record is valid, names no gap and saw no write, but its coverage statement is not_established with a reason: the audit buffer overflowed and dropped events without recording their paths. C7's third shape. An empty gap list here is not complete coverage, so the claim cannot pass.",
+ "open_item_dependencies": [
+  "claim_binding"
+ ],
+ "status": "candidate"
+}

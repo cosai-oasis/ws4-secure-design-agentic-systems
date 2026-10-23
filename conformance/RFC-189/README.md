@@ -66,6 +66,9 @@ The reference verifier in the [agent-evidence-vectors](https://pypi.org/project/
 | 22 | record 19's interval claiming the authoritative tier over its blind spot | outcome `pending` / `observation_coverage` | C1, C4 |
 | 23 | case 10's self-reported write, asked whether the action wrote | outcome `pending` / `observation_vantage` | C1, C3 |
 | 24 | case 01's read-only interval, asked whether the action wrote | outcome `absent` | C4 |
+| 25 | no write seen, coverage stated as `not_established` with its reason | `not_established` / `observation_coverage` | C4, C7 (open) |
+
+Case 25 is the third shape a coverage statement can take: the observer says it could not determine coverage, and says why (its audit buffer dropped events without recording their paths). The record names no gap and saw no write, and the claim is still `not_established`. A checker that reads an empty gap list as complete coverage passes it, which is the vacuous pass a malformed case 06 is refused for.
 
 Cases 03, 04 and 05 are the reason naming a gap matters: in all three the checker reads valid records that name /srv/app/vendor/ as unobserved, and it reaches three different verdicts. The same record cannot support "nothing changed under /srv/app/", yet it fully supports "nothing changed under /srv/app/src/", and a write it did see still settles `fail`.
 
@@ -108,7 +111,7 @@ Section 7.4 names three open items. Each case file lists the ones its expected r
 | Open item | Settled the other way, for the measurement | Cases whose result changes |
 | --- | --- | --- |
 | Gap naming | incomplete coverage that locates no gap is a well-formed unknown coverage state, so the claim is `not_established` | 06 |
-| Claim binding | the checker requires provenance evidence for the prior commitment, which these fixtures only stipulate | 01, 02, 03, 04, 05, 16, 17, 18, 19, 20, 21, 24 |
+| Claim binding | the checker requires provenance evidence for the prior commitment, which these fixtures only stipulate | 01, 02, 03, 04, 05, 16, 17, 18, 19, 20, 21, 24, 25 |
 | Observation vantage | a claim of independent observation from the observed party's own vantage is a processing failure of its own | 08 |
 
 The same list also carries one premise the cases stipulate rather than an open item of the text, measured the same way:

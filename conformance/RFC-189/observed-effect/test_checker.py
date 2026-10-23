@@ -161,6 +161,26 @@ class Checker(unittest.TestCase):
         self.assertEqual(checker.evaluate(narrow)["verdict"], "pass")
         self.assertEqual(checker.evaluate(vendor)["verdict"], "not_established")
 
+    def test_coverage_not_established_cannot_pass_and_a_write_still_fails(self) -> None:
+        undetermined = run.build_input(load("RFC189-OE-25-NE-COVERAGE-NOT-ESTABLISHED"))
+        result = checker.evaluate(undetermined)
+        self.assertEqual(result["verdict"], "not_established")
+        self.assertEqual(result["unmet_obligation"], "observation_coverage")
+        self.assertIn("audit buffer overflowed", result["reason"])
+        case = load("RFC189-OE-25-NE-COVERAGE-NOT-ESTABLISHED")
+        spec = case["checker_input"]
+        spec["evidence"]["observed_effect"].update(
+            vector="v856e6ba1445290e7",
+            sha256="856e6ba1445290e772ef25f6c24d885b99879d57ac8894716359d4f9a9547902",
+            slug="write-observed-with-coverage-not-established",
+        )
+        spec["context"]["anchored_commitment_digest"] = (
+            "e8e87a1ae54d5fad9ed3b37217112b8700acaa70d0aa2f7b1ce706da52b8e35f"
+        )
+        spec["context"]["claim_ref"] = "iv-0406"
+        spec["context"]["producer_capability"]["claim_ref"] = "iv-0406"
+        self.assertEqual(checker.evaluate(run.build_input(case))["verdict"], "fail")
+
     def test_equal_verdicts_keep_distinct_evaluations(self) -> None:
         first_input = run.build_input(load("RFC189-OE-03-NE-NAMED-GAP"))
         second_input = copy.deepcopy(first_input)
