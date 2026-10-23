@@ -2,7 +2,7 @@
 
 The rule under test is section 7.4, "Evidence sufficiency for absence claims",
 of `whitepapers/agent-containment.md` as merged into `feat/containment` at
-84604125 (see ../README.md for the clauses and the #189 comments each comes
+05bed163 (see ../README.md for the clauses and the #189 comments each comes
 from). The paper is a working draft, so every case this checker grades is a
 candidate case pinned to that text, not a conformance requirement.
 
@@ -23,7 +23,7 @@ Properties implemented:
   scope, reported in section 7's observation states: `present`, `absent` or
   `pending`. C1 keeps an unknown action outcome `pending` after the reporting
   window ends; it never becomes `not_established`.
-- `observer_independence`, the three-condition independence test proposed for
+- `observer_independence`, the three-condition independence test of
   section 7.4: "the observer of this record is independent of the named
   producer for this claim." The text lets each condition's evidence come from
   trusted evaluation context. This checker takes that evidence as a stipulated
@@ -76,7 +76,7 @@ ADMISSIBLE_OBSERVATION = "admissible_observation"
 INVOCATION_BINDING = "invocation_binding"
 PRODUCER_CAPABILITY_COVERAGE = "producer_capability_coverage"
 
-# The independence test proposed for section 7.4 on #240: three conditions,
+# The independence test of section 7.4, merged through #240: three conditions,
 # each established by evidence carried in or referenced from the record. The
 # order is the order the text lists them, and the first unmet one is named.
 # The evidence itself is a stipulated premise here (see _evidence_stipulated).

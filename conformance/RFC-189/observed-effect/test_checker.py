@@ -288,8 +288,6 @@ def _unchanged(inp: dict[str, Any]) -> dict[str, Any]:
 
 # Each open item of section 7.4, settled the other way. A case depends on an
 # open item exactly when its graded outcome changes under that resolution.
-# - gap_naming: incomplete coverage that locates no gap is a well-formed
-#   unknown coverage state, so the claim is not_established, not malformed.
 # - claim_binding: a checker that requires provenance evidence for the prior
 #   commitment, which these fixtures only stipulate, at the point where binding
 #   is checked now.
@@ -303,15 +301,6 @@ OPEN_ITEMS: dict[
         Callable[[dict[str, Any]], dict[str, Any]],
     ],
 ] = {
-    "gap_naming": (
-        lambda: _reference_verifier_reads(
-            "malformed",
-            "coverage-incomplete-without-gaps",
-            "invalid",
-            "authoritative-coverage-incomplete",
-        ),
-        _unchanged,
-    ),
     "claim_binding": (nullcontext, _without_stipulated_commitment),
     "observation_vantage": (
         lambda: _reference_verifier_reads(

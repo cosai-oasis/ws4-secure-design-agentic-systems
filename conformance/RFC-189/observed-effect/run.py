@@ -24,13 +24,14 @@ import checker
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
-# The text every case is graded against: section 7.4 as merged through #219.
-# Repinning the cases to an amended 7.4 changes this constant and every case
-# file together, so no case can silently stay graded against older text.
+# The text every case is graded against: section 7.4 as merged into
+# feat/containment, through #219, #240, #269 and #270. Repinning the cases to
+# an amended 7.4 changes this constant and every case file together, so no
+# case can silently stay graded against older text.
 AGAINST = {
     "document": "whitepapers/agent-containment.md",
     "section": "7.4",
-    "commit": "84604125869469926968acdf433501f87d1d1665",
+    "commit": "05bed163b211152fc1b969e3932847164c2efeb3",
 }
 STATUS = "candidate"
 FAILURES = (
@@ -104,15 +105,8 @@ def outcome(checker_input: dict[str, Any]) -> dict[str, Any]:
     return {axis: result[axis], "unmet_obligation": result["unmet_obligation"]}
 
 
-# The observer-independence cases are graded against the independence test
-# proposed for 7.4 on #240, as worded in the commit below, not against the
-# merged 7.4: that test is not merged text yet.
-AGAINST_INDEPENDENCE = {
-    "document": "whitepapers/agent-containment.md",
-    "section": "7.4",
-    "commit": "672b8c50502274be634b05c6a11a7ad69330936b",
-}
-PINS = {"RFC189-OE-": AGAINST, "RFC189-IND-": AGAINST_INDEPENDENCE}
+# Both case sets now read merged text, so both carry the same pin.
+PINS = {"RFC189-OE-": AGAINST, "RFC189-IND-": AGAINST}
 
 
 def check_pin(case: dict[str, Any]) -> None:

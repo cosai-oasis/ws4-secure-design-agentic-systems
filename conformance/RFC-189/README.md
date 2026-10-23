@@ -1,12 +1,12 @@
 # Section 7.4 candidate cases: what a verifier may conclude when evidence is absent
 
-These are executable cases for [section 7.4 of the containment paper](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/blob/84604125869469926968acdf433501f87d1d1665/whitepapers/agent-containment.md#74-evidence-sufficiency-for-absence-claims), merged into `feat/containment` at `84604125` through [#219](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/pull/219), and [issue #189](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/189). Every case file carries `"status": "candidate"` and an `against` block naming that file, section and commit; `run.py` refuses a case pinned to any other text. The cases stay non-normative until the paper is approved, as section 7.4 says. When an amendment changes 7.4, the pin, the clause table below and the expectations move together in one commit.
+These are executable cases for [section 7.4 of the containment paper](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/blob/05bed163b211152fc1b969e3932847164c2efeb3/whitepapers/agent-containment.md#74-evidence-sufficiency-for-absence-claims), merged into `feat/containment` at `05bed163` through [#219](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/pull/219), [#240](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/pull/240), [#269](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/pull/269) and [#270](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/pull/270), and [issue #189](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/189). Every case file carries `"status": "candidate"` and an `against` block naming that file, section and commit; `run.py` refuses a case pinned to any other text. The cases stay non-normative until the paper is approved, as section 7.4 says. When an amendment changes 7.4, the pin, the clause table below and the expectations move together in one commit.
 
 Case leads, named in section 7.4: @aeoess and @astrogilda ([proposal](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/189#issuecomment-5827010158), [Imran's reply](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/189#issuecomment-5827685232)).
 
 ## The rule, clause by clause
 
-C1-C6 are the clauses of section 7.4 as merged at `84604125`, worded as there. C7 and C8 remain open proposals. Section 7.4 names them as open items: C7 is gap naming, C8 is the observation vantage claim. Its third open item, the independent witness for the prior commitment, is the C5 binding question below. The case files cite these IDs.
+C1-C7 are the clauses of section 7.4 as merged at `05bed163`, worded as there. C8 remains open: section 7.4 lists the observation vantage claim as an open item with a proposed resolution, that such a claim fails the first condition of the independence test and is self-reported under C3. Its other open item, how the prior commitment is joined to the invocation before it runs, is the C5 binding question below. The case files cite these IDs.
 
 | ID | Clause | Source |
 | --- | --- | --- |
@@ -16,8 +16,8 @@ C1-C6 are the clauses of section 7.4 as merged at `84604125`, worded as there. C
 | C4 | A claim that no event occurred over a scope passes only when the producer could see the relevant field for the invocation and the observation covers the evaluated interval. A present but empty field needs the same premises as a missing field. If either premise is unestablished or bound to another scope, return `not_established` with the missing obligation. Coverage can be established by another verifier surface. | [aeoess](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/189#issuecomment-5702083982), [darklordVirtual](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/189#issuecomment-5630431104), [imran-siddique](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/189#issuecomment-5739339967) |
 | C5 | Coverage must be bound to the claim or invocation it covers. A complete record for one call cannot establish completeness for another. Matching identifiers alone do not prove that binding; an authenticated identifier inside the observation still needs an independently established join to the evaluated invocation. | [chernistry](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/189#issuecomment-5710166163), [imran-siddique](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/189#issuecomment-5745298467) |
 | C6 | Checker input and harness expectation stay structurally separate. The expected verdict and obligation are authored, so they are never visible to the inference that derives the result. | [darklordVirtual](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/189#issuecomment-5630431104), [aeoess](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/189#issuecomment-5638613689) |
-| C7 (open) | An observation that declares incomplete coverage without locating its gap is malformed; explicit unknown coverage can remain `not_established`. | [astrogilda](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/189#issuecomment-5827010158) |
-| C8 (open) | A claim of independent observation made from the observed party's own vantage is refused. It supports neither `pass` nor `fail`. | proposed here, case 08 |
+| C7 | A coverage statement takes one of three well-formed shapes: complete over the evaluated property, invocation, interval and scope; incomplete, with every gap located by the path, field, resource or sub-interval it did not observe; or `not_established`, with the reason coverage could not be determined. A statement of incomplete coverage that locates no gap is malformed and, under C2, a processing failure. Its empty gap list would vacuously pass any test that each named gap lies outside the scope, and a checker that accepted it would let an admitted blind spot pass C4. A located gap outside the evaluated scope leaves C4's coverage premise intact. A gap inside it returns `not_established` naming the gap, while an admissible observation of the prohibited event elsewhere in the scope still settles `fail` under C3. | [astrogilda](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/189#issuecomment-5827010158), [imran-siddique](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/189#issuecomment-5827685232), [astrogilda](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/189#issuecomment-5859188410), [imran-siddique](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/172#issuecomment-5937506235) |
+| C8 (open) | A claim of independent observation made from the observed party's own vantage is refused. It supports neither `pass` nor `fail`. | proposed here, case 08; section 7.4's proposed resolution |
 
 The containment paper's section 7 states the same boundary for evidence records: missing visibility or incomplete observation is `not_established` with its missing premise, and malformed records stay visible as processing failures. These cases exercise both texts.
 
@@ -40,14 +40,14 @@ The reference verifier in the [agent-evidence-vectors](https://pypi.org/project/
 
 ## Cases
 
-| Case | Record | Expected under 7.4 at `84604125` | Clauses |
+| Case | Record | Expected under 7.4 at `05bed163` | Clauses |
 | --- | --- | --- | --- |
 | 01 | read-only interval, complete coverage | `pass` | C4 |
 | 02 | two writes observed in scope | `fail` | C3 |
 | 03 | no write seen, a named gap inside the scope | `not_established` / `observation_coverage` | C1, C4 |
 | 04 | record 03, claim narrowed to a path the gap does not touch | `pass` | C4, C5 |
 | 05 | a named gap, and a write observed in scope anyway | `fail` | C3 |
-| 06 | incomplete coverage, no gap named | processing failure, `coverage-incomplete-without-gaps` | C2, C7 (open) |
+| 06 | incomplete coverage, no gap named | processing failure, `coverage-incomplete-without-gaps` | C2, C7 |
 | 07 | complete coverage claimed, gap named in scope | processing failure, `coverage-self-contradictory` | C2 |
 | 08 | the observed party's own record claiming independence | `not_established` / `observation_vantage` | C1, C8 (open) |
 | 09 | record 03 claiming independence over its own gap | `not_established` / `observation_coverage` | C1, C4 |
@@ -66,7 +66,7 @@ The reference verifier in the [agent-evidence-vectors](https://pypi.org/project/
 | 22 | record 19's interval claiming the authoritative tier over its blind spot | outcome `pending` / `observation_coverage` | C1, C4 |
 | 23 | case 10's self-reported write, asked whether the action wrote | outcome `pending` / `observation_vantage` | C1, C3 |
 | 24 | case 01's read-only interval, asked whether the action wrote | outcome `absent` | C4 |
-| 25 | no write seen, coverage stated as `not_established` with its reason | `not_established` / `observation_coverage` | C4, C7 (open) |
+| 25 | no write seen, coverage stated as `not_established` with its reason | `not_established` / `observation_coverage` | C4, C7 |
 
 Case 25 is the third shape a coverage statement can take: the observer says it could not determine coverage, and says why (its audit buffer dropped events without recording their paths). The record names no gap and saw no write, and the claim is still `not_established`. A checker that reads an empty gap list as complete coverage passes it, which is the vacuous pass a malformed case 06 is refused for.
 
@@ -86,7 +86,7 @@ C1 keeps an unknown action outcome `pending` when the reporting window ends. Cas
 
 ## Observer independence
 
-Cases IND-01 to IND-11 test the three-condition independence test proposed for 7.4 in [#255](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/pull/255), as worded at `672b8c50`. That text is not merged, so these cases pin `672b8c50` instead of `84604125`, and `run.py` refuses either set pinned to the other's commit. The `observer_independence` property asks whether the observer of a record is independent of one named producer for one claim. Each of the three conditions (trust domain, identity basis, key control) needs an entry that names who controls the thing it is about, who established that, and where the evidence is.
+Cases IND-01 to IND-11 test the three-condition independence test of 7.4, proposed in [#255](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/pull/255) and merged through [#240](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/pull/240). They pin the same merged text as the other cases, `05bed163`. [#270](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/pull/270) added the requirement that, once the text and these cases are approved, a verifier claiming to apply the test returns the expected verdict and unmet obligation for IND-01 to IND-10. The `observer_independence` property asks whether the observer of a record is independent of one named producer for one claim. Each of the three conditions (trust domain, identity basis, key control) needs an entry that names who controls the thing it is about, who established that, and where the evidence is.
 
 | Case | Input | Expected | Clauses |
 | --- | --- | --- | --- |
@@ -104,13 +104,12 @@ Cases IND-01 to IND-11 test the three-condition independence test proposed for 7
 
 The text lets the evidence for each condition come from trusted evaluation context, and the checker takes the evidence it is given as a stipulated premise. It never opens `evidence_ref`, checks a digest or asks who produced the file. A `pass` therefore holds given that evidence, which the result carries back in `evaluation.context.independence_evidence`; it is not independence the checker verified, and its reason says so. IND-11 is the limitation, built by @aeoess in [review on #256](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/pull/256#pullrequestreview-5473107355): fabricated parties and a reference to a file that does not exist still pass. Resolving the reference and checking its digest would not close it, because that only establishes which bytes were read, not who produced them or whether they apply to this observer, producer and claim.
 
-## The three open items, and the cases that depend on them
+## The open items, and the cases that depend on them
 
-Section 7.4 names three open items. Each case file lists the ones its expected result depends on in `open_item_dependencies`, and the list is measured rather than written by hand: `test_checker.OpenItemDependencies` settles each item the other way, reruns every case, and fails unless the cases whose outcome changes are exactly the cases that declare the dependency.
+Section 7.4 names two open items, claim binding and observation vantage. C7 settled the third, gap naming, so case 06 no longer depends on it. Each case file lists the ones its expected result depends on in `open_item_dependencies`, and the list is measured rather than written by hand: `test_checker.OpenItemDependencies` settles each item the other way, reruns every case, and fails unless the cases whose outcome changes are exactly the cases that declare the dependency.
 
 | Open item | Settled the other way, for the measurement | Cases whose result changes |
 | --- | --- | --- |
-| Gap naming | incomplete coverage that locates no gap is a well-formed unknown coverage state, so the claim is `not_established` | 06 |
 | Claim binding | the checker requires provenance evidence for the prior commitment, which these fixtures only stipulate | 01, 02, 03, 04, 05, 16, 17, 18, 19, 20, 21, 24, 25 |
 | Observation vantage | a claim of independent observation from the observed party's own vantage is a processing failure of its own | 08 |
 

@@ -1,6 +1,6 @@
 {
  "against": {
-  "commit": "672b8c50502274be634b05c6a11a7ad69330936b",
+  "commit": "05bed163b211152fc1b969e3932847164c2efeb3",
   "document": "whitepapers/agent-containment.md",
   "section": "7.4"
  },

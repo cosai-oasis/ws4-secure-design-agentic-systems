@@ -1,6 +1,6 @@
 {
  "against": {
-  "commit": "84604125869469926968acdf433501f87d1d1665",
+  "commit": "05bed163b211152fc1b969e3932847164c2efeb3",
   "document": "whitepapers/agent-containment.md",
   "section": "7.4"
  },
@@ -45,8 +45,6 @@
  },
  "id": "RFC189-OE-06-MALFORMED-UNNAMED-GAP",
  "note": "Declares incomplete coverage and names no gap. That is malformed input, outside not_established: the result would have no obligation to name.",
- "open_item_dependencies": [
-  "gap_naming"
- ],
+ "open_item_dependencies": [],
  "status": "candidate"
 }
