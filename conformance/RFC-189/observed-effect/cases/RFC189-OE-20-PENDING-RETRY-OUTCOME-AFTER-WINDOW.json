@@ -21,7 +21,7 @@
    "observed_effect": {
     "sha256": "a5fc6e9ad1cdfe9e01010ec8098b8eee771fae4ad8f2d1d4e623e2b9c55046cb",
     "slug": "retry-effect-not-yet-witnessed",
-    "source": "agent-evidence-vectors==0.16.0",
+    "source": "agent-evidence-vectors==0.25.0",
     "vector": "va5fc6e9ad1cdfe9e"
    }
   },

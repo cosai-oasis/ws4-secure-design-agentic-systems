@@ -21,7 +21,7 @@
    "observed_effect": {
     "sha256": "3513d5ff4fe13690ebd14ed9b8d3b4efd852e61276c64e3f9c4c9b87bbf062de",
     "slug": "retry-timeout-read-as-no-write",
-    "source": "agent-evidence-vectors==0.16.0",
+    "source": "agent-evidence-vectors==0.25.0",
     "vector": "v3513d5ff4fe13690"
    }
   },

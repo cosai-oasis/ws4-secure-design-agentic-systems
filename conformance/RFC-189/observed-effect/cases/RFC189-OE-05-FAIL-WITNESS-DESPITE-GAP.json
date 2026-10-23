@@ -21,7 +21,7 @@
    "observed_effect": {
     "sha256": "d5e05b0f5d3cde4e4ec583e38f2b9a50d7b9a01bb5e5668dda00f0debb4230ee",
     "slug": "write-observed-despite-a-named-gap",
-    "source": "agent-evidence-vectors==0.16.0",
+    "source": "agent-evidence-vectors==0.25.0",
     "vector": "vd5e05b0f5d3cde4e"
    }
   },

@@ -21,7 +21,7 @@
    "observed_effect": {
     "sha256": "1c6fdd82db5229e40dac91c1ef1360dc5bc3b2474a2f9154304bea014c5818e5",
     "slug": "authoritative-baseline",
-    "source": "agent-evidence-vectors==0.16.0",
+    "source": "agent-evidence-vectors==0.25.0",
     "vector": "v1c6fdd82db5229e4"
    }
   },

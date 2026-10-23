@@ -20,7 +20,7 @@
    "observed_effect": {
     "sha256": "68921dec001a6df39a2dc72cf90022270a3a281dea2cdd0142fec00c525f0eaa",
     "slug": "voluntary-self-vantage",
-    "source": "agent-evidence-vectors==0.16.0",
+    "source": "agent-evidence-vectors==0.25.0",
     "vector": "v68921dec001a6df3"
    }
   },

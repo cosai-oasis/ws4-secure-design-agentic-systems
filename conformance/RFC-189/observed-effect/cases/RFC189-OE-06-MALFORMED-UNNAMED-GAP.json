@@ -20,7 +20,7 @@
    "observed_effect": {
     "sha256": "1cccb4774a28221031165ad3ac63905d5a79ad2b4c451fa49ecb068d23556f39",
     "slug": "incomplete-coverage-naming-no-gap",
-    "source": "agent-evidence-vectors==0.16.0",
+    "source": "agent-evidence-vectors==0.25.0",
     "vector": "v1cccb4774a282210"
    }
   },

@@ -20,7 +20,7 @@
    "observed_effect": {
     "sha256": "cdec1eae37009e6db558f66ff929f5ba1e20838adc3c18ac9fe5f059abb7a087",
     "slug": "authoritative-with-self-vantage",
-    "source": "agent-evidence-vectors==0.16.0",
+    "source": "agent-evidence-vectors==0.25.0",
     "vector": "vcdec1eae37009e6d"
    }
   },

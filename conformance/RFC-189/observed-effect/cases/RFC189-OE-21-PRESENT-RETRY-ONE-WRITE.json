@@ -21,7 +21,7 @@
    "observed_effect": {
     "sha256": "d51ac871a00e7e929a64abf3a88dc3e601f1a69d7b1859b9d99d73c8a0e106b1",
     "slug": "retry-one-write-across-two-attempts",
-    "source": "agent-evidence-vectors==0.16.0",
+    "source": "agent-evidence-vectors==0.25.0",
     "vector": "vd51ac871a00e7e92"
    }
   },

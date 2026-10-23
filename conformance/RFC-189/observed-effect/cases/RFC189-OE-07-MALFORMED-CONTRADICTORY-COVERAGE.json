@@ -20,7 +20,7 @@
    "observed_effect": {
     "sha256": "6e71bd22b5d75d1c2b38ab76836db5c99f5e4bec3fb7fbb6f4feca6d1c1e6956",
     "slug": "coverage-contradiction",
-    "source": "agent-evidence-vectors==0.16.0",
+    "source": "agent-evidence-vectors==0.25.0",
     "vector": "v6e71bd22b5d75d1c"
    }
   },

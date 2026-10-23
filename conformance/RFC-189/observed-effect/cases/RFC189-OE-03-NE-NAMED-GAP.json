@@ -21,7 +21,7 @@
    "observed_effect": {
     "sha256": "5b9ea5001ad5ce1abc5502040062e45e14b03586c309675f1e43c709410d974e",
     "slug": "mutation-none-with-a-named-gap-in-scope",
-    "source": "agent-evidence-vectors==0.16.0",
+    "source": "agent-evidence-vectors==0.25.0",
     "vector": "v5b9ea5001ad5ce1a"
    }
   },

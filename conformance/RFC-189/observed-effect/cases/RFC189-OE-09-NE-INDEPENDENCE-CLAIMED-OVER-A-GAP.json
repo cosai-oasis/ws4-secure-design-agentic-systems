@@ -20,7 +20,7 @@
    "observed_effect": {
     "sha256": "895c39cafad19175526ac76fbbdfa2cc6ac938dda31b7f0b78c2ed7620b16f49",
     "slug": "authoritative-with-a-named-gap-in-scope",
-    "source": "agent-evidence-vectors==0.16.0",
+    "source": "agent-evidence-vectors==0.25.0",
     "vector": "v895c39cafad19175"
    }
   },
