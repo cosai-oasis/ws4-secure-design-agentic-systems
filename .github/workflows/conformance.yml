@@ -1,0 +1,39 @@
+# Grades the section 7.4 candidate cases in conformance/ on every change to
+# them. run.py exits non-zero on any case that no longer matches its
+# expectation, any record whose bytes miss the digest its case pins, and any
+# case pinned to other text; test_checker covers the checker and the harness.
+name: conformance
+
+on:
+  push:
+    branches: [main, feat/containment]
+    paths:
+      - "conformance/**"
+      - ".github/workflows/conformance.yml"
+  pull_request:
+    paths:
+      - "conformance/**"
+      - ".github/workflows/conformance.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  rfc-189-observed-effect:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: conformance/RFC-189/observed-effect
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      - name: Install the pinned corpus
+        run: python -m pip install --require-hashes -r requirements.txt
+      - name: Grade every case against 7.4
+        run: python run.py
+      - name: Checker and harness regressions
+        run: python -m unittest test_checker
