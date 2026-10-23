@@ -667,6 +667,11 @@ Construction Method and Architectural Context remain **optional supporting annot
 
 When evidence is incomplete, fields should be marked Unknown or left unassigned. Construction history, attacker access, and internal architecture should not be inferred from the payload's representation or apparent success alone.
 
+
+
+
+
+
 ## 7. Worked Examples and Case Studies
 
 ### 7.1 Image-Scaling Prompt Injection
@@ -704,6 +709,104 @@ The modality-independent claim is not that every implementation is identical. It
 Evidence maturity levels: **Observed** — documented in real-world production incidents. **Demonstrated** — proven in research with end-to-end exploitation. **Feasible** — plausible extrapolation from demonstrated mechanisms.
 
 
+## Practical Applicability and Industry Reuse
+
+The proposed modality-independent taxonomy aims to provide a systematic and reusable approach for threat modeling, security testing, and assessing multimodal and agentic AI systems. By classifying security mechanisms through **Boundary × Representation × System Processing Stage**, it enables consistent analysis of security failures while retaining modality-specific details needed for testing.
+
+### Practitioner Workflow
+
+Organizations can apply the taxonomy through six steps:
+
+1. **Map the AI Architecture:** Identify input modalities, preprocessing components, models, tools, permissions, and trust boundaries.
+2. **Identify Potential Boundary Violations:** Examine possible failures across Meaning, Authority, and Cost boundaries.
+3. **Characterize Attack Representations:** Identify how adversarial content may be carried through text, images, audio, video, or structured artifacts, including relevant transformations.
+4. **Locate Processing Stages:** Determine where the adversarial content enters, becomes effective, and produces security-relevant effects.
+5. **Develop and Execute Tests:** Construct modality-specific test scenarios and evaluate whether the identified security assumptions hold.
+6. **Document Findings:** Record evidence, confirmed violations, relevant controls, and mappings to existing security frameworks.
+
+### Illustrative Example: AI Invoice-Processing Agent
+
+Consider an AI agent that processes supplier invoices and interacts with a payment API. An attacker submits an invoice containing instructions intended to redirect a payment.
+
+| Boundary | Representation | Processing Stage | Security Test |
+|---|---|---|---|
+| **Transform Consistency** | Processing-Dependent + Transformation-Activated | Transformation | Test whether image resizing reveals instructions missed by an earlier security assessment |
+| **Data-Control** | Overt Semantic | Interpretation / Decision | Test whether the agent follows instructions embedded in untrusted invoice content |
+| **Decision-Action** | Overt Semantic | Action | Test whether the payment executor rejects transactions lacking required authorization |
+
+These represent distinct threat hypotheses. Boundary violations are confirmed only when testing establishes the corresponding security failure.
+
+### Machine-Readable and Reusable Industry Assets
+
+To support adoption, the taxonomy can be published as a **versioned, machine-readable reference in JSON or YAML**, accompanied by:
+
+- **Taxonomy Catalog:** Standardized identifiers, definitions, and classification rules.
+- **Modality Context:** Input modality, payload carrier, transformations, and affected interfaces.
+- **Security Test Catalog:** Reusable tests with prerequisites, procedures, and expected secure behavior.
+- **Assessment Schema:** Structured records of threat hypotheses, test results, evidence, and candidate controls.
+- **Framework Mappings:** References to relevant NIST, MITRE ATLAS, MITRE D3FEND, and other security concepts.
+
+Organizations could reuse the same mechanism classifications and test templates across different AI systems, adapting only the modality-specific payloads, system configurations, and authorization requirements.
+
+Machine-readable validation would ensure structural consistency, while practitioners would remain responsible for validating actual security failures.
+
+**The intended outcome is a common, industry-reusable foundation for identifying security threats, developing modality-specific adversarial tests, and producing consistent security assessments across multimodal and agentic AI architectures.**
+
+
+
+### Practical Value: Mechanism-Based Security Test Derivation Across Modalities
+
+A key potential contribution of the proposed modality-independent taxonomy is its ability to support **systematic security test derivation across different modalities and AI processing architectures**. Rather than only classifying known attacks, the taxonomy provides a structured way for security practitioners to understand the underlying mechanisms that make an attack possible and use those mechanisms to identify potential security weaknesses in other systems.
+
+Existing security frameworks, such as MITRE ATLAS, NIST AI 100-2, and OWASP, provide valuable classifications of adversarial techniques, security risks, and attacker behaviors. The proposed taxonomy complements these frameworks by characterizing attacks through three dimensions: **Boundary, Representation, and System Processing Stage**. Together, these dimensions describe which security assumption is violated, how adversarial influence is represented or activated, and where the mechanism becomes effective within the AI processing pipeline.
+
+For example, consider an image-scaling prompt-injection attack in which malicious instructions become visible only after an image is resized. The taxonomy characterizes this mechanism as follows:
+
+- **Boundary:** Transform Consistency — an earlier security assessment becomes invalid when a transformation exposes previously undetected security-relevant content.
+- **Representation:** Processing-Dependent, with a Transformation-Activated modifier — the adversarial instructions become effective through a specific processing operation.
+- **System Processing Stage:** Transformation → Perception / Extraction → Interpretation / Decision.
+
+Once this underlying mechanism is identified, practitioners can investigate whether similar security failures could arise in other modalities. For example:
+
+- **Text:** Could Unicode normalization or decoding expose malicious instructions that bypassed earlier validation?
+- **Audio:** Could resampling or transcription reveal adversarial instructions missed by an upstream security check?
+- **Video:** Could frame sampling or preprocessing cause security-relevant information to be overlooked or interpreted differently?
+- **Structured data:** Could parsing or deserialization produce security-relevant interpretations that differ from those used during initial validation?
+
+These scenarios represent **testable security hypotheses rather than confirmed vulnerabilities**. Their purpose is to help practitioners systematically explore whether the same underlying security invariant could fail through different modality-specific processing mechanisms.
+
+This approach offers a potential advantage over relying solely on catalogs of previously documented attacks. By abstracting attacks into reusable mechanisms, practitioners can derive new adversarial test scenarios, identify relevant processing stages, and evaluate whether security controls remain effective across transformations and architectural boundaries.
+
+**The intended practical contribution is therefore not simply to classify multimodal attacks, but to enable mechanism-based security test derivation and reuse across modalities.** This capability could support more proactive and systematic security assessments of multimodal and agentic AI systems. Its incremental value over existing frameworks should be established through comparative evaluations demonstrating improved test coverage, classification consistency, or identification of previously overlooked security weaknesses.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ### 7.2 Example: Sequence-Dependent Injection Across Streaming Artifacts
 
 **Scenario**  
@@ -725,45 +828,56 @@ An attack first discovered in video frames predicts a non-obvious vulnerability 
 | Evidence Maturity | Demonstrated (Video) / Feasible (Streaming Text) | Demonstrated in video temporal slicing; feasible across streaming guardrails. |
 
 
-### 7.3 Example: Full-Pipeline Traversal — Image to OCR to Tool Call to Output Artifact
+### 7.3 Full-Pipeline Traversal: Image Transformation to Agent Action
 
-**Scenario**  
-An image containing embedded text instructions is uploaded to a multimodal agent. The agent's pipeline processes it through OCR, passes the extracted text to a reasoning model, which interprets it as a task instruction, generates a tool call, executes it, and produces or shares a downstream artifact. This represents a single adversarial artifact traversing the full processing pipeline from ingestion to downstream consumption.
+**Scenario.** A legitimate user's agent analyzes an attacker-controlled image to prepare an internal report. An upstream guard approves the original image, but resizing reveals concealed instructions. OCR extracts those instructions, which the reasoning model incorrectly treats as authoritative. The model requests an external transfer of confidential data, and the tool executor performs it without enforcing the required authorization.
+
+This is an **illustrative composite scenario**, not a single independently verified end-to-end exploit. Rendering a subsequent report illustrates **Consumption**, but is not itself another security violation.
 
 ```mermaid
-%%{init: {"flowchart": {"wrappingWidth": 200}}}%%
 flowchart LR
-    I["<b>Ingestion</b><br/>Image uploaded"]
-    T["<b>Transformation</b><br/>OCR extracts text"]
-    P["<b>Perception</b><br/>Text parsed"]
-    D["<b>Interpretation</b><br/>Model treats text<br/>as instruction"]
-    G["<b>Generation</b><br/>Tool call produced"]
-    A["<b>Action</b><br/>Tool executed"]
-    C["<b>Consumption</b><br/>Artifact shared<br/>downstream"]
-    I --> T --> P --> D --> G --> A --> C
+    I["Image ingested"] --> V["Original image approved"]
+    V --> T["Resize reveals instructions"]
+    T --> P["OCR extracts text"]
+    P --> D["Agent follows injected text"]
+    D --> G["Tool request generated"]
+    G --> A["Unauthorized transfer executed"]
+    A -. optional .-> C["Report consumed"]
 ```
 
-*Figure 2\. A single adversarial artifact traversing all pipeline stages, crossing four boundaries.*
+*Figure 2. Attack processing sequence; approval is a security check, not an additional taxonomy stage.*
 
-#### 7.3.1 Linked Mechanism Records
+#### 7.3.1 Classification of Security Mechanisms
 
-| Record | Boundary | Representation | Construction | Stage | Evidence |
-| :---- | :---- | :---- | :---- | :---- | :---- |
-| **M1: Concealment / Activation** | Transform Consistency (pre-OCR image vs. post-OCR text); Human-Machine Perception (candidate — if a human reviewer sees only the image while the model acts on extracted text) | Processing-Dependent (pre-OCR) → Overt Semantic (post-OCR) + Transformation-Activated | Depends on image construction: Manual (visible text overlay), White-box optimization (image-scaling style), or Black-box adaptive search | Ingestion → Transformation → Perception | Demonstrated (Trail of Bits, Repeat-After-Me) |
-| **M2: Authority takeover** | Data-Control (OCR-extracted text, which entered as image data, acquires instruction authority in the reasoning model) | Overt Semantic (the extracted text is readable) | n/a | Interpretation / Decision | Demonstrated |
-| **M3: Tool execution** | Decision-Action (the model's tool call is executed under system authority; conditional on whether an independent authorization gate exists) | Structured data (tool call name + arguments) | n/a | Generation → Action | Demonstrated (Cursor Mermaid, Trail of Bits + Zapier) |
-| **M4: Output propagation** | Output-Consumer (the generated artifact is rendered, transmitted, or processed downstream, potentially carrying the adversarial effect forward) | Depends on output: Overt Semantic (text document), Structured (API response), or Composite (rendered page with embedded requests) | n/a | Generation → Consumption | Demonstrated (Cursor Mermaid CVE-2025-54132: generated Mermaid diagram exfiltrates data via embedded image URL) |
+| Mechanism | Boundary and failure condition | Representation | Processing stage |
+|---|---|---|---|
+| **M1: Transformation-dependent activation** | **Transform Consistency:** Resizing invalidates an earlier security assessment on which the system relies. | **Processing-Dependent → Overt Semantic**; **Transformation-Activated**. | **Entry:** Ingestion; **activation:** Transformation → Perception / Extraction. |
+| **M2: Instruction authority takeover** | **Data-Control:** Lower-trust OCR text is promoted into authoritative instructions. | **Overt Semantic** extracted text. | **Effect:** Interpretation / Decision. |
+| **M3: Unauthorized tool execution** | **Decision-Action:** The executor performs a prohibited transfer without the required authorization. | Induced instruction expressed in a structured tool request; the tool format is supporting context, **not a new Representation Form**. | Generation → Action; **effect:** Action. |
 
-#### 7.3.2 Why This Example Exercises the Full Taxonomy
+These are **distinct security failures**. Resizing and OCR are not themselves violations; nor is creating a tool request. **Consumption** is a stage, not an **Output-Consumer** violation unless processing the output independently causes a prohibited effect.
 
-This is the most complete pipeline traversal of any worked example in this paper. It exercises:
+#### 7.3.2 Why This Example Matters
 
-* **All four representation forms** in a single chain: Processing-Dependent (the source image before OCR), Overt Semantic (the extracted text), Structured data (the tool call), and the output artifact form depends on what the agent produces.
-* **Transformation-Activated modifier** at the OCR step, where the representation transitions from Processing-Dependent to Overt Semantic.
-* **Four boundary subclasses**: Transform Consistency (M1), Data-Control (M2), Decision-Action (M3), Output-Consumer (M4).
-* **Seven of eight pipeline stages**: Ingestion, Transformation, Perception, Interpretation, Generation, Action, and Consumption. Only Feedback is not reached unless the output artifact re-enters the agent's context.
-* **The linked-record convention**: M1–M4 are independent failure modes with independent controls. Fixing M1 (inspecting post-OCR text) does not fix M2 (a visible instruction still acquires authority). Fixing M3 (independent tool authorization) works even if M1 and M2 both fail. Fixing M4 (sanitizing generated output) prevents downstream propagation even if the tool executes.
+The taxonomy separates **what failed** (Boundary), **how adversarial content became effective** (Representation), and **where it happened** (Processing Stage). This supports targeted assessments: inspect transformed inputs (M1), enforce the instruction/data boundary (M2), and independently authorize tool operations (M3). These are candidate controls, not proven mitigations for the composite scenario.
 
+#### 7.3.3 Comparison With Existing Security Frameworks
+
+| Framework | What it highlights | Additional detail provided by this taxonomy |
+|---|---|---|
+| **NIST AI 100-2e2025** [1] | Indirect prompt injection (`NISTAML.015`) and compromised connected resources (`NISTAML.039`). | Separates transformation activation (M1), instruction authority (M2), and tool authorization (M3). |
+| **NIST AI RMF 1.0** [2] | Risk identification, security assessment, and risk treatment (`MAP`, `MEASURE`, `MANAGE`). | Specifies the mechanism and pipeline point to evaluate. |
+| **IBM AI Risk Atlas** [3] | Indirect instructions, prompt injection, and confidential-data sharing through tools. | Distinguishes pre-/post-transform content, authority takeover, and execution failure. |
+| **MITRE ATLAS** [4] | Indirect prompt injection (`AML.T0051.001`), relevant obfuscation (`AML.T0068`), and exfiltration via agent tools (`AML.T0086`). | Links representation-state changes to distinct violated security assumptions and effect locations. |
+| **MITRE D3FEND** [5] | Candidate defenses, including File Content Analysis (`D3-FCOA`) and Outbound Traffic Filtering (`D3-OTF`). | Locates where candidate controls should be evaluated; does not claim they are validated mitigations. |
+| **MAESTRO** [6] | Exposure across data, foundation-model, agent-framework, and connected-service layers. | Adds representation and processing-stage detail without conflating stages with architectural layers. |
+| **STRIDE** [7] | Information Disclosure; potentially Tampering and Elevation of Privilege, depending on the threat model. | Identifies the specific mechanisms producing those broader threat categories. |
+
+**Mapping qualifications.** Indirect-injection labels assume the image is controlled by an attacker distinct from the legitimate user. D3FEND entries are **candidate** defenses. STRIDE categories and MAESTRO layers are **not** one-to-one equivalents of M1–M3.
+
+#### 7.3.4 Comparative Takeaway
+
+Existing frameworks already address prompt injection, connected-tool misuse, risk management, and defensive controls. The proposed taxonomy **complements** them by consistently connecting **Boundary × Representation × System Processing Stage** across an attack chain. Its added practical value should be assessed through repeatable classification and targeted security testing.
 
 ### 7.4 Example: Multi-Hop Browser Agent Attack via Feedback Loop
 
@@ -839,3 +953,14 @@ The attacker can tailor the pair to exploit whichever arbitration bias the model
 **Composition operator: Contradiction** (from the Section 6.3 table). This is distinct from the Completion operator in Section 7.5 — in Completion, both modalities contribute cooperatively to an emergent meaning; in Contradiction, the modalities deliberately conflict and the attack exploits which one the model believes.
 
 **Comparison with A17 (Audio Contradiction / Speech Exploit):** The A17 entry in the control-coverage matrix (Section 9.2.1) also uses Contradiction as the composition operator, but with Processing-Dependent representation (an adversarially optimized audio waveform). In these scenarios, both modalities are Overt Semantic — the contradiction is between two plainly readable/viewable inputs. Same boundary (Semantic Stability), same composition operator, different representation forms. The taxonomy correctly distinguishes them: A17 requires detecting a processing-dependent perturbation, while these scenarios require detecting a logical inconsistency between two overt inputs.
+
+
+#### References
+
+[1] NIST, *AI 100-2e2025*. https://doi.org/10.6028/NIST.AI.100-2e2025  
+[2] NIST, *AI RMF 1.0*. https://airc.nist.gov/airmf-resources/airmf/5-sec-core/  
+[3] IBM, *AI Risk Atlas*. https://www.ibm.com/docs/en/watsonx/w-and-w/2.4.x?topic=ai-risk-atlas  
+[4] MITRE, *ATLAS*. https://atlas.mitre.org/  
+[5] MITRE, *D3FEND*. https://d3fend.mitre.org/  
+[6] Cloud Security Alliance, *MAESTRO*. https://cloudsecurityalliance.org/blog/2025/02/06/agentic-ai-threat-modeling-framework-maestro  
+[7] Microsoft, *STRIDE threat modeling*. https://learn.microsoft.com/en-us/azure/security/develop/threat-modeling-tool-threats
