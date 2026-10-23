@@ -21,19 +21,36 @@ permissions:
 jobs:
   rfc-189-observed-effect:
     runs-on: ubuntu-24.04
-    defaults:
-      run:
-        working-directory: conformance/RFC-189/observed-effect
+    env:
+      CASES: conformance/RFC-189/observed-effect
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      # A branch without the cases (main, until they land) has nothing to
+      # grade, and says so instead of failing on a missing directory.
+      - name: Find the cases
+        id: cases
+        run: |
+          if [ -f "$CASES/run.py" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "No $CASES/run.py on this branch; nothing to grade."
+          fi
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        if: steps.cases.outputs.present == 'true'
         with:
           python-version: "3.13"
       - name: Install the pinned corpus
+        if: steps.cases.outputs.present == 'true'
+        working-directory: ${{ env.CASES }}
         run: python -m pip install --require-hashes -r requirements.txt
       - name: Grade every case against 7.4
+        if: steps.cases.outputs.present == 'true'
+        working-directory: ${{ env.CASES }}
         run: python run.py
       - name: Checker and harness regressions
+        if: steps.cases.outputs.present == 'true'
+        working-directory: ${{ env.CASES }}
         run: python -m unittest test_checker
