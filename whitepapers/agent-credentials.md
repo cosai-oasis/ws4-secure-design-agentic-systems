@@ -1,5 +1,3 @@
-_NOTE: Appendix sections will be added shortly._
-
 # Introduction
 
 AI agents need a portable, verifiable way to present claims about themselves, so that the emerging ecosystem of gateways, other agents, and policy enforcement points can use those claims to decide what an agent may access and what it may delegate. Today, claims are expressed inconsistently across:
@@ -31,7 +29,7 @@ The CoSAI Agentic Identity and Access Management paper [[COSAI-AIAM](https://www
 
 This paper builds on that description of "claims that inform access-control decisions" to develop a framework for agent credentials. The framework defines a common core that others may extend with profiles for specific use cases. It provides a shared taxonomy, explains how agents are identified and how a credential is bound to the agent presenting it, names the standards available for each, and gives deployment patterns and worked examples for common cases.
 
-This paper is intended for practitioners and vendors who build or integrate agent identity and management systems, and who face a fragmented set of standards and vendor approaches. It uses one shared vocabulary, drawn mainly from the IETF RATS architecture [[RFC9334](https://www.rfc-editor.org/rfc/rfc9334)] and various credential standards, so readers can map products and specifications onto a common framework. Readers do not need deep prior knowledge of RATS, WIMSE and SPIFFE, VCs, or DIDs, but are assumed to have some familiarity with them. Acronyms are expanded in the glossary in Appendix A.
+This paper is intended for practitioners and vendors who build or integrate agent identity and management systems, and who face a fragmented set of standards and vendor approaches. It uses one shared vocabulary, drawn mainly from the IETF RATS architecture [[RFC9334](https://www.rfc-editor.org/rfc/rfc9334)] and various credential standards, so readers can map products and specifications onto a common framework. Readers do not need deep prior knowledge of RATS, WIMSE and SPIFFE, VCs, or DIDs, but are assumed to have some familiarity with them. Acronyms are expanded in the glossary in [Appendix A](#appendix-a-glossary). The examples, standards, and specifications named in this paper, whether published or in draft, are illustrative, not exhaustive and should not be taken as specific endorsements by OASIS, CoSAI or the authors.
 
 # Section 1: Scope & Definitions
 
@@ -49,7 +47,7 @@ This section defines the core roles and concepts used throughout this document t
 
 ### Roles
 
-The roles used in these definitions, including attester, endorser, verifier, and relying party, follow the IETF RATS architecture and its definitions [[RFC9334](https://www.rfc-editor.org/rfc/rfc9334)]. The Appendix shows the RATS architecture (Figure 1) and maps each of its roles and messages to its counterpart in this paper.
+The roles used in these definitions, including attester, endorser, verifier, and relying party, follow the IETF RATS architecture and its definitions [[RFC9334](https://www.rfc-editor.org/rfc/rfc9334)]. [Appendix B](#appendix-b-rats-architecture-and-role-mapping) shows the RATS architecture (Figure 1) and maps each of its roles and messages to its counterpart in this paper.
 
 #### Attester
 
@@ -189,9 +187,9 @@ Evidence:  [{ "type": "AmdSevEvidence", "amdSevReport": "sha256:<report-hash>" }
 …
 ```
 
-*Profiles: agent-composition (digests of model, resolved tool and skill manifest, knowledge-base snapshot, prompt and guardrail configuration, plus a fingerprint over all of them); approved-config (configuration digest matches an approved reference); contain-guardrails (a named guardrail set is present in the active configuration); golden-image (boot components match approved measurements; see Appendix).*
+*Profiles: agent-composition (digests of model, resolved tool and skill manifest, knowledge-base snapshot, prompt and guardrail configuration, plus a fingerprint over all of them); approved-config (configuration digest matches an approved reference); contain-guardrails (a named guardrail set is present in the active configuration); golden-image (boot components match approved measurements; see [Appendix E](#appendix-e-example-evidence-and-credentials), Example 3).*
 
-**Capabilities and skills.** Composition records the parts; capabilities record what those parts are designed to do: function, not permission ([Section 1.1](#11-scope)). Declared capabilities are structured flags from a standard vocabulary, such as the A2A Agent Card [[A2A](https://a2a-protocol.org/latest/specification/)] or the AgentCard individual Internet-Draft [[draft-aevum-agentcard](https://datatracker.ietf.org/doc/draft-aevum-agentcard/)]; other descriptor formats are in the Appendix. Skills are either assigned statically at registration, which records intent but not the implementing artifact, or validated dynamically, where a verifier appraises a signed manifest of active skill artifacts at or near runtime. Profiles SHOULD state which form they carry.
+**Capabilities and skills.** Composition records the parts; capabilities record what those parts are designed to do: function, not permission ([Section 1.1](#11-scope)). Declared capabilities are structured flags from a standard vocabulary, such as the A2A Agent Card [[A2A](https://a2a-protocol.org/latest/specification/)]; other descriptor formats are in [Appendix D](#appendix-d-agent-descriptor-formats). Skills are either assigned statically at registration, which records intent but not the implementing artifact, or validated dynamically, where a verifier appraises a signed manifest of active skill artifacts at or near runtime. Profiles SHOULD state which form they carry.
 
 *Profiles: approved-skills (each active skill artifact digest matches an approved reference); validated-capabilities (declared capabilities were exercised and confirmed by a verifier).*
 
@@ -212,7 +210,7 @@ Result:       true
 …
 ```
 
-*Profiles: security-scanned (named scanner, version, and clean result on a stated artifact digest); trust-score (score plus the four fields above); registry-membership (subject is present in a named registry at a stated content digest; see Appendix).*
+*Profiles: security-scanned (named scanner, version, and clean result on a stated artifact digest); trust-score (score plus the four fields above); registry-membership (subject is present in a named registry at a stated content digest; see [Appendix E](#appendix-e-example-evidence-and-credentials), Example 2).*
 
 **Delegation.** Delegation has two sides. The credential side, the "delegation information" of the CoSAI Agentic IAM paper [[COSAI-AIAM, Section 3.1](https://www.coalitionforsecureai.org/wp-content/uploads/2026/04/agentic-identity-and-access-control.pdf)], says whom the agent acts for, the chain of agents it acts through, and the bounds on that chain. A verifier can attest these claims and bind them to the agent like any other. The authorization side, the access tokens that carry permissions, is out of scope.
 
@@ -232,13 +230,23 @@ Two credentials with identical claims can deserve very different trust, dependin
 - **Platform.** The platform asserts identity and environment, for example through SPIRE workload attestation [[SPIFFE](https://spiffe.io/docs/latest/spiffe-about/overview/)] or cloud managed identities. Holds against a compromised agent process, not a compromised platform.
 - **Hardware.** A hardware root of trust signs a measurement of the environment, for example Intel TDX [[INTEL-TDX](https://www.intel.com/content/www/us/en/developer/tools/trust-domain-extensions/overview.html)], AMD SEV-SNP [[AMD-SEV](https://docs.amd.com/v/u/en-US/SEV-SNP-strengthening-vm-isolation-with-integrity-protection-and-more)], or TPM quotes [[TCG-TPM2](https://trustedcomputinggroup.org/resource/tpm-library-specification/)]. Holds against software and privileged-operator adversaries.
 
+Table 2 summarizes the three tiers, together with the physical-owner limit that [Section 1.2](#12-core-concepts--definitions) places on a hardware-rooted result.
+
+*Table 2: Attestation tiers and the adversaries they hold against*
+
+| Tier | Remote attacker | Compromised agent process | Privileged operator | Physical owner |
+|---|---|---|---|---|
+| Software | Yes | No | No | No |
+| Platform | Yes | Yes | No | No |
+| Hardware | Yes | Yes | Yes | No |
+
 **Assurance basis.** A tier is only useful to a relying party if the credential says which one applied. An agent credential SHOULD therefore carry the assurance level of its appraisal ([Section 1.2](#12-core-concepts--definitions)) as an assurance basis, so a relying party can apply different thresholds to different actions ([Section 5.2](#52-presentation-and-validation)) without repeating the appraisal:
 
 - **Attestation tier** of the evidence appraised.
 - **Appraisal policy** identifier and version.
 - **Appraisal time.** A credential can be unexpired while its appraisal is stale; a relying party SHOULD treat appraisal time as an input to its own policy.
 
-A profile for a format without one, such as X.509-SVIDs or WIMSE WITs [[draft-ietf-wimse-workload-creds](https://datatracker.ietf.org/doc/draft-ietf-wimse-workload-creds/)], MAY state a default; otherwise a relying party MUST treat a credential with no assurance basis as no stronger than the software attestation tier. The Appendix shows one evidence document and two agent credentials, at the software and hardware tiers, each with its assurance basis.
+A profile for a format without one, such as X.509-SVIDs or WIMSE WITs [[draft-ietf-wimse-workload-creds](https://datatracker.ietf.org/doc/draft-ietf-wimse-workload-creds/)], MAY state a default; otherwise a relying party MUST treat a credential with no assurance basis as no stronger than the software attestation tier. [Appendix E](#appendix-e-example-evidence-and-credentials) shows one evidence document and two agent credentials, at the software and hardware tiers, each with its assurance basis.
 
 For example, the following assurance basis claim asserts that a hardware attestation tier of evidence was used in the appraisal, against the golden-image/v1 policy, with an appraisal time for relying parties to evaluate credential freshness:
 
@@ -275,7 +283,19 @@ A holder key MAY be a DID verification method [[W3C-DID](https://www.w3.org/TR/d
 
 Where the platform supports it, the private key SHOULD be generated and sealed in hardware, so possession also evidences the runtime environment ([Section 2.2](#22-how-far-a-relying-party-can-trust-it)). A key the agent process can export is a bearer secret with extra steps.
 
-**Profiles and registry.** A credential MUST carry a top-level type or profile field naming a registered profile (see Appendix). The profile defines the required claims and verification rules, so a relying party can check a credential from an issuer it has never seen.
+Figure 2 shows how each identifier family of [Section 3.1](#31-identifying-the-agent) leads to the holder key, and where proof of possession is checked.
+
+*Figure 2: Agent identifiers, the holder key, and proof of possession*
+
+```mermaid
+%%{init: {"flowchart": {"padding": 24}}}%%
+flowchart TD
+    DID["DID<br/>did:example:agent-7"] -->|"verification method<br/>under the<br/>authentication<br/>relationship"| KEY
+    WID["WIMSE or SPIFFE ID<br/>spiffe://example.org/<br/>agent-7"] -->|"key bound in<br/>an X.509-SVID,<br/>or in a WIT<br/>cnf claim"| KEY
+    KEY["Holder key<br/>generated and<br/>sealed in hardware<br/>where the platform<br/>supports it"] -->|"proof of possession,<br/>per request or<br/>connection: mTLS,<br/>HTTP Message<br/>Signatures, DPoP or<br/>certificate-bound<br/>tokens"| RP["Relying party"]
+```
+
+**Profiles and registry.** A credential MUST carry a top-level type or profile field naming a registered profile (see [Appendix C](#appendix-c-named-credential-profiles)). The profile defines the required claims and verification rules, so a relying party can check a credential from an issuer it has never seen.
 
 The profile registry SHOULD be openly governed, on the model of an IANA media-type registry [[IANA-MEDIA-TYPES](https://www.iana.org/assignments/media-types/)], not controlled by a single vendor; its governance is an open working-group question. OASF [[OASF](https://docs.agntcy.org/oasf/open-agentic-schema-framework/)] illustrates the pattern.
 
@@ -286,7 +306,7 @@ The profile registry SHOULD be openly governed, on the model of an IANA media-ty
 - **EAT** [[RFC9711](https://www.rfc-editor.org/rfc/rfc9711)], a signed JWT or CWT [[RFC8392](https://www.rfc-editor.org/rfc/rfc8392)], where RATS tooling is in place. EAT is the RATS format for evidence; its EAR profile [[draft-ietf-rats-ear](https://datatracker.ietf.org/doc/draft-ietf-rats-ear/)] carries a verifier's result, and so packages a credential. EAR carries the appraisal policy in ear_appraisal_policy_ids; the other assurance-basis fields are additions.
 - **X.509 certificates and X.509-SVIDs** [[RFC5280](https://www.rfc-editor.org/rfc/rfc5280)] [[SPIFFE](https://spiffe.io/docs/latest/spiffe-about/overview/)] where identity is consumed through existing mTLS and PKI. These carry no assurance basis unless a profile states a default ([Section 2.2](#22-how-far-a-relying-party-can-trust-it)).
 
-Evidence MAY be rendered as a VC or an EAT, and credentials issued by verifiers as a VC or an EAR. Here is the same agent credential rendered as a VC and as an EAR, drawn from the examples in the Appendix.
+Evidence MAY be rendered as a VC or an EAT, and credentials issued by verifiers as a VC or an EAR. Here is the same agent credential rendered as a VC and as an EAR, drawn from the examples in [Appendix E](#appendix-e-example-evidence-and-credentials).
 
 As a VC:
 
@@ -330,10 +350,11 @@ As an EAR:
   "eat_profile": "tag:ietf.org,2026:rats/ear#04",
   "iat": 1786024800,
   "exp": 1786039200,
+  "iss": "did:key:<verifier-pubkey>",
   "sub": "did:key:<subject-pubkey>",
   "cnf": { "kid": "did:key:<subject-pubkey>#z6Mk..." },
   "ear_verifier_id": {
-    "developer": "did:key:<verifier-pubkey>",
+    "developer": "https://verifier.example.com",
     "build": "registry-membership-v1"
   },
   "submods": {
@@ -374,6 +395,25 @@ The first two scenarios can be handled by giving each agent its own identity as 
 
 For example, an agent sends an HTTP request to an API endpoint that only accepts agents meeting certain standards (e.g. certified against a set of industry-accepted standards). The agent happens to already meet those requirements, and can present credentials. The API owner receives these credentials from the agent, verifies that the issuer is on its industry-accepted trust list, that the credentials are issued for the agent as credential subject, and that the agent proves possession of the bound key. The API owner then applies its own access policy, and the request proceeds to the hand-off to access secrets ([Section 5.2](#52-presentation-and-validation)).
 
+Figure 3 shows this exchange. The API owner relies on the credential's claims only after the agent has proved possession of the bound key.
+
+*Figure 3: An agent unknown to the receiver presents its credentials to an API (scenario c)*
+
+```mermaid
+sequenceDiagram
+    participant Agent
+    participant API as API owner
+    participant TL as Trust list
+    Agent->>API: Request with credentials
+    API->>TL: Is the issuer accepted?
+    TL-->>API: Yes
+    Note over API: Credential subject is the agent
+    API->>Agent: Challenge
+    Agent->>API: Proof of possession of the bound key
+    Note over API: Own access policy, then<br/>hand-off to access secrets (Section 5.2)
+    API-->>Agent: Response
+```
+
 In each case, the credentials travel in-band with the request, or by reference, in any packaging of [Section 3.2](#32-key-binding-profiles-and-packaging). These credentials may include credential types that are not agent credentials — not anchored on an agent subject, but on other components or attributes associated with the agent.
 
 **Identity patterns.** A credential may be anchored on any of these identities. In other words, any of these can be the subject of a credential.
@@ -401,7 +441,7 @@ A credential crossing an untrusted boundary SHOULD therefore carry, or be able t
 
 **Portability.** Whatever the trust relationship, the receiver must first establish that the agent in front of it is the one the credential describes. Continuity across domains rests on a cryptographic key, not a string: receiving domains assign their own local names, and the holder key ([Section 3.2](#32-key-binding-profiles-and-packaging)) shows that they refer to the same agent. During cross-domain validation, the relying party MUST bind the credential to the profile-defined subject and holder, authenticate current key material through an accepted trust anchor or federation, verify key status and rotation, establish the issuer's authority for each relied-upon claim, and apply local policy. It MUST NOT accept a credential on signature verification alone.
 
-**Multiple issuers and private registries.** No single issuer will vouch for every agent, so each relying party has to choose whose word it takes. IdPs that issue agent credentials act as verifiers ([Section 1.2](#12-core-concepts--definitions)), and each relying party decides which issuers it accepts for which claims. An enterprise MAY run a private agent registry and issue registry-membership credentials (see Appendix) without disclosing its contents, provided the relying party accepts the verifier.
+**Multiple issuers and private registries.** No single issuer will vouch for every agent, so each relying party has to choose whose word it takes. IdPs that issue agent credentials act as verifiers ([Section 1.2](#12-core-concepts--definitions)), and each relying party decides which issuers it accepts for which claims. An enterprise MAY run a private agent registry and issue registry-membership credentials (see [Appendix E](#appendix-e-example-evidence-and-credentials), Example 2) without disclosing its contents, provided the relying party accepts the verifier.
 
 ## 4.3 Putting Credentials to Work
 
@@ -469,7 +509,7 @@ Policy binding is why decisions are per action, not per session: an agent that a
 5. PDP policy over the credential's claims and the request, including any delegated scope, authored and versioned centrally, for example in Cedar [[CEDAR](https://www.cedarpolicy.com/)] or Rego [[OPA-REGO](https://www.openpolicyagent.org/docs/policy-language)].
 6. Audit record.
 
-Steps 3 and 4 are what agents add to the familiar resource-server pattern of [Section 4.2](#42-crossing-domains). The Appendix gives a sample policy.
+Steps 3 and 4 are what agents add to the familiar resource-server pattern of [Section 4.2](#42-crossing-domains). [Appendix F](#appendix-f-sample-enforcement-policy) gives a sample policy.
 
 **Acceptance thresholds.** A relying party sets a per-resource threshold that scales with blast radius: a read-only tool can accept the software tier, while a payment-initiating tool should require the strongest tier available. It applies the threshold to the assurance basis ([Section 2.2](#22-how-far-a-relying-party-can-trust-it)) and, where present, a risk and trust score ([Section 2.1](#21-what-an-agent-credential-carries)). A pass/fail result reflects the verifier's appraisal policy, not the relying party's, so it SHOULD carry its assurance basis, letting a later, more sensitive action be held to a higher bar.
 
@@ -497,7 +537,7 @@ Sections [2](#section-2-credential-taxonomy) to [5](#section-5-credential-lifecy
 
 ## 6.1 Threats Addressed
 
-**Scope.** Table 2 lists the threats an agent credential can address, within the boundary drawn in [Section 4.4](#44-where-credentials-fall-short): a credential states what a verifier appraised about an agent, and helps only when it is presented. This paper does not specify defenses against attacks on the agent's reasoning, its tools, or the data it handles, such as prompt-injection filtering or tool and data poisoning detection. It addresses those threats where a credential can carry the result of such a defense: approved tools, skills, configuration and guardrails ([Section 2.1](#21-what-an-agent-credential-carries)), the knowledge-base snapshot in the composition ([Section 2.1](#21-what-an-agent-credential-carries)), and behavior or intent analysis recorded by an observer ([Section 4.3](#43-putting-credentials-to-work)).
+**Scope.** Table 3 lists the threats an agent credential can address, within the boundary drawn in [Section 4.4](#44-where-credentials-fall-short): a credential states what a verifier appraised about an agent, and helps only when it is presented. This paper does not specify defenses against attacks on the agent's reasoning, its tools, or the data it handles, such as prompt-injection filtering or tool and data poisoning detection. It addresses those threats where a credential can carry the result of such a defense: approved tools, skills, configuration and guardrails ([Section 2.1](#21-what-an-agent-credential-carries)), the knowledge-base snapshot in the composition ([Section 2.1](#21-what-an-agent-credential-carries)), and behavior or intent analysis recorded by an observer ([Section 4.3](#43-putting-credentials-to-work)).
 
 The access secrets that [Section 1.1](#11-scope) leaves to existing mechanisms remain out of scope. The starting point is the threat themes of the CoSAI Agentic IAM paper [[COSAI-AIAM, Section 2.2](https://www.coalitionforsecureai.org/wp-content/uploads/2026/04/agentic-identity-and-access-control.pdf)], which this paper builds on.
 
@@ -513,9 +553,9 @@ The access secrets that [Section 1.1](#11-scope) leaves to existing mechanisms r
 
 What a credential cannot reach is an agent that stops presenting ([Section 4.4](#44-where-credentials-fall-short)), or one that behaves maliciously under an approved composition ([gap 8](#62-open-gaps-and-recommendations)). A drifted agent can still present a credential that has not expired, which is why appraisal age matters ([row 8](#61-threats-addressed)).
 
-The Appendix summarizes four 2026 incidents behind several rows and gaps below. In each, a check passed and said nothing about what was actually done: a valid provenance attestation on a malicious build ([row 3](#61-threats-addressed)), a familiar package name under a new controller ([row 13](#61-threats-addressed)), an operation the sandbox permitted ([row 14](#61-threats-addressed)), and a skill whose declared function hid another ([gap 8](#62-open-gaps-and-recommendations)). This is the limit [Section 1.2](#12-core-concepts--definitions) names: a relying party does not trust a credential solely because its signature verifies.
+[Appendix G](#appendix-g-motivating-incidents) summarizes four 2026 incidents behind several rows and gaps below. In each, a check passed and said nothing about what was actually done: a valid provenance attestation on a malicious build ([row 3](#61-threats-addressed)), a familiar package name under a new controller ([row 13](#61-threats-addressed)), an operation the sandbox permitted ([row 14](#61-threats-addressed)), and a skill whose declared function hid another ([gap 8](#62-open-gaps-and-recommendations)). This is the limit [Section 1.2](#12-core-concepts--definitions) names: a relying party does not trust a credential solely because its signature verifies.
 
-*Table 2: Threats addressed, and where*
+*Table 3: Threats addressed, and where*
 
 | # | Threat | Source | Addressed by |
 |---|---|---|---|
@@ -536,7 +576,7 @@ The Appendix summarizes four 2026 incidents behind several rows and gaps below. 
 
 ## 6.2 Open Gaps and Recommendations
 
-Table 2 shows that most threats are addressed only partly, or only once a missing piece is standardized. The gaps below consolidate those raised in Sections [2](#section-2-credential-taxonomy) to [5](#section-5-credential-lifecycle--enforcement), each named with the section that raises it, and pair each with a work item for the group.
+Table 3 shows that most threats are addressed only partly, or only once a missing piece is standardized. The gaps below consolidate those raised in Sections [2](#section-2-credential-taxonomy) to [5](#section-5-credential-lifecycle--enforcement), each named with the section that raises it, and pair each with a work item for the group.
 
 1. **No credential carrier at MCP tool-call time ([Section 4.3](#43-putting-credentials-to-work)).** MCP's authorization layer carries OAuth access tokens but defines no carrier for the agent credential. The group SHOULD recommend to the MCP maintainers a binding that carries an agent credential and its proof of possession with a tool call, with claims relied on only after possession is verified.
 2. **Evaluation claims are not self-describing ([Section 4.3](#43-putting-credentials-to-work)).** Evaluation credentials SHOULD carry their reference values and evaluation identity, and the group SHOULD propose a registry of evaluation identifiers to resolve them against.
@@ -545,7 +585,7 @@ Table 2 shows that most threats are addressed only partly, or only once a missin
 5. **Delegation chains are reconstructable but not tamper-evident ([Section 2.1](#21-what-an-agent-credential-carries)).** A relying party can rebuild who acted for whom, but cannot tell whether a hop altered the chain. The group SHOULD define how a delegation credential carries the originating principal unchanged from the first hop and a chain identifier that every hop binds to.
 6. **Revocation loses history and stops where no push channel is shared ([Section 5.3](#53-expiry-and-revocation)).** Revocation must not destroy the record of prior validity ([Section 5.3](#53-expiry-and-revocation)), so a status entry SHOULD record the time of revocation, not only a current state, and profiles SHOULD state revocation scope. Where propagation stops, only lifetime bounds the chain.
 7. **Composition and profiles are not yet standardized ([Section 3.1](#31-identifying-the-agent), [Section 3.2](#32-key-binding-profiles-and-packaging)).** The group SHOULD version the agent-composition profile ([Section 2.1](#21-what-an-agent-credential-carries)), standardize the fingerprint computation ([Section 3.1](#31-identifying-the-agent)), and maintain an interim profile registry in the CoSAI repository until a permanent, openly governed home is found. Registry governance is the hard part and SHOULD be raised as a working-group question, not assumed solved. Every profile's verification rules SHOULD restate the score fields of [Section 2.1](#21-what-an-agent-credential-carries) and the fail-closed rule of [Section 5.2](#52-presentation-and-validation).
-8. **Credentials alone do not reach every threat ([Section 4.4](#44-where-credentials-fall-short)).** Non-presenting agents and credential-stripping intermediaries are outside cooperative presentation, and no observer ([Section 4.3](#43-putting-credentials-to-work)) sits at the instruction layer where behavior is redirected (see Appendix, malicious skills), so malicious behavior or drift under an approved composition is not attestable: a skill can match its approved digest and still carry an undocumented feature. The paper proposes no control for these.
+8. **Credentials alone do not reach every threat ([Section 4.4](#44-where-credentials-fall-short)).** Non-presenting agents and credential-stripping intermediaries are outside cooperative presentation, and no observer ([Section 4.3](#43-putting-credentials-to-work)) sits at the instruction layer where behavior is redirected (see [Appendix G](#appendix-g-motivating-incidents), malicious skills), so malicious behavior or drift under an approved composition is not attestable: a skill can match its approved digest and still carry an undocumented feature. The paper proposes no control for these.
 
 # References
 
@@ -556,20 +596,24 @@ Table 2 shows that most threats are addressed only partly, or only once a missin
 - **[CEDAR]** Cedar policy language. <https://www.cedarpolicy.com/>
 - **[COSAI-AIAM]** CoSAI Workstream 4, "Agentic Identity and Access Management", v1.0, March 2026. <https://www.coalitionforsecureai.org/wp-content/uploads/2026/04/agentic-identity-and-access-control.pdf>
 - **[COSAI-RM]** CoSAI, "CoSAI Risk Map" (secure-ai-tooling). <https://github.com/cosai-oasis/secure-ai-tooling>
+- **[CSA-MIASMA]** Cloud Security Alliance, research note on the Miasma npm supply-chain attack on Red Hat Cloud Services packages, June 2026. <https://labs.cloudsecurityalliance.org/research/csa-research-note-miasma-npm-supply-chain-redhat-20260603-cs/>
 - **[HIPAA]** U.S. Code of Federal Regulations, 45 CFR 164.312, "Technical safeguards". <https://www.ecfr.gov/current/title-45/subtitle-A/subchapter-C/part-164/subpart-C/section-164.312>
 - **[IANA-MEDIA-TYPES]** IANA, "Media Types" registry. <https://www.iana.org/assignments/media-types/>
 - **[INTEL-TDX]** Intel, "Intel Trust Domain Extensions (Intel TDX)". <https://www.intel.com/content/www/us/en/developer/tools/trust-domain-extensions/overview.html>
+- **[LIU-SKILLS]** Liu, Y., Chen, Z., Zhang, Y., Deng, G., Li, Y., et al., "'Do Not Mention This to the User': Detecting and Understanding Malicious Agent Skills in the Wild", USENIX Security 2026, arXiv:2602.06547. <https://arxiv.org/abs/2602.06547>
 - **[MACAROONS]** Birgisson, A., Politz, J. G., Erlingsson, Ú., Taly, A., Vrable, M., and Lentczner, M., "Macaroons: Cookies with Contextual Caveats for Decentralized Authorization in the Cloud", NDSS 2014. <https://www.ndss-symposium.org/ndss2014/programme/macaroons-cookies-contextual-caveats-decentralized-authorization-cloud/>
 - **[MCP]** Model Context Protocol, "Authorization", specification revision 2026-07-28. <https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization>
 - **[NIST-SP-800-63]** NIST, "Digital Identity Guidelines", SP 800-63-4, July 2025; identity assurance levels in SP 800-63A-4. <https://csrc.nist.gov/pubs/sp/800/63/4/final>
 - **[OASF]** AGNTCY, "Open Agentic Schema Framework (OASF)". <https://docs.agntcy.org/oasf/open-agentic-schema-framework/>
 - **[ODIS]** CoSAI Workstream 4, "Open Delegation & Identity Standard (ODIS)", contributor draft (work in progress). <https://github.com/cosai-oasis/ws4-odis>
 - **[OPA-REGO]** Open Policy Agent, "Policy Language" (Rego). <https://www.openpolicyagent.org/docs/policy-language>
+- **[PILLAR-DOCKER]** Pillar Security, "One Docker socket to rule them all: escaping Codex, Cursor and Gemini CLIs' sandboxes", July 2026. <https://www.pillar.security/blog/one-docker-socket-to-rule-them-all-escaping-codex-cursor-and-gemini-clis-sandboxes>
 - **[RFC2119]** Bradner, S., "Key words for use in RFCs to Indicate Requirement Levels", BCP 14, RFC 2119, March 1997. <https://www.rfc-editor.org/rfc/rfc2119>
 - **[RFC5280]** Cooper, D., et al., "Internet X.509 Public Key Infrastructure Certificate and Certificate Revocation List (CRL) Profile", RFC 5280, May 2008. <https://www.rfc-editor.org/rfc/rfc5280>
 - **[RFC6960]** Santesson, S., et al., "X.509 Internet Public Key Infrastructure Online Certificate Status Protocol - OCSP", RFC 6960, June 2013. <https://www.rfc-editor.org/rfc/rfc6960>
 - **[RFC7517]** Jones, M., "JSON Web Key (JWK)", RFC 7517, May 2015. <https://www.rfc-editor.org/rfc/rfc7517>
 - **[RFC7519]** Jones, M., Bradley, J., and Sakimura, N., "JSON Web Token (JWT)", RFC 7519, May 2015. <https://www.rfc-editor.org/rfc/rfc7519>
+- **[RFC7800]** Jones, M., Bradley, J., and Tschofenig, H., "Proof-of-Possession Key Semantics for JSON Web Tokens (JWTs)", RFC 7800, April 2016. <https://www.rfc-editor.org/rfc/rfc7800>
 - **[RFC8174]** Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words", BCP 14, RFC 8174, May 2017. <https://www.rfc-editor.org/rfc/rfc8174>
 - **[RFC8392]** Jones, M., et al., "CBOR Web Token (CWT)", RFC 8392, May 2018. <https://www.rfc-editor.org/rfc/rfc8392>
 - **[RFC8693]** Jones, M., et al., "OAuth 2.0 Token Exchange", RFC 8693, January 2020. <https://www.rfc-editor.org/rfc/rfc8693>
@@ -585,15 +629,17 @@ Table 2 shows that most threats are addressed only partly, or only once a missin
 - **[SALTZER-SCHROEDER]** Saltzer, J. H., and Schroeder, M. D., "The Protection of Information in Computer Systems", Proceedings of the IEEE 63(9), September 1975. <https://doi.org/10.1109/PROC.1975.9939>
 - **[SIGSTORE]** OpenSSF, "Model Signing (OMS) Specification"; reference implementation sigstore/model-transparency. <https://github.com/ossf/model-signing-spec>
 - **[SLSA]** OpenSSF, "Supply-chain Levels for Software Artifacts (SLSA)", specification v1.2. <https://slsa.dev/spec/v1.2/>
+- **[SNYK-MIASMA]** Snyk, report on the Miasma supply-chain attack on Red Hat Cloud Services npm packages, June 2026. <https://snyk.io/blog/miasma-supply-chain-attack-malicious-code-redhat-cloud-services-npm-packages/>
+- **[SONATYPE-ATOMIC-ARCH]** Sonatype, report on the Atomic Arch campaign, June 2026. <https://www.sonatype.com/blog/atomic-arch-npm-campaign-adds-malicious-dependency>
 - **[SPIFFE]** CNCF, "Secure Production Identity Framework for Everyone (SPIFFE)" standards, including X.509-SVID and JWT-SVID. <https://spiffe.io/docs/latest/spiffe-about/overview/>
 - **[SSF]** OpenID Foundation, "OpenID Shared Signals Framework Specification 1.0", Final, August 2025. <https://openid.net/specs/openid-sharedsignals-framework-1_0-final.html>
 - **[TCG-TPM2]** Trusted Computing Group, "TPM 2.0 Library Specification". <https://trustedcomputinggroup.org/resource/tpm-library-specification/>
+- **[THN-ATOMIC-ARCH]** The Hacker News, report on malicious Arch Linux AUR packages, June 2026. <https://thehackernews.com/2026/06/over-400-arch-linux-aur-packages.html>
 - **[VC-DATA-INTEGRITY]** W3C, "Verifiable Credential Data Integrity 1.0", W3C Recommendation, May 2025. <https://www.w3.org/TR/vc-data-integrity/>
 - **[VC-JOSE-COSE]** W3C, "Securing Verifiable Credentials using JOSE and COSE", W3C Recommendation. <https://www.w3.org/TR/vc-jose-cose/>
 - **[W3C-BITSTRING]** W3C, "Bitstring Status List v1.0", W3C Recommendation, May 2025. <https://www.w3.org/TR/vc-bitstring-status-list/>
 - **[W3C-DID]** W3C, "Decentralized Identifiers (DIDs) v1.0", W3C Recommendation, July 2022. <https://www.w3.org/TR/did-core/>
 - **[W3C-VC2]** W3C, "Verifiable Credentials Data Model v2.0", W3C Recommendation, May 2025. <https://www.w3.org/TR/vc-data-model-2.0/>
-- **[draft-aevum-agentcard]** Tsoi, K. L., "AgentCard: A Framework-Neutral Identity and Capability Declaration Format for Agent-to-Agent Communication", individual Internet-Draft draft-aevum-agentcard-00, April 2026 (work in progress). <https://datatracker.ietf.org/doc/draft-aevum-agentcard/>
 - **[draft-ietf-oauth-transaction-tokens]** "Transaction Tokens", IETF OAuth WG Internet-Draft draft-ietf-oauth-transaction-tokens-11, July 2026 (work in progress). <https://datatracker.ietf.org/doc/draft-ietf-oauth-transaction-tokens/>
 - **[draft-ietf-oauth-v2-1]** "The OAuth 2.1 Authorization Framework", IETF OAuth WG Internet-Draft draft-ietf-oauth-v2-1-16, September 2026 (work in progress). <https://datatracker.ietf.org/doc/draft-ietf-oauth-v2-1/>
 - **[draft-ietf-rats-ar4si]** "Attestation Results for Secure Interactions", IETF RATS WG Internet-Draft draft-ietf-rats-ar4si-10, May 2026 (work in progress). <https://datatracker.ietf.org/doc/draft-ietf-rats-ar4si/>
@@ -603,6 +649,7 @@ Table 2 shows that most threats are addressed only partly, or only once a missin
 - **[draft-ietf-wimse-http-signature]** "WIMSE Workload-to-Workload Authentication with HTTP Signatures", IETF WIMSE WG Internet-Draft draft-ietf-wimse-http-signature-07, September 2026 (work in progress). <https://datatracker.ietf.org/doc/draft-ietf-wimse-http-signature/>
 - **[draft-ietf-wimse-workload-creds]** "WIMSE Workload Credentials", IETF WIMSE WG Internet-Draft draft-ietf-wimse-workload-creds-02, July 2026 (work in progress). <https://datatracker.ietf.org/doc/draft-ietf-wimse-workload-creds/>
 - **[draft-ietf-wimse-wpt]** "WIMSE Workload Proof Token", IETF WIMSE WG Internet-Draft draft-ietf-wimse-wpt-02, August 2026 (work in progress). <https://datatracker.ietf.org/doc/draft-ietf-wimse-wpt/>
+- **[draft-meunier-webbotauth-registry]** Guerreiro, M., Kirazci, U., and Meunier, T., "Registry and Signature Agent card for Web bot auth", individual Internet-Draft draft-meunier-webbotauth-registry-02, May 2026 (work in progress). <https://datatracker.ietf.org/doc/draft-meunier-webbotauth-registry/>
 
 # Appendix A: Glossary
 
@@ -611,12 +658,15 @@ Acronyms used in this paper, with their expansions. Bracketed tags point to the 
 | Acronym | Expansion | Meaning in this paper |
 |---|---|---|
 | A2A | Agent2Agent | Open protocol for communication between agents. Its Agent Card describes an agent's identity, capabilities, skills, and endpoints [[A2A](https://a2a-protocol.org/latest/specification/)]. |
+| AI | Artificial Intelligence | |
 | AIMS | AI Identity Management System | IETF WIMSE draft on identity and credentials for AI agents [[draft-ietf-wimse-aims](https://datatracker.ietf.org/doc/draft-ietf-wimse-aims/)]. |
 | API | Application Programming Interface | An interface through which a service is called. |
 | AR4SI | Attestation Results for Secure Interactions | IETF RATS draft defining reusable trustworthiness claims for attestation results [[draft-ietf-rats-ar4si](https://datatracker.ietf.org/doc/draft-ietf-rats-ar4si/)]. |
 | AS | Authorization server | An OAuth server that issues access tokens (out of scope, [Section 1.1](#11-scope)). |
+| AUR | Arch User Repository | Community package repository for Arch Linux. |
 | BCP | Best Current Practice | IETF document series; BCP 14 defines the requirement keywords used in this paper. |
 | CAEP | Continuous Access Evaluation Profile | OpenID profile of SSF for session and credential change events [[CAEP](https://openid.net/specs/openid-caep-1_0-final.html)]. |
+| CLI | Command-Line Interface | |
 | CoSAI | Coalition for Secure AI | The organization publishing this paper. |
 | CRL | Certificate Revocation List | A signed list of revoked X.509 certificates [[RFC5280](https://www.rfc-editor.org/rfc/rfc5280)]. |
 | CWT | CBOR Web Token | The Concise Binary Object Representation (CBOR) counterpart of a JWT [[RFC8392](https://www.rfc-editor.org/rfc/rfc8392)]. |
@@ -629,9 +679,11 @@ Acronyms used in this paper, with their expansions. Bracketed tags point to the 
 | IAL | Identity Assurance Level | NIST SP 800-63 level of confidence in identity proofing [[NIST-SP-800-63](https://csrc.nist.gov/pubs/sp/800/63/4/final)]. |
 | IAM | Identity and Access Management | |
 | IANA | Internet Assigned Numbers Authority | Maintains Internet protocol registries, such as media types [[IANA-MEDIA-TYPES](https://www.iana.org/assignments/media-types/)]. |
+| ID | Identifier | As in SPIFFE ID and WIMSE ID. |
 | IdP | Identity Provider | |
 | IETF | Internet Engineering Task Force | |
 | IP | Internet Protocol | |
+| JSON | JavaScript Object Notation | Text format for structured data, used by JWTs, VCs and EARs. |
 | JWK | JSON Web Key | JSON representation of a cryptographic key [[RFC7517](https://www.rfc-editor.org/rfc/rfc7517)]. |
 | JWT | JSON Web Token | A signed set of JSON claims [[RFC7519](https://www.rfc-editor.org/rfc/rfc7519)]. |
 | MCP | Model Context Protocol | Protocol connecting AI applications and agents to tools and data sources [[MCP](https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization)]. |
@@ -640,6 +692,7 @@ Acronyms used in this paper, with their expansions. Bracketed tags point to the 
 | OASF | Open Agentic Schema Framework | Schema framework for describing agent capabilities and attributes [[OASF](https://docs.agntcy.org/oasf/open-agentic-schema-framework/)]. |
 | OCSP | Online Certificate Status Protocol | Protocol for querying the revocation status of an X.509 certificate [[RFC6960](https://www.rfc-editor.org/rfc/rfc6960)]. |
 | ODIS | Open Delegation & Identity Standard | CoSAI Workstream 4 draft defining agent registration, runtime, and delegation records [[ODIS](https://github.com/cosai-oasis/ws4-odis)]. |
+| OIDC | OpenID Connect | Identity layer on OAuth 2.0; used by package registries for trusted publishing. |
 | PDP | Policy Decision Point | Component that evaluates policy and returns an allow or deny decision. |
 | PEP | Policy Enforcement Point | Component in front of a tool or service that enforces the PDP's decision. |
 | PKI | Public Key Infrastructure | |
@@ -659,8 +712,554 @@ Acronyms used in this paper, with their expansions. Bracketed tags point to the 
 | TEE | Trusted Execution Environment | An isolated execution environment whose state can be attested. |
 | TLS | Transport Layer Security | |
 | TPM | Trusted Platform Module | Hardware security module that can sign (quote) platform measurements [[TCG-TPM2](https://trustedcomputinggroup.org/resource/tpm-library-specification/)]. |
+| URL | Uniform Resource Locator | |
 | UUID | Universally Unique Identifier | |
 | VC | Verifiable Credential | W3C data model for cryptographically verifiable claims [[W3C-VC2](https://www.w3.org/TR/vc-data-model-2.0/)]. |
 | W3C | World Wide Web Consortium | |
 | WIMSE | Workload Identity in Multi System Environments | IETF working group and architecture for workload identity across systems [[draft-ietf-wimse-arch](https://datatracker.ietf.org/doc/draft-ietf-wimse-arch/)]. |
 | WIT | Workload Identity Token | WIMSE token carrying a workload identifier and its key binding in a cnf claim [[draft-ietf-wimse-workload-creds](https://datatracker.ietf.org/doc/draft-ietf-wimse-workload-creds/)]. |
+
+# Appendix B: RATS Architecture and Role Mapping
+
+The roles and messages in [Section 1.2](#12-core-concepts--definitions) follow the IETF RATS architecture [[RFC9334](https://www.rfc-editor.org/rfc/rfc9334)]. Figure 1 shows how they connect, and the table below maps each RATS role and message to its counterpart in this paper.
+
+*Figure 1: RATS architecture, after [[RFC9334, Section 3](https://www.rfc-editor.org/rfc/rfc9334#section-3)]*
+
+```mermaid
+flowchart TB
+    EN["Endorser"] -->|Endorsements| V
+    RVP["Reference Value Provider"] -->|Reference Values| V
+    VO["Verifier Owner"] -->|Appraisal Policy for Evidence| V
+    A["Attester"] -->|Evidence| V["Verifier"]
+    V -->|"Attestation Results<br/>(a credential, once signed and bound)"| RP["Relying Party"]
+    RPO["Relying Party Owner"] -->|Appraisal Policy for Attestation Results| RP
+```
+
+*Table: RATS roles and messages in this paper*
+
+| RATS (RFC 9334) | This paper | Where |
+|---|---|---|
+| Attester | The agent's attesting environment (a TEE, the platform, or the agent process itself), or a provider that signs a description of the agent | [Section 1.2](#12-core-concepts--definitions), [Section 2.2](#22-how-far-a-relying-party-can-trust-it) |
+| Endorser | A hardware manufacturer, platform operator, or attestation service whose endorsements let a verifier trust an attester's keys | [Section 1.2](#12-core-concepts--definitions) |
+| Reference Value Provider | The source of approved digests and measurements: model, software, skill and configuration references, and boot images | [Section 2.1](#21-what-an-agent-credential-carries) |
+| Verifier | The issuer of agent credentials: the runtime credential issuer, and often an observer that appraises its own records | [Section 1.2](#12-core-concepts--definitions), [Section 4.3](#43-putting-credentials-to-work), [Section 5.1](#51-issuance) |
+| Verifier Owner | Sets the appraisal policy for evidence, which the credential names in its assurance basis | [Section 2.2](#22-how-far-a-relying-party-can-trust-it) |
+| Relying Party | A gateway, PEP, secrets vault, API, or another agent that receives the credential | [Section 1.2](#12-core-concepts--definitions), [Section 5.2](#52-presentation-and-validation) |
+| Relying Party Owner | Sets the policy for acting on credentials: accepted issuers, acceptance thresholds, and the PDP policy | [Section 4.2](#42-crossing-domains), [Section 5.2](#52-presentation-and-validation) |
+| Evidence | Evidence, including self-asserted claims and observer records, until a verifier appraises it | [Section 1.2](#12-core-concepts--definitions), [Section 4.3](#43-putting-credentials-to-work) |
+| Endorsements | Endorsements | [Section 1.2](#12-core-concepts--definitions) |
+| Reference Values | The approved references a profile names | [Section 2.1](#21-what-an-agent-credential-carries) |
+| Appraisal Policy for Evidence | The appraisal policy in the assurance basis | [Section 2.2](#22-how-far-a-relying-party-can-trust-it) |
+| Attestation Results | An attestation result; once signed by the verifier and bound to a subject and policy, a credential | [Section 1.2](#12-core-concepts--definitions) |
+| Appraisal Policy for Attestation Results | The relying party's own policy, applied at the enforcement point | [Section 5.2](#52-presentation-and-validation) |
+
+RATS describes two ways for results to reach a relying party [[RFC9334, Section 5](https://www.rfc-editor.org/rfc/rfc9334#section-5)]. In the passport model, the attester obtains the attestation result and presents it to the relying party; an agent presenting its credential follows this model. In the background-check model, the relying party forwards evidence to a verifier it trusts. A relying party at an untrusted hop that resolves the evidence behind a credential and has it appraised again follows the second model ([Section 4.2](#42-crossing-domains)).
+
+# Appendix C: Named Credential Profiles
+
+A profile is a fixed set of fields with defined semantics, so that relying parties can request and appraise a credential by name ([Section 2.1](#21-what-an-agent-credential-carries)). A credential MUST name its profile ([Section 3.2](#32-key-binding-profiles-and-packaging)). The table lists the profiles named in this paper. The names are working names: until the group maintains a profile registry ([gap 7](#62-open-gaps-and-recommendations)), they are not registered, and the field lists are illustrative.
+
+*Table: Profiles named in this paper*
+
+| Profile | Category | Claims it carries, in addition to the core fields of Table 1 | Example in Appendix E |
+|---|---|---|---|
+| agent-metadata | Evidence (not a credential profile) | A signed agent descriptor, such as an A2A Agent Card, and its format | Example 1 |
+| verified-ownership | Identity and ownership | The organization that controls the subject key | |
+| agent-composition | Composition | Digests of the model, the resolved tool and skill manifest, the knowledge-base snapshot, and the prompt and guardrail configuration, plus a composition fingerprint over all of them | |
+| approved-config | Composition | The configuration digest, and the approved reference it matches | |
+| contain-guardrails | Composition | The named guardrail set present in the active configuration | |
+| golden-image | Composition | The approved boot measurements, the result, and the hardware evidence appraised | Example 3 |
+| approved-skills | Capabilities and skills | The digest of each active skill artifact, each matching an approved reference | |
+| validated-capabilities | Capabilities and skills | The declared capabilities that a verifier exercised and confirmed | Example 1 |
+| security-scanned | Security and compliance posture | The scanner, its version, the result, and the artifact digest scanned | |
+| trust-score | Security and compliance posture | The score, with its scoring method and version, evidence window, verifier, and attestation tier | |
+| registry-membership | Security and compliance posture | The registry checked, a content digest of the registry at the time of the check, and the result | Example 2 |
+
+Delegation claims ([Section 2.1](#21-what-an-agent-credential-carries)) have no named profile yet; a profile for them depends on the chain format of [gap 5](#62-open-gaps-and-recommendations). As [gap 7](#62-open-gaps-and-recommendations) recommends, each profile's verification rules should restate the score fields of [Section 2.1](#21-what-an-agent-credential-carries) where a score is carried, and the fail-closed rule of [Section 5.2](#52-presentation-and-validation).
+
+# Appendix D: Agent Descriptor Formats
+
+An agent descriptor states an agent's name, endpoints, capabilities and skills. The capability vocabulary of [Section 2.1](#21-what-an-agent-credential-carries) can be drawn from any of them, but a descriptor signed by the agent's provider is evidence, not a credential, until a verifier appraises it ([Section 1.2](#12-core-concepts--definitions)). The landscape has not consolidated. The formats below are those cited in this paper.
+
+*Table: Agent descriptor formats*
+
+| Format | Steward | Status | Use in this paper |
+|---|---|---|---|
+| A2A Agent Card [[A2A](https://a2a-protocol.org/latest/specification/)] | A2A project, Agentic AI Foundation (Linux Foundation) | Published, v1.0; normative definition in `spec/a2a.proto` | Capability and skill vocabulary ([Section 2.1](#21-what-an-agent-credential-carries)); the descriptor signed in [Appendix E](#appendix-e-example-evidence-and-credentials), Example 1 |
+| OASF [[OASF](https://docs.agntcy.org/oasf/open-agentic-schema-framework/)] | AGNTCY, a Linux Foundation project | Open source | Schema framework for agent capabilities and attributes; also illustrates a shared profile registry ([Section 3.2](#32-key-binding-profiles-and-packaging)) |
+| ODIS records [[ODIS](https://github.com/cosai-oasis/ws4-odis)] | CoSAI Workstream 4 | Contributor draft, work in progress | Agent registration, runtime and delegation records; its binding profiles are cited in [Section 3.2](#32-key-binding-profiles-and-packaging) |
+
+# Appendix E: Example Evidence and Credentials
+
+The following three examples follow one bookkeeping agent from evidence to credential. Example 1 is **evidence**: the agent's provider signs a description of the agent, and no verifier has appraised it. Examples 2 and 3 are **agent credentials**: a verifier appraised evidence against an appraisal policy and issued the result ([Section 1.2](#12-core-concepts--definitions)), once at the software tier and once at the hardware tier ([Section 2.2](#22-how-far-a-relying-party-can-trust-it)). Example 2 is the credential rendered in [Section 3.2](#32-key-binding-profiles-and-packaging), and Example 3 completes the golden-image credential of [Section 2.1](#21-what-an-agent-credential-carries).
+
+Each example is shown first as a field list, then in concrete encodings. The packaging follows the role ([Section 3.2](#32-key-binding-profiles-and-packaging)). Evidence is rendered as a W3C VC and as an EAT [[RFC9711](https://www.rfc-editor.org/rfc/rfc9711)]; agent credentials as a W3C VC and as an EAR [[draft-ietf-rats-ear](https://datatracker.ietf.org/doc/draft-ietf-rats-ear/)]. The claims stay the same whichever packaging carries them.
+
+The field lists use did:key identifiers, which are self-certifying: the identifier encodes the public key, so proving possession of the key ([Section 3.2](#32-key-binding-profiles-and-packaging)) proves control of the subject. Any identifier of [Section 3.1](#31-identifying-the-agent) works.
+
+The examples show both lifecycle strategies of [Section 5.3](#53-expiry-and-revocation). The provider's evidence document in Example 1 is valid for three months and carries a Bitstring Status List entry [[W3C-BITSTRING](https://www.w3.org/TR/vc-bitstring-status-list/)] for revocation; its EAT rendering is valid for four hours and relies on expiry alone. The agent credentials in Examples 2 and 3 describe a running agent, so they are valid for four hours and rely on expiry alone. In every case, the appraisal time in the assurance basis lets a relying party apply its own maximum appraisal age ([Section 5.2](#52-presentation-and-validation)).
+
+## Example 1: Agent Metadata (Evidence)
+
+The agent's provider, acting as attester, signs the agent's A2A Agent Card [[A2A](https://a2a-protocol.org/latest/specification/)] under the agent-metadata attribute profile. This is the case [Section 1.2](#12-core-concepts--definitions) describes: the document references its attribute profile, is bound to the agent identity as its subject, and is signed by the provider. No verifier has appraised it, so it is evidence, not a credential, and it carries no assurance basis.
+
+A relying party that acts on it directly takes the provider as the sole authority on the agent. That may be proportionate for supervised work with a small blast radius. For autonomous or high-stakes work, a relying party should require an agent credential issued by a verifier that has appraised this evidence, as shown after the renderings.
+
+```
+Subject:           "did:key:<subject-pubkey>"
+Profile:           "agent-metadata"
+Descriptor format: "a2a-agent-card"
+Metadata:          {
+  "name": "bookkeeping-assistant",
+  "description": "An agent that helps with bookkeeping.",
+  "version": "1.0.0",
+  "supportedInterfaces": [{
+    "url": "https://bookkeeping-agent.example.com/a2a/v1",
+    "protocolBinding": "JSONRPC",
+    "protocolVersion": "1.0"
+  }],
+  "capabilities": { "streaming": true, "pushNotifications": false },
+  "defaultInputModes": ["application/json", "text/plain"],
+  "defaultOutputModes": ["application/json", "text/plain"],
+  "skills": [{
+    "id": "categorize-transactions",
+    "name": "Categorize Transactions",
+    "description": "Classifies bank or credit card transactions into accounting categories.",
+    "tags": ["accounting", "bookkeeping", "categorization"]
+  }]
+}
+Issuer:            "did:key:<provider-pubkey>"     // the provider, as attester
+Issued:            2026-08-06T14:00:00Z
+Expiry:            2026-11-06T14:00:00Z
+Revocation:        status list entry 94567 of https://provider.example.com/status/3
+Signature:         <proof over all above fields>
+```
+
+**Rendered as a VC (three months, with a status list entry).** The W3C data model calls any signed claim set a verifiable credential. In this paper's terms, this one is evidence, because no verifier has appraised it. The agent-metadata context is assumed to define each subject field, and to declare `metadata` as a JSON literal (`@json`) so that the Agent Card is carried as is.
+
+```json
+{
+  "@context": [
+    "https://www.w3.org/ns/credentials/v2",
+    "https://example.org/vocab/agent-metadata/v1"
+  ],
+  "type": ["VerifiableCredential", "AgentMetadata"],
+  "issuer": "did:key:<provider-pubkey>",
+  "validFrom": "2026-08-06T14:00:00Z",
+  "validUntil": "2026-11-06T14:00:00Z",
+  "credentialSubject": {
+    "id": "did:key:<subject-pubkey>",
+    "profile": "agent-metadata",
+    "descriptorFormat": "a2a-agent-card",
+    "metadata": {
+      "name": "bookkeeping-assistant",
+      "description": "An agent that helps with bookkeeping.",
+      "version": "1.0.0",
+      "supportedInterfaces": [{
+        "url": "https://bookkeeping-agent.example.com/a2a/v1",
+        "protocolBinding": "JSONRPC",
+        "protocolVersion": "1.0"
+      }],
+      "capabilities": { "streaming": true, "pushNotifications": false },
+      "defaultInputModes": ["application/json", "text/plain"],
+      "defaultOutputModes": ["application/json", "text/plain"],
+      "skills": [{
+        "id": "categorize-transactions",
+        "name": "Categorize Transactions",
+        "description": "Classifies bank or credit card transactions into accounting categories.",
+        "tags": ["accounting", "bookkeeping", "categorization"]
+      }]
+    }
+  },
+  "credentialStatus": {
+    "id": "https://provider.example.com/status/3#94567",
+    "type": "BitstringStatusListEntry",
+    "statusPurpose": "revocation",
+    "statusListIndex": "94567",
+    "statusListCredential": "https://provider.example.com/status/3"
+  },
+  "proof": {
+    "type": "DataIntegrityProof",
+    "cryptosuite": "eddsa-jcs-2022",
+    "created": "2026-08-06T14:00:00Z",
+    "verificationMethod": "did:key:<provider-pubkey>#z6Mk...",
+    "proofPurpose": "assertionMethod",
+    "proofValue": "<proof-over-all-above-fields>"
+  }
+}
+```
+
+**Rendered as an EAT (four hours, no revocation).** The EAT carries the descriptor as top-level claims under its profile.
+
+```json
+{
+  "eat_profile": "https://example.org/vocab/agent-metadata/v1",
+  "iss": "did:key:<provider-pubkey>",
+  "sub": "did:key:<subject-pubkey>",
+  "iat": 1786024800,
+  "exp": 1786039200,
+  "descriptor_format": "a2a-agent-card",
+  "metadata": {
+    "name": "bookkeeping-assistant",
+    "description": "An agent that helps with bookkeeping.",
+    "version": "1.0.0",
+    "supportedInterfaces": [{
+      "url": "https://bookkeeping-agent.example.com/a2a/v1",
+      "protocolBinding": "JSONRPC",
+      "protocolVersion": "1.0"
+    }],
+    "capabilities": { "streaming": true, "pushNotifications": false },
+    "defaultInputModes": ["application/json", "text/plain"],
+    "defaultOutputModes": ["application/json", "text/plain"],
+    "skills": [{
+      "id": "categorize-transactions",
+      "name": "Categorize Transactions",
+      "description": "Classifies bank or credit card transactions into accounting categories.",
+      "tags": ["accounting", "bookkeeping", "categorization"]
+    }]
+  }
+}
+```
+
+**From evidence to credential.** A verifier can appraise this evidence and issue an agent credential under a capability profile. For example, under an appraisal policy `support-streaming/v1`, it checks that the card is signed by a provider on its trust list, opens a streaming session to the declared interface, and confirms that streaming works. The result is a validated-capabilities credential at the software tier, since nothing roots the evidence below the agent's own endpoint:
+
+```
+Subject:          "did:key:<subject-pubkey>"
+Profile:          "validated-capabilities"
+Result:           { "streaming": true }
+Evidence:         <digest of the Example 1 evidence>
+Assurance basis:  tier "software", policy "support-streaming/v1",
+                  appraisal time 2026-08-06T13:59:40Z
+Issuer:           "did:key:<verifier-pubkey>"
+Issued:           2026-08-06T14:00:00Z
+Expiry:           2026-08-06T18:00:00Z
+Signature:        <proof over all above fields>
+```
+
+A relying party's rule then reads the verifier's result rather than the agent's own description, after it has verified the issuer and the holder binding ([Section 5.2](#52-presentation-and-validation)):
+
+```
+ALLOW IF credential.issuer IN accepted_verifiers
+     AND holder_binding_verified
+     AND credential.profile = "validated-capabilities"
+     AND credential.assurance_basis.appraisal_policy = "support-streaming/v1"
+     AND credential.result.streaming = true
+     AND now - credential.assurance_basis.appraisal_time <= max_appraisal_age
+```
+
+## Example 2: Registry Membership (Agent Credential)
+
+A verifier checks that the subject is listed in a published registry and issues the result. The registry-membership profile requires three fields:
+
+- **registry:** the URL of the registry that was checked.
+- **registrySRI:** a content digest of the registry at the time of the check.
+- **result:** a boolean.
+
+The digest matters because registries change: without it, a relying party cannot tell which state of the registry the result refers to.
+
+The registry in this example is a Web Bot Auth registry [[draft-meunier-webbotauth-registry](https://datatracker.ietf.org/doc/draft-meunier-webbotauth-registry/)]. It holds no keys itself: it is a list of URLs of signature agent cards, each of which carries or points to a key directory. The verifier follows those entries and checks that the public key encoded in the subject's did:key appears in one of the directories. The registry digest pins only the list of URLs, not the cards or keys behind it, so a verifier that needs to pin those as well should record their digests as evidence.
+
+The relying party trusts the verifier's appraisal, not the agent's word. It verifies the signature against the verifier's published key, confirms that the named appraisal policy is one it accepts, and checks that the presenter controls the subject key ([Section 5.2](#52-presentation-and-validation)).
+
+The evidence appraised is the agent's key and the registry content. No platform or hardware root vouches for the agent's environment, so the attestation tier is software ([Section 2.2](#22-how-far-a-relying-party-can-trust-it)). The result holds against a remote attacker, but not against one who can execute code in the agent process and use its key. The registry operator is also a trust anchor: whoever controls the registry or a listed key directory can obtain a conforming credential for an agent of their choosing.
+
+```
+Subject:          "did:key:<subject-pubkey>"     // also the holder key
+Profile:          "registry-membership"
+Registry:         "https://assets.radar.cloudflare.com/bots/signature-agent-registry.txt"
+RegistrySRI:      "sha256:<registry-content-digest>"
+Result:           true
+Assurance basis:  tier "software", policy "registry-membership/v1",
+                  appraisal time 2026-08-06T13:59:40Z
+Issuer:           "did:key:<verifier-pubkey>"
+Issued:           2026-08-06T14:00:00Z
+Expiry:           2026-08-06T18:00:00Z
+Revocation:       none; relies on expiry
+Signature:        <proof over all above fields>
+```
+
+**Rendered as a VC (four hours, no revocation)**
+
+```json
+{
+  "@context": [
+    "https://www.w3.org/ns/credentials/v2",
+    "https://example.org/vocab/registry-membership/v1"
+  ],
+  "type": ["VerifiableCredential", "RegistryMembership"],
+  "issuer": "did:key:<verifier-pubkey>",
+  "validFrom": "2026-08-06T14:00:00Z",
+  "validUntil": "2026-08-06T18:00:00Z",
+  "credentialSubject": {
+    "id": "did:key:<subject-pubkey>",
+    "profile": "registry-membership",
+    "registry": "https://assets.radar.cloudflare.com/bots/signature-agent-registry.txt",
+    "registrySRI": "sha256:<registry-content-digest>",
+    "result": true
+  },
+  "assuranceBasis": {
+    "attestationTier": "software",
+    "appraisalPolicy": "https://example.org/policy/registry-membership/v1",
+    "appraisalTime": "2026-08-06T13:59:40Z"
+  },
+  "proof": {
+    "type": "DataIntegrityProof",
+    "cryptosuite": "eddsa-jcs-2022",
+    "created": "2026-08-06T14:00:00Z",
+    "verificationMethod": "did:key:<verifier-pubkey>#z6Mk...",
+    "proofPurpose": "assertionMethod",
+    "proofValue": "<proof-over-all-above-fields>"
+  }
+}
+```
+
+**Rendered as an EAR (four hours, no revocation).** EAR carries the appraisal policy in `ear_appraisal_policy_ids` and the issuance time in `iat`. The issuer (`iss`, since EAR defines no issuer claim), the subject, the holder key (`cnf` [[RFC7800](https://www.rfc-editor.org/rfc/rfc7800)]), and the other assurance-basis fields are additions ([Section 3.2](#32-key-binding-profiles-and-packaging)). The result carries no AR4SI trustworthiness vector, because AR4SI covers only hardware-rooted attesting environments and this result is at the software tier ([gap 3](#62-open-gaps-and-recommendations)).
+
+```json
+{
+  "eat_profile": "tag:ietf.org,2026:rats/ear#04",
+  "iat": 1786024800,
+  "exp": 1786039200,
+  "iss": "did:key:<verifier-pubkey>",
+  "sub": "did:key:<subject-pubkey>",
+  "cnf": { "kid": "did:key:<subject-pubkey>#z6Mk..." },
+  "ear_verifier_id": {
+    "developer": "https://verifier.example.com",
+    "build": "registry-membership-v1"
+  },
+  "submods": {
+    "registry-membership": {
+      "ear_status": "affirming",
+      "ear_appraisal_policy_ids": ["https://example.org/policy/registry-membership/v1"],
+      "attestation_tier": "software",
+      "appraisal_time": 1786024780,
+      "ear_verifier_claims": {
+        "registry": "https://assets.radar.cloudflare.com/bots/signature-agent-registry.txt",
+        "registrySRI": "sha256:<registry-content-digest>",
+        "result": true
+      }
+    }
+  }
+}
+```
+
+## Example 3: Approved Boot Image (Agent Credential)
+
+The agent runs in an AMD SEV-SNP [[AMD-SEV](https://docs.amd.com/v/u/en-US/SEV-SNP-strengthening-vm-isolation-with-integrity-protection-and-more)] confidential virtual machine, started with measured direct boot. The hardware measures the firmware (`ovmf`) and, through it, the kernel, initrd and kernel command line (`append`) into the launch measurement of the attestation report. The root filesystem is not measured directly: it is covered because its dm-verity root hash (`rootfs`) is part of the measured command line. The verifier compares these values against the approved images and records the outcome in `result`, whose `method` names the kind of evidence appraised.
+
+The agent generates its holder key inside the virtual machine and places a hash of the public key in the report's REPORT_DATA field. The verifier checks that this hash matches the subject key. That check is what ties the credential's key to the attested machine: without it, the report would show that an approved image booted, but not that the key presenting the credential lives inside it. The `evidence` entry carries a digest of the report, so the result can be traced to what produced it ([Section 1.2](#12-core-concepts--definitions)).
+
+This is the hardware tier ([Section 2.2](#22-how-far-a-relying-party-can-trust-it)). It holds against a remote attacker, local software, and a privileged operator: nothing running in software, including the host operating system, can produce a valid report for a different image or key. It does not hold against the physical owner of the machine, the bound that [Section 1.2](#12-core-concepts--definitions) places on a hardware-rooted result. The credential attests one booted instance, so it is short-lived: a re-created instance re-attests and receives a new credential ([Section 5.2](#52-presentation-and-validation)).
+
+```
+Subject:          "did:key:<subject-pubkey>"     // also the holder key
+Profile:          "golden-image"
+Images:           {
+  "ovmf":   ["sha256:<ovmf-hash>"],
+  "kernel": ["sha256:<kernel-hash>"],
+  "initrd": ["sha256:<initrd-hash>"],
+  "append": ["sha256:<append-hash>"],
+  "rootfs": ["sha256:<rootfs-hash>"]
+}
+Result:           { "value": true, "method": "tee" }
+Evidence:         [{ "type": "AmdSevEvidence", "amdSevReport": "sha256:<report-hash>",
+                     "reportData": "sha256:<holder-public-key>" }]
+Assurance basis:  tier "hardware", policy "golden-image/v1",
+                  appraisal time 2026-08-06T13:59:40Z
+Issuer:           "did:key:<verifier-pubkey>"
+Issued:           2026-08-06T14:00:00Z
+Expiry:           2026-08-06T18:00:00Z
+Revocation:       none; relies on expiry
+Signature:        <proof over all above fields>
+```
+
+**Rendered as a VC (four hours, no revocation)**
+
+```json
+{
+  "@context": [
+    "https://www.w3.org/ns/credentials/v2",
+    "https://example.org/vocab/golden-image/v1"
+  ],
+  "type": ["VerifiableCredential", "GoldenImage"],
+  "issuer": "did:key:<verifier-pubkey>",
+  "validFrom": "2026-08-06T14:00:00Z",
+  "validUntil": "2026-08-06T18:00:00Z",
+  "credentialSubject": {
+    "id": "did:key:<subject-pubkey>",
+    "profile": "golden-image",
+    "images": {
+      "ovmf": ["sha256:<ovmf-hash>"],
+      "kernel": ["sha256:<kernel-hash>"],
+      "initrd": ["sha256:<initrd-hash>"],
+      "append": ["sha256:<append-hash>"],
+      "rootfs": ["sha256:<rootfs-hash>"]
+    },
+    "result": { "value": true, "method": "tee" }
+  },
+  "evidence": [{
+    "type": "AmdSevEvidence",
+    "amdSevReport": "sha256:<report-hash>",
+    "reportData": "sha256:<holder-public-key>"
+  }],
+  "assuranceBasis": {
+    "attestationTier": "hardware",
+    "appraisalPolicy": "https://example.org/policy/golden-image/v1",
+    "appraisalTime": "2026-08-06T13:59:40Z"
+  },
+  "proof": {
+    "type": "DataIntegrityProof",
+    "cryptosuite": "eddsa-jcs-2022",
+    "created": "2026-08-06T14:00:00Z",
+    "verificationMethod": "did:key:<verifier-pubkey>#z6Mk...",
+    "proofPurpose": "assertionMethod",
+    "proofValue": "<proof-over-all-above-fields>"
+  }
+}
+```
+
+**Rendered as an EAR (four hours, no revocation).** The report travels in `ear_raw_evidence`, as a media type and the base64url-encoded report, and the claims taken from it travel in `ear_attester_claims`, so a relying party at an untrusted hop can have the evidence appraised again ([Section 4.2](#42-crossing-domains)). EAR identifies the verifier's software in `ear_verifier_id` but defines no issuer claim, so the verifier's own identity, the Issuer of Table 1, is added as the JWT `iss` claim. Because the evidence is hardware-rooted, the result also carries AR4SI trustworthiness claims in `ear_trustworthiness_vector`, as [gap 3](#62-open-gaps-and-recommendations) recommends: the value 2 for each claim is the affirming grade [[draft-ietf-rats-ar4si](https://datatracker.ietf.org/doc/draft-ietf-rats-ar4si/)].
+
+```json
+{
+  "eat_profile": "tag:ietf.org,2026:rats/ear#04",
+  "iat": 1786024800,
+  "exp": 1786039200,
+  "iss": "did:key:<verifier-pubkey>",
+  "sub": "did:key:<subject-pubkey>",
+  "cnf": { "kid": "did:key:<subject-pubkey>#z6Mk..." },
+  "ear_verifier_id": {
+    "developer": "https://verifier.example.com",
+    "build": "golden-image-verifier-v1"
+  },
+  "ear_raw_evidence": [
+    "application/vnd.example.amd-sev-snp-report",
+    "<base64url-encoded-report>"
+  ],
+  "submods": {
+    "golden-image": {
+      "eat_profile": "https://example.org/vocab/golden-image/v1",
+      "ear_status": "affirming",
+      "ear_trustworthiness_vector": {
+        "instance-identity": 2,
+        "executables": 2,
+        "hardware": 2
+      },
+      "ear_appraisal_policy_ids": ["https://example.org/policy/golden-image/v1"],
+      "attestation_tier": "hardware",
+      "appraisal_time": 1786024780,
+      "ear_attester_claims": {
+        "type": "AmdSevEvidence",
+        "amdSevReport": "sha256:<report-hash>",
+        "reportData": "sha256:<holder-public-key>"
+      },
+      "ear_verifier_claims": {
+        "images": {
+          "ovmf": ["sha256:<ovmf-hash>"],
+          "kernel": ["sha256:<kernel-hash>"],
+          "initrd": ["sha256:<initrd-hash>"],
+          "append": ["sha256:<append-hash>"],
+          "rootfs": ["sha256:<rootfs-hash>"]
+        },
+        "result": { "value": true, "method": "tee" }
+      }
+    }
+  }
+}
+```
+
+# Appendix F: Sample Enforcement Policy
+
+This sample shows how a relying party might express the six validation steps of [Section 5.2](#52-presentation-and-validation) for tool calls, with acceptance thresholds that scale with blast radius. It is illustrative, not normative, and the field names are not part of any profile.
+
+The PEP performs the transport check, credential validation, holder binding and audit (steps 1, 2, 3 and 6) itself, and passes their outcomes and the credential's claims to the PDP. The PDP applies the assurance basis and policy checks (steps 4 and 5).
+
+**PEP configuration.**
+
+```json
+{
+  "policy_id": "tool-invoke/v1",
+  "match": { "resource_type": "tool", "action": "invoke" },
+  "credential": {
+    "accepted_profiles": ["registry-membership", "golden-image", "approved-skills"],
+    "issuer_allowlist": ["did:key:<verifier-pubkey>"],
+    "audience": "https://tools.example.com/",
+    "check_status_when_present": true,
+    "max_delegation_depth": 3
+  },
+  "holder_binding": { "any_of": ["mtls", "http-message-signatures", "dpop"] },
+  "thresholds": {
+    "read-only": { "min_attestation_tier": "software", "max_appraisal_age_seconds": 3600 },
+    "write":     { "min_attestation_tier": "platform", "max_appraisal_age_seconds": 900 },
+    "payment":   { "min_attestation_tier": "hardware", "max_appraisal_age_seconds": 300 }
+  },
+  "on_allow": { "audit": "allow" },
+  "on_deny":  { "audit": "deny",  "response": { "status": 403, "body": "correlation_id" } },
+  "on_error": { "audit": "error", "response": { "status": 403, "body": "correlation_id" },
+                "decision": "deny" }
+}
+```
+
+The `on_error` entry is the fail-closed rule: an unreachable verifier, an unfetchable key set, a timed-out status check, or a PDP that does not answer leads to a deny. The response carries only a correlation identifier, and the specific failure is recorded in the audit record.
+
+**PDP rule**, in Rego [[OPA-REGO](https://www.openpolicyagent.org/docs/policy-language)]:
+
+```rego
+package agent.tool_invoke
+
+# data holds accepted_profiles, thresholds and max_delegation_depth from the PEP configuration.
+
+default allow := false
+
+tier_rank := {"software": 1, "platform": 2, "hardware": 3}
+
+# Without an assurance basis, a credential is no stronger than the software tier (Section 2.2).
+tier := t if {
+    t := input.credential.assurance_basis.attestation_tier
+} else := "software"
+
+threshold := data.thresholds[input.resource.sensitivity]
+
+# An absent appraisal time leaves this undefined, so the rule denies.
+appraisal_age_seconds := (time.now_ns() - time.parse_rfc3339_ns(input.credential.assurance_basis.appraisal_time)) / 1000000000
+
+result_affirmed if input.credential.result == true
+
+result_affirmed if input.credential.result.value == true
+
+within_delegation_bounds if not input.credential.delegation
+
+within_delegation_bounds if {
+    input.credential.delegation.depth <= data.max_delegation_depth
+}
+
+allow if {
+    # Steps 1 to 3, reported by the PEP
+    input.checks.transport_ok
+    input.checks.credential_valid
+    input.checks.holder_binding_verified
+
+    # Step 4: assurance basis against the resource's threshold
+    tier_rank[tier] >= tier_rank[threshold.min_attestation_tier]
+    appraisal_age_seconds <= threshold.max_appraisal_age_seconds
+
+    # Step 5: policy over the credential's claims and the request
+    input.credential.profile in data.accepted_profiles
+    result_affirmed
+    within_delegation_bounds
+}
+```
+
+Any input the rule cannot evaluate leaves `allow` false. The PEP treats a missing or late answer from the PDP the same way.
+
+# Appendix G: Motivating Incidents
+
+[Section 6.1](#61-threats-addressed) draws on four incidents from 2026. In each, a check passed and said nothing about what was actually done. None involved agent credentials as this paper defines them; each shows what a credential would and would not have caught.
+
+**Miasma npm supply-chain worm (June 2026).** On 1 June, more than 30 packages in the `@redhat-cloud-services` npm scope were compromised with a variant of the Mini Shai-Hulud worm; Red Hat tracked the incident as RHSB-2026-006 [[CSA-MIASMA](https://labs.cloudsecurityalliance.org/research/csa-research-note-miasma-npm-supply-chain-redhat-20260603-cs/)] [[SNYK-MIASMA](https://snyk.io/blog/miasma-supply-chain-attack-malicious-code-redhat-cloud-services-npm-packages/)]. The attackers used an employee's GitHub account whose credentials had appeared in infostealer logs about seven weeks earlier. The malicious packages were published through GitHub Actions trusted publishing (OIDC), so they carried valid provenance attestations. Provenance attests where a build came from, not what it contains. This grounds [row 3](#61-threats-addressed): appraising composition digests against approved references would have flagged the change, while a valid provenance signature alone did not. It is also the limit [Section 1.2](#12-core-concepts--definitions) names: a valid signature is not a reason to trust.
+
+**Atomic Arch (June 2026).** Sonatype uncovered the campaign on 11 June and tracks it as Sonatype-2026-003775 and Sonatype-2026-003808 [[SONATYPE-ATOMIC-ARCH](https://www.sonatype.com/blog/atomic-arch-npm-campaign-adds-malicious-dependency)] [[THN-ATOMIC-ARCH](https://thehackernews.com/2026/06/over-400-arch-linux-aur-packages.html)]. Attackers adopted orphaned AUR packages, eventually close to 1,500 of them, and rewrote their build scripts to install a credential stealer, with commit metadata made to look like a long-standing maintainer's. The packages kept their names and accumulated trust, and adoption required no cryptographic continuity between the old maintainer and the new. This grounds [row 13](#61-threats-addressed) and [Section 4.2](#42-crossing-domains): trust rode a stable name while the controller behind it changed. Anchoring trust in a key rather than a name makes such a change visible.
+
+**Coding-agent sandbox escapes (July 2026).** On 20 July, Pillar Security showed that Codex CLI, Cursor and Gemini CLI could each be steered, through prompt injection, into launching a privileged container that reached the host's files [[PILLAR-DOCKER](https://www.pillar.security/blog/one-docker-socket-to-rule-them-all-escaping-codex-cursor-and-gemini-clis-sandboxes)]. Each sandbox restricted writes but left the Docker socket reachable, so every step used an operation the sandbox permitted. This grounds [row 14](#61-threats-addressed): a hijacked agent acts within what it is allowed. A credential with a runtime environment claim ([Section 2.1](#21-what-an-agent-credential-carries)) would have described the sandbox as configured, not what the agent could actually reach through it; bounded authority, per-call checks and revocation narrow the damage but do not prevent it.
+
+**Malicious agent skills (2026).** This is a measurement study rather than a single incident. Liu et al. analyzed 98,380 skills from two community registries and confirmed 157 as malicious; 115 of them carry shadow features absent from their public documentation, and some instruct the agent to keep their actions from the user [[LIU-SKILLS](https://arxiv.org/abs/2602.06547)]. Such instructions are invisible to what a skill declares at issuance and to any observer at the host, device or network. This grounds [gap 8](#62-open-gaps-and-recommendations) and limits the approved-skills profile: a digest match shows that a skill is the approved artifact, not that the artifact has no hidden function.
