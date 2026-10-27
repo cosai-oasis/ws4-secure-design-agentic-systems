@@ -1,0 +1,57 @@
+# Runs the pinned aggregate-accounting corpus and checks that the example's
+# table names exactly the cases the corpus ran, so the table cannot drift from
+# the data.
+name: aggregate-accounting-example
+
+on:
+  push:
+    branches: [main, feat/containment]
+    paths:
+      - "practical-guides/examples/aggregate_accounting/**"
+      - ".github/workflows/aggregate-accounting-example.yml"
+  pull_request:
+    paths:
+      - "practical-guides/examples/aggregate_accounting/**"
+      - ".github/workflows/aggregate-accounting-example.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  cases:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      - name: Install the pinned corpus
+        run: python -m pip install --require-hashes -r practical-guides/examples/aggregate_accounting/requirements.txt
+      - name: Run every case
+        run: agent-evidence-vectors --corpus vectors-aggregate-accounting --report aggregate-accounting-report.json
+      - name: Every case conforms
+        run: |
+          python - <<'PY'
+          import json, sys
+          totals = json.load(open("aggregate-accounting-report.json"))["totals"]
+          print(totals)
+          if totals["vectors"] != totals["conform"] or totals["fail"] or totals["suiteRefusals"]:
+              sys.exit(1)
+          PY
+      - name: The example names every case the corpus ran, and no other
+        run: |
+          python - <<'PY'
+          import agent_evidence_vectors, json, pathlib, re, sys
+          corpus = pathlib.Path(agent_evidence_vectors.__file__).parent / "corpora" / "vectors-aggregate-accounting" / "MANIFEST.json"
+          ran = {v["id"] for v in json.load(open(corpus))["vectors"]}
+          text = open("practical-guides/examples/aggregate_accounting/README.md", encoding="utf-8").read()
+          rows = set(re.findall(r"^\| `([a-z0-9-]+)` \|", text, flags=re.M))
+          missing, extra = sorted(ran - rows), sorted(rows - ran)
+          print("cases run:", len(ran), "named in the table:", len(rows))
+          if missing or extra:
+              print("not named in the table:", missing)
+              print("named but not run:", extra)
+              sys.exit(1)
+          PY
