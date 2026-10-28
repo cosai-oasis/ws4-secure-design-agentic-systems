@@ -503,9 +503,15 @@ For the procured deployment shapes of §1.1, both halves of this section become 
 
 **Purpose.** Carry the detection argument and a schema summary in the paper; put the concrete logging schema in a practical guide alongside the MCP runtime isolation guide.
 
-Detection and evidence are two artifacts against the same event, not one list. Detection wants signals that discriminate an attempt from normal behavior, and is allowed to be noisy, heuristic, and tuned per deployment. Evidence wants the fields that let someone who was not there and does not trust you reconstruct what happened, and must be stable, complete, and boring — and nothing in it may be executable authority (§3). The evidence contract is normative in this paper; the OCSF mapping goes in the practical guide, pinned to an OCSF version, with proposed fields marked as proposed. §7.1 is structured as two tables accordingly.
+Detection and evidence are two artifacts against the same event, not one list. Detection wants signals that discriminate an attempt from normal behavior, and is allowed to be noisy, heuristic, and tuned per deployment. Evidence wants the fields that let someone who was not there and does not trust you reconstruct what happened, and must be stable, complete, and boring — and nothing in it may be executable authority (§3).
 
-The blog post's "containment that fails loudly" and "tamper-evident logging" bullets: alert on denied syscalls, repeated policy violations, `/proc` inspection, Docker socket and metadata-service probes, blocked DNS and egress, credential-broker denials, and any attempt to alter the sandbox configuration; keep those events outside the agent's write scope; correlate across runs; use OCSF `attestation` and the `record_integrity` profile (OCSF 1.9.0) for tamper evidence [12]. Correction to the supporting narrative, from the A.2 source check: Anthropic's sentence is "the two organizations **we were able to reach** had not previously detected the activity" — narrower than the blog's paraphrase — and Hugging Face *did* detect their own intrusion, via LLM-based triage on anomalies, before OpenAI connected its internal testing to it. The section's argument survives both facts, but must carry them: the strongest counter-example in the field is also the best existing evidence that the detection this section calls for actually works.
+The evidence contract is normative in this paper; the OCSF mapping goes in the practical guide, pinned to an OCSF version, with proposed fields marked as proposed. §7.1 is structured as two tables accordingly.
+
+The blog post's "containment that fails loudly" and "tamper-evident logging" bullets: alert on denied syscalls, repeated policy violations, `/proc` inspection, Docker socket and metadata-service probes, blocked DNS and egress, credential-broker denials, and any attempt to alter the sandbox configuration; keep those events outside the agent's write scope; correlate across runs; use OCSF `attestation` and the `record_integrity` profile (OCSF 1.9.0) for tamper evidence [12].
+
+Correction to the supporting narrative, from the A.2 source check: Anthropic's sentence is "the two organizations **we were able to reach** had not previously detected the activity" — narrower than the blog's paraphrase — and Hugging Face *did* detect their own intrusion, via LLM-based triage on anomalies, before OpenAI connected its internal testing to it.
+
+The section's argument survives both facts, but must carry them: the strongest counter-example in the field is also the best existing evidence that the detection this section calls for actually works.
 
 **Requirements across §7.** An absence that was determined MUST be distinguishable in the record
 from an absence that was never established. A determined absence carries an explicit value and
@@ -529,7 +535,9 @@ extending them rather than restarting them. The *Model Context Protocol Security
 at L2 and above, structured logging of tool identity, caller identity, policy decision, resource
 target, outcome, request metadata and correlation identifiers, with raw parameters logged only
 after redaction, hashing or field-level tokenization, rising to immutable tamper-evident logging of
-all interactions at L4. The *Agentic Identity and Access Management* paper's Appendix D requires
+all interactions at L4.
+
+The *Agentic Identity and Access Management* paper's Appendix D requires
 agent ID, subject ID, tenant, environment, resource and action, decision with reason, scope and
 authorization details, policy version, attestation information and a `correlation_id`, and states
 the "prove control on demand" obligation: an organization must be able to answer, from logs alone,
@@ -538,7 +546,9 @@ and which policies, attestation evidence and delegated scopes justified each dec
 
 What this paper adds is the separation. Those lists are single lists serving two readers. Detection
 is written for an operator inside the deployment who is trying to notice an attempt in progress, and
-it is allowed to be noisy, heuristic and tuned locally. Evidence is written for someone who was not
+it is allowed to be noisy, heuristic and tuned locally.
+
+Evidence is written for someone who was not
 there and does not trust the operator, and it must be stable, complete and dull. A field that earns
 its place in one does not automatically earn its place in the other, and the two have opposite
 failure modes: a detection signal that fires too rarely is useless, while an evidence field that is
@@ -691,7 +701,9 @@ Define the verification checks for the claimed boundary. For example, a subtree 
 
 Each timestamp must identify its clock source and relevant uncertainty. Use a common clock or a documented relationship between clocks before subtracting times across systems. Where bounded clock error permits only an interval, report that interval. Where ordering cannot be established, report the duration as unknown. Event sequence can establish some ordering without establishing elapsed time; collection time measures observation delay and must remain distinguishable from event time.
 
-**Record why execution stopped.** Preserve a normalized reason distinguishing an operator-requested containment action, an automated policy response, ordinary completion, a crash and an unknown reason. Record the native reason alongside its mapping and version. A model turn ending, reaching a token limit or yielding to a tool is not sufficient evidence that the agent's authority ended. Correlate stop records, enforcement actions and per-invocation outcomes by agent instance and action identifiers; do not infer a tool's outcome from the model's stop reason.
+**Record why execution stopped.** Preserve a normalized reason distinguishing an operator-requested containment action, an automated policy response, ordinary completion, a crash and an unknown reason. Record the native reason alongside its mapping and version.
+
+A model turn ending, reaching a token limit or yielding to a tool is not sufficient evidence that the agent's authority ended. Correlate stop records, enforcement actions and per-invocation outcomes by agent instance and action identifiers; do not infer a tool's outcome from the model's stop reason.
 
 The accounting verdict (`allowed`, `refused` or `held`) records the accounting
 authority's decision; the stop reason records why execution stopped. Keep both
