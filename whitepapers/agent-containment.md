@@ -311,20 +311,20 @@ because it carries three problems a per-container design does not.
   implementation MUST bound it, and MUST define what happens when the bound is exceeded: the action
   is refused or held for confirmation, never allowed. Continuous accounting without a fail-safe
   default is allow-on-error (Saltzer and Schroeder, fail-safe defaults). A local cache MAY serve
-  reads for reporting; it MUST NOT authorise any consumption, however small — N stale caches each
+  reads for reporting; it MUST NOT authorise any consumption, however small. N stale caches each
   authorising a small action is the race of 4.2 again. The only local authorisation is against a
   lease the authority has already consumed atomically (4.2).
 - **Trust status.** The authority is a reference monitor in the §5 sense: it MUST be outside the
   reach of the agents it accounts for, MUST be invoked for every consuming action of an enumerated
   quantity (complete mediation, §3), and its decisions MUST be verifiable after the fact. In the
   procured case the provider operates it, and the deploying organisation's assurance is whatever
-  the provider's evidence supports — which is why R4.4 is procurement.
+  the provider's evidence supports. That is why R4.4 is procurement.
 
 **Evidence.** Aggregate accounting is both the preventive control and the detection signal. When
 the control holds, the aggregate never crosses its threshold, so the alert is the *attempt*: a
 consumption refused or held because it would have crossed. The attempt MUST be recorded and raised
 with the same lineage as a successful consumption. An aggregate found above its threshold after
-the fact is a different alert — it means the control failed. Both depend on the record carrying
+the fact is a different alert: it means the control failed. Both depend on the record carrying
 the join key.
 Every consuming-action record MUST carry the principal and the **full** delegation lineage, not only
 the immediate parent, integrity-protected, so that the subtree aggregate can be reconstructed by
