@@ -138,3 +138,7 @@ python -m unittest test_checker    # harness and checker regressions
 ```
 
 `run.py` resolves each record by its identifier from the installed corpus, checks it against the SHA-256 digest the case pins, and passes the checker only the `checker_input`. It never writes. Every record comes from the published release that `requirements.txt` pins by hash; nothing is copied into this directory.
+
+## Corpus bumps
+
+Each case pins its record by SHA-256, and `run.py` fails when an installed record misses that digest. A Dependabot bump of the corpus that moves no pinned digest cannot change what any case checks, so it merges once the conformance workflow is green. A bump that moves a pinned digest fails the workflow, and the fix edits the case files, which section 7.4 names as the reference, so that change goes to the editor before merge.
