@@ -337,8 +337,8 @@ The problem is older than agents. The Android permission literature of 2011–20
 **colluding applications** — two apps whose individual permission sets are benign and whose
 combination exceeds the user's intent, via an inter-app channel — as an inter-application
 information-flow problem to be policed over the *combination*, not per grant. That literature
-also treated permission re-delegation — one application exercising authority on another's behalf
-— as the same class of problem, which is §3.1's confused deputy under an earlier name. The
+also treated permission re-delegation, one application exercising authority on another's behalf,
+as the same class of problem: §3.1's confused deputy under an earlier name. The
 mapping onto agents is direct:
 
 | Android | Agent containment |
