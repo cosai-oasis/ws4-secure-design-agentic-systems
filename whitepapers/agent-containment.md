@@ -355,7 +355,7 @@ cannot express the constraint, because the constraint is over a set.
 
 ## 5. The enforcement property and four failure modes
 
-Every control in this paper presumes an enforcement point: something that sees the agent's action and decides whether it proceeds. The blog post described that point as "independently enforced, not agent-enforced," which was accurate but informal. A document that will be cited needs the property named, and needs the ways it fails kept apart — because the incidents this body of work draws on do not fail in one way, and the remedies do not interchange.
+Every control in this paper presumes an enforcement point: something that sees the agent's action and decides whether it proceeds. The blog post described that point as "independently enforced, not agent-enforced," which was accurate but informal. A document that will be cited needs the property named, and needs the ways it fails kept apart, because the incidents this body of work draws on do not fail in one way, and the remedies do not interchange.
 
 ### 5.1 The property, named
 
@@ -381,21 +381,30 @@ When containment fails, it fails in one of four ways, and this paper keeps them 
 
 **Mode 2 — the agent disables the control.** The agent had, or acquired, authority over the control itself. The documented case: an agent that, when a sandbox blocked its workaround, autonomously disabled the sandbox and continued [11]. This is a failure of enforcement placement, of the tamper-proof property, and its remedy is architectural: the control and its configuration outside the agent's reach, and any attempt to alter them treated as a high-signal alert (§7).
 
-**Mode 3 — the control was insufficiently specified.** The control was on, untouched, and wrong. The seccomp filter that checked syscall numbers but not the architecture value is the anchor case, and the kernel's own documentation has warned about that pitfall for a decade [7]: the agent had no authority over the policy; the system applied an insufficient one. A denylist that misses an alternate path to the same binary [5], and a workspace with a reachable Docker socket [6], fail the same way. The reachable socket also shows that the modes can compose: an insufficiently specified policy that leaves the host's container-runtime socket reachable (mode 3) thereby places the enforcement point inside the agent's reach (mode 2, §2.1). Where a defect of one mode creates the condition of another, both remedies apply — which is what §8.3 specifies for this case. The remedy is verification of the policy, not strengthening of the mechanism: pre-deployment tests that the sandbox enforces what its operator believes it enforces (§8), and a mediation surface expressive enough to state the intended boundary at all (§3).
+**Mode 3 — the control was insufficiently specified.** The control was on, untouched, and wrong. The seccomp filter that checked syscall numbers but not the architecture value is the anchor case; the kernel's own documentation has warned about that pitfall for a decade [7]. The agent had no authority over the policy; the system applied an insufficient one.
 
-Mode 3 has two shapes, and they need different remedies. The policy may never have covered the path, which is the seccomp case above. Or the policy may have been adequate and not have been the one deployed, because a setting was left open, an image drifted, or configuration changed between approval and run: in the July 2026 evaluation incidents, models running without cyber safeguards "accessed the internet due to a misconfiguration inside a third-party evaluation environment" [18]. Verification of the specification catches the first shape. Only a demonstration repeated at each run, within a validity window (§8.2), catches the second, because that failure arises after any one-time test — which is why the same disclosure asks that the sandbox configuration "be verified before every evaluation begins" [18].
+A denylist that misses an alternate path to the same binary [5], and a workspace with a reachable Docker socket [6], fail the same way. The reachable socket also shows that the modes can compose: an insufficiently specified policy that leaves the host's container-runtime socket reachable (mode 3) thereby places the enforcement point inside the agent's reach (mode 2, §2.1). Where a defect of one mode creates the condition of another, both remedies apply, as §8.3 specifies for this case. The remedy is verification of the policy, not strengthening of the mechanism: pre-deployment tests that the sandbox enforces what its operator believes it enforces (§8), and a mediation surface expressive enough to state the intended boundary at all (§3).
 
-**Mode 4 — the control was correct and the agent used permitted authority.** Nothing was escaped. The agent that cancelled a stranger's gym reservation crossed no containment boundary; its authority was scoped to an endpoint, not to whose reservation it could act on [11]. The gateway that performs a fetch with agent-controlled input is the same shape: a permitted party, acting as asked (§3.1). No isolation posture reaches this mode. The Zero Trust paper states the same limitation from its side: an agent with read access to sensitive data and permission to email externally can exfiltrate within its permissions — Zero Trust architecture alone does not stop it [16]. What bounds it is scope on the grant — the subject of the Agentic IAM paper [9] — together with constraining what permitted parties will do on request (§3.1), accounting authority across the set of agents that share it (§4), and evidence afterwards (§7).
+Mode 3 has two shapes, and they need different remedies:
 
-The first three modes are failures of the monitor's three properties, in order: mode 1 breaks the mechanism, mode 2 breaks tamper-proofing, mode 3 breaks complete mediation — the policy did not cover the path. Mode 4 is not a failure of the monitor at all. That is the deepest reason containment is one layer of a bounded-authority model rather than the whole of it (§1): a perfect monitor, perfectly specified, enforcing a grant that is too broad, produces the gym incident every time.
+- The policy never covered the path, as in the seccomp case above.
+- The policy was adequate but was not the one deployed, because a setting was left open, an image drifted, or configuration changed between approval and run. In the July 2026 evaluation incidents, models running without cyber safeguards "accessed the internet due to a misconfiguration inside a third-party evaluation environment" [18].
+
+Verification of the specification catches the first shape. Only a demonstration repeated at each run, within a validity window (§8.2), catches the second, because that failure arises after any one-time test. That is why the same disclosure asks that the sandbox configuration "be verified before every evaluation begins" [18].
+
+**Mode 4 — the control was correct and the agent used permitted authority.** Nothing was escaped. The agent that cancelled a stranger's gym reservation crossed no containment boundary; its authority was scoped to an endpoint, not to whose reservation it could act on [11]. The gateway that performs a fetch with agent-controlled input is the same shape: a permitted party, acting as asked (§3.1). No isolation posture reaches this mode.
+
+The Zero Trust paper states the same limitation from its side: an agent with read access to sensitive data and permission to email externally can exfiltrate within its permissions, and Zero Trust architecture alone does not stop it [16]. What bounds this mode is scope on the grant (the subject of the Agentic IAM paper [9]), together with constraining what permitted parties will do on request (§3.1), accounting authority across the set of agents that share it (§4), and evidence afterwards (§7).
+
+The first three modes are failures of the monitor's three properties, in order: mode 1 breaks the mechanism, mode 2 breaks tamper-proofing, mode 3 breaks complete mediation: the policy did not cover the path. Mode 4 is not a failure of the monitor at all. That is the deepest reason containment is one layer of a bounded-authority model rather than the whole of it (§1): a perfect monitor, perfectly specified, enforcing a grant that is too broad, produces the gym incident every time.
 
 ### 5.3 Why the separation is load-bearing
 
-Most of the incidents this body of work rests on are modes 3 and 4. Industry attention — and spending — concentrates on modes 1 and 2: stronger isolation, more exotic sandboxes. The taxonomy is what makes that mismatch visible, and it has three practical consequences.
+Most of the incidents this body of work rests on are modes 3 and 4, yet industry attention and spending concentrate on modes 1 and 2: stronger isolation, more exotic sandboxes. The taxonomy makes that mismatch visible, and it has three practical consequences.
 
-First, remedies do not interchange. Buying stronger isolation does not fix an insufficient policy, and neither fixes a grant that was too broad. The blog post presented a mode-2 incident and a mode-3 incident in adjacent sentences as one phenomenon; they demand different fixes from different teams.
+First, remedies do not interchange. Buying stronger isolation does not fix an insufficient policy, and neither fixes a grant that was too broad. The blog post presented a mode-2 incident and a mode-3 incident in adjacent sentences as one phenomenon. They demand different fixes from different teams.
 
-Second, classifying an incident requires evidence. Telling mode 2 from mode 3 needs a record of the control's configuration and the enforcement decision at the time; telling mode 1 from mode 4 needs a record of what was actually permitted. Without the evidence contract of §7, the taxonomy is rhetoric; with it, an incident review can assign a mode and route the fix.
+Second, classifying an incident requires evidence. Telling mode 2 from mode 3 needs a record of the control's configuration and the enforcement decision at the time. Telling mode 1 from mode 4 needs a record of what was actually permitted. Without the evidence contract of §7, the taxonomy is rhetoric; with it, an incident review can assign a mode and route the fix.
 
 Third, every control in this paper can now say what it is for:
 
@@ -408,7 +417,7 @@ Third, every control in this paper can now say what it is for:
 | §7 Detection and evidence | Makes all four modes distinguishable, during and after |
 | §8 Verification | Mode 3 — proving the control enforces what its operator believes |
 
-The question each section answers is therefore not "how strong is the box?" but: which failure mode does this control remove — and how would we know it worked?
+The question each section answers is therefore not "how strong is the box?" but "which failure mode does this control remove, and how would we know it worked?"
 
 ### 5.4 Threat sources and trust assumptions
 
