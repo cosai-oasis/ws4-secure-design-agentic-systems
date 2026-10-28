@@ -224,7 +224,7 @@ destination allowlist on a network policy, a scope that narrows at each delegati
 correct on its own terms and each is a **local invariant**: it bounds what one container or one
 edge may do. The quantities an operator actually cares about are not local. Bytes leaving the
 organisation, distinct destinations touched, money spent, side-effecting actions taken, agents
-spawned, subtree depth and fan-out — these are consumed **across the set of agents that share a
+spawned, subtree depth and fan-out are consumed **across the set of agents that share a
 principal**, and across the delegation subtree that principal roots. A set of N agents, each inside
 its cap, consumes N caps. Nothing in a per-container model fires, because nothing in it ever sees
 the sum.
@@ -233,19 +233,19 @@ The review of the blog post reached this from two directions. From the sandboxin
 fans work out to twelve workers, each in a compliant sandbox with a 10 MB/day egress limit, moves
 120 MB through twelve distinct destinations without a single local control tripping. From the
 authority side: the approved *Agentic Identity and Access Management* paper requires scope to
-narrow at each hop, and names the phenomenon in its threat themes — two or more agents can pass
-data or proxy calls so that, together, they perform an action neither could perform alone — but its
+narrow at each hop, and names the phenomenon in its threat themes: two or more agents can pass
+data or proxy calls so that, together, they perform an action neither could perform alone. But its
 controls stop at the edge. Per-hop attenuation is necessary. It is not sufficient, because
 attenuation is also a local invariant: it bounds the child relative to the parent, not the subtree
 relative to the principal. This section extends that paper on exactly that point.
 
 **Worked example.** A principal holds a 100 MB/day egress budget and a 50-destination envelope. An
-orchestrating agent spawns twelve workers under the principal; each worker's sandbox is capped at
-10 MB/day and its network policy allows five destinations. Every worker stays inside both caps. At
-the end of the day 120 MB has left through up to sixty destinations, the principal's budget is
+orchestrating agent spawns twelve workers under the principal. Each worker's sandbox is capped at
+10 MB/day, and its network policy allows five destinations. Every worker stays inside both caps. At
+the end of the day 120 MB has left through up to sixty destinations. The principal's budget is
 exceeded by 20 % and its envelope by 20 %, and the audit trail shows twelve unremarkable sandboxes.
 Under subtree accounting the eleventh worker's first outbound request is evaluated against the
-principal's remaining budget — zero — and is refused or held; the refused attempt is the alert, and
+principal's remaining budget, which is zero, and is refused or held. The refused attempt is the alert, and
 it carries the lineage that names the orchestrator.
 
 ### 4.2 The closing control: aggregate accounting at the consuming action
