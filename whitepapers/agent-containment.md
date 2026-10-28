@@ -268,8 +268,8 @@ within the principal's budget*. Two properties make it a control rather than a r
   is a race: N concurrent consumers each observe headroom and all proceed. Conformant
   implementations MUST consume by compare-and-consume (reserve, then commit or release) or serialise
   consumption per principal. A reservation is released only when it is known that the action did
-  not happen. A reservation whose outcome is unknown — the consumer timed out or failed between
-  reserve and commit, or the downstream did not answer — MUST remain charged until non-consumption
+  not happen. A reservation whose outcome is unknown, because the consumer timed out or failed between
+  reserve and commit or the downstream did not answer, MUST remain charged until non-consumption
   is established authoritatively, or reconciled idempotently against the downstream's own record.
   Expiry alone MUST NOT refund it: an action that did occur and a reservation that merely lapsed
   are otherwise indistinguishable, and the budget could be spent repeatedly by letting
@@ -283,18 +283,18 @@ within the principal's budget*. Two properties make it a control rather than a r
 **Requirements.**
 
 - **R4.1** Where the deploying organisation controls the principal's authority, a conformant model
-  MUST account, at minimum, egress bytes, distinct egress destinations, spend, and agents spawned
-  — across the set of agents sharing that principal, and across each delegation subtree, evaluated
+  MUST account, at minimum, egress bytes, distinct egress destinations, spend, and agents spawned,
+  across the set of agents sharing that principal and across each delegation subtree, evaluated
   at the consuming action. Further quantities that sum across agents, such as tool invocations,
   tokens consumed, or records read from a shared store, SHOULD be accounted the same way; which of
-  them matter is a property of the deployment, the minimum above is not.
+  them matter is a property of the deployment; the minimum above is not.
 - **R4.2** Per-container and per-edge limits MUST be documented as local invariants. A containment
   claim MUST NOT rest on them alone for any quantity that sums across agents.
 - **R4.3** Consumption MUST be atomic (compare-and-consume or per-principal serialisation). A
   reservation MUST be released only when the action is known not to have happened; a reservation
   with an unknown outcome MUST remain charged until it is reconciled authoritatively.
-- **R4.4** Where the organisation does not control the principal's authority — the procured and
-  integrated agents of §1.1 — R4.1 to R4.3 are procurement requirements on the provider, and MUST be
+- **R4.4** Where the organisation does not control the principal's authority (the procured and
+  integrated agents of §1.1), R4.1 to R4.3 are procurement requirements on the provider, and MUST be
   written as such.
 
 ### 4.3 The hard sub-problem: the accounting authority
