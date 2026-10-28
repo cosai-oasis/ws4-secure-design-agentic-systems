@@ -530,37 +530,24 @@ A containment claim that rules out a defeated or disabled control (§5.2, modes 
 
 ### 7.1 What to log
 
-Two approved WS4 papers already carry most of the field list, and this section should be read as
-extending them rather than restarting them. The *Model Context Protocol Security* paper requires,
-at L2 and above, structured logging of tool identity, caller identity, policy decision, resource
-target, outcome, request metadata and correlation identifiers, with raw parameters logged only
-after redaction, hashing or field-level tokenization, rising to immutable tamper-evident logging of
-all interactions at L4.
+Two approved WS4 papers already carry most of the field list, and this section should be read as extending them rather than restarting them.
 
-The *Agentic Identity and Access Management* paper's Appendix D requires
-agent ID, subject ID, tenant, environment, resource and action, decision with reason, scope and
-authorization details, policy version, attestation information and a `correlation_id`, and states
-the "prove control on demand" obligation: an organization must be able to answer, from logs alone,
-which agents were active, what permissions they held at that time, who was involved in each action,
-and which policies, attestation evidence and delegated scopes justified each decision.
+- The *Model Context Protocol Security* paper requires, at L2 and above, structured logging of tool identity, caller identity, policy decision, resource target, outcome, request metadata and correlation identifiers, with raw parameters logged only after redaction, hashing or field-level tokenization, rising to immutable tamper-evident logging of all interactions at L4.
 
-What this paper adds is the separation. Those lists are single lists serving two readers. Detection
-is written for an operator inside the deployment who is trying to notice an attempt in progress, and
-it is allowed to be noisy, heuristic and tuned locally.
+- The *Agentic Identity and Access Management* paper's Appendix D requires agent ID, subject ID, tenant, environment, resource and action, decision with reason, scope and authorization details, policy version, attestation information and a `correlation_id`, and states the "prove control on demand" obligation: an organization must be able to answer, from logs alone, which agents were active, what permissions they held at that time, who was involved in each action, and which policies, attestation evidence and delegated scopes justified each decision.
 
-Evidence is written for someone who was not
-there and does not trust the operator, and it must be stable, complete and dull. A field that earns
-its place in one does not automatically earn its place in the other, and the two have opposite
-failure modes: a detection signal that fires too rarely is useless, while an evidence field that is
-present only sometimes is worse than absent, because a verifier cannot distinguish "did not happen"
-from "was not recorded".
+What this paper adds is the separation. Those lists are single lists serving two readers.
 
-Two constraints apply to the evidence table as a whole. Nothing in an evidence record may be
-executable authority (§3): the record states what was decided and on what basis, and a consumer of
-the record must never be able to replay a field in it to obtain the decision again. And correlation
-is scoped to the shared principal and the delegation subtree it roots, not to one run or one
-container (§4); a per-run correlation key cannot show that a set of individually compliant agents
-collectively exceeded the intended authority or budget, which is the failure §4 describes.
+- **Detection** is written for an operator inside the deployment who is trying to notice an attempt in progress, and it is allowed to be noisy, heuristic and tuned locally.
+
+- **Evidence** is written for someone who was not there and does not trust the operator, and it must be stable, complete and dull.
+
+A field that earns its place in one does not automatically earn its place in the other, and the two have opposite failure modes: a detection signal that fires too rarely is useless, while an evidence field that is present only sometimes is worse than absent, because a verifier cannot distinguish "did not happen" from "was not recorded".
+
+Two constraints apply to the evidence table as a whole.
+
+1. Nothing in an evidence record may be executable authority (§3): the record states what was decided and on what basis, and a consumer of the record must never be able to replay a field in it to obtain the decision again.
+2. Correlation is scoped to the shared principal and the delegation subtree it roots, not to one run or one container (§4); a per-run correlation key cannot show that a set of individually compliant agents collectively exceeded the intended authority or budget, which is the failure §4 describes.
 
 **Detection signals.** Each row names what the signal is evidence of and where its false positives
 come from. §7.2 takes up why the rates themselves cannot be stated yet.
