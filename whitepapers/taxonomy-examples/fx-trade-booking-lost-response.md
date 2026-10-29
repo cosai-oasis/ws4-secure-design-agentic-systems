@@ -1,24 +1,27 @@
 # Worked example: a lost reply in FX trade booking
 
-Status: draft for practitioner review on issue #300. The scope (one normal-success control and three failure variants) was agreed with @siddhartha1310 on 26 October 2026. The lifecycle follows his account in [modelcontextprotocol/financial-services-interest-group#17](https://github.com/modelcontextprotocol/financial-services-interest-group/issues/17#issuecomment-6409431367): a unique booking reference, a listening window followed by a search by that reference, a cancel that counts only on a confirmed event ID, unresolved deals handed to operations, and a reconciliation that closes every timed-out deal. All data below is synthetic.
+Status: draft for practitioner review on issue #300. The scope (one normal-success control and three failure variants) was agreed with @siddhartha1310 on 26 October 2026. The lifecycle follows his account in [modelcontextprotocol/financial-services-interest-group#17](https://github.com/modelcontextprotocol/financial-services-interest-group/issues/17#issuecomment-6409431367): a unique booking reference, a listening window followed by a search by that reference, a cancel that counts only on a confirmed event ID, unresolved deals handed to operations, and a reconciliation that closes every timed-out deal. His written review of 28 October ([comment](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/300#issuecomment-6476107692)) is applied below, with thanks. All data below is synthetic.
 
 This example follows the six-step workflow from issue #300 and the core tuple M = <Boundary, Representation, System Processing Stage> of the taxonomy in Section 2. It has no payload in a prompt. The influence on the agent is an absence: a reply that never arrives.
 
 ## Scenario
 
-An agent system books a client's FX deal in a booking system, for example Murex. The booking system is the source of truth. After the booking it sends an execution order to a liquidity provider (LP). The agent system can book, search the booking system by its own booking reference, and cancel. Operations staff can also change a deal directly in the booking system. A reconciliation job compares the two sides at the end of the day.
+An agent system books a client's FX deal in a booking system, for example Murex. The booking system is the source of truth. After the booking it sends an execution order to a liquidity provider (LP). The agent system can book, search the booking system by its own booking reference, and cancel. Operations staff can also change a deal directly in the booking system. A reconciliation job compares the two sides during the day, for example every 15 minutes, and again at the end of the day as the final close for anything missed. A scheduled cycle always delivers a file, even an empty one, so the result is clear either way and a missing file is noticed straight away.
 
-Synthetic deal: CLIENT-A buys EUR/USD, notional 1,000,000, quote Q-1, booking reference R1, client limit 5,000,000 of which 3,000,000 is used before this deal.
+Synthetic deal: CLIENT-A buys EUR/USD, notional 1,000,000, quote Q-1, booking reference R1, client credit limit 5,000,000 of which 3,000,000 is used before this deal.
 
 ## Step 1: map the architecture
 
 | Component | Role | Trusted for |
 | --- | --- | --- |
-| Agent system | Plans the booking, calls the booking, search and cancel tools, keeps its own copy of the limit usage | Its own intent. Never what the booking system holds. |
-| Booking system | Stores each deal under the agent system's unique booking reference; assigns trade IDs and cancel event IDs | State of every deal. Its figure prevails on any difference. |
+| Agent system | Plans the booking, calls the booking, search and cancel tools, keeps its own copy of the credit limit usage | Its own intent. Never what the booking system holds. |
+| Booking system | Stores each deal under the agent system's unique booking reference; assigns trade IDs and cancel event IDs; holds the credit limit check | State of every deal. Its figure prevails on any difference. |
+| Core banking system | Holds the client's accounts and balances and confirms the funds before booking. Depending on the bank, the amount is held or debited at booking, or left until settlement | The client's balance. |
 | Liquidity provider | Executes the order that covers the client deal | Whether its own execution happened. |
 | Operations | Corrects deals directly in the booking system | Changes it makes, each carrying an event ID. |
 | Reconciliation | Compares agent system records with the booking system | Closing a timed-out deal. |
+
+Two separate checks normally come before a booking. The balance check in the core banking system confirms that the client has sufficient funds in the correct account. The credit limit check in the booking system confirms that the deal stays within the exposure the bank has approved for the client, client group or country. Both must pass, and either can fail or time out independently. The credit limit check is check-only: the booking system confirms there is room, holds nothing, and counts the deal once it is booked. Practice on the account side varies. Some banks hold or debit the amount at booking; in some corporate-client set-ups the balance is only read, the credit limit check is considered sufficient, and a failed debit on the value date is handled by operations. This example models the credit limit check and takes the balance check as passed. "Credit limit" always means the exposure limit, never the client's balance.
 
 ## Step 2: trace attacker-controlled information
 
@@ -39,7 +42,7 @@ The party who can drop, delay or withhold a reply (an attacker on the network pa
 | --- | --- | --- |
 | Authority, Authorization Stability and Decision-Action | The authority granted was one deal and one compensation. | A retry books twice, or a retried cancel compensates twice. |
 | Meaning, Check-Use Consistency (time differs) | What the agent system believed when it decided (booking failed) equals the booking system's state when it acts. | The booking committed after the timeout. |
-| Cost, Resource Accounting | The agent system's copy of the limit usage equals the booking system's. | An unresolved deal is dropped from the copy, or released twice. |
+| Cost, Resource Accounting | The agent system's copy of the credit limit usage equals the booking system's. | An unresolved deal is dropped from the copy, or released twice. |
 
 Assumptions that depend on the bank, the booking system or the LP are listed under "Questions for the reviewer".
 
@@ -56,7 +59,7 @@ Assumptions that depend on the bank, the booking system or the LP are listed und
 
 ## Step 5: supporting context
 
-Modality: structured API calls, unimodal. Construction method: none or manual (a fault, or an attacker who only drops or delays traffic). Threat assumptions: the attacker cannot forge booking system or LP signatures; operations act in good faith but concurrently with the agent system. Out of scope here: price or amount amendments, partial fills, multi-leg deals, and an LP failure that is itself a lost reply.
+Modality: structured API calls, unimodal. Construction method: none or manual (a fault, or an attacker who only drops or delays traffic). Threat assumptions: the attacker cannot forge booking system or LP signatures; operations act in good faith but concurrently with the agent system. Out of scope here: price or amount amendments, multi-leg deals, and the balance check in core banking. Partial fills do not arise: for spot FX in this flow the LP fills the full amount or rejects the deal.
 
 ## Step 6: controls, evidence and residual gaps
 
@@ -76,8 +79,8 @@ The agent system's ledger is never one of these. Each class is accepted only whe
 | Step | Agent system sees | Evidence | May assert | Next action |
 | --- | --- | --- | --- | --- |
 | 1 | Booking request R1 sent | none | request sent | wait |
-| 2 | Acknowledgement with trade ID, record booked | ACK, state confirmation | booked | send the LP order |
-| 3 | LP filled | LP result | executed | done |
+| 2 | Acknowledgement with trade ID, record booked | ACK, state confirmation | booked in the booking system, pending LP | send the LP order; do not confirm the deal to the client yet |
+| 3 | LP filled, with the LP trade ID | LP result | executed; both trade IDs recorded | confirm the deal to the client; done |
 
 Case: `control_normal_success`.
 
@@ -88,22 +91,24 @@ Case: `control_normal_success`.
 | 1 | No reply in the listening window | none | nothing, in either direction | tell the client it failed; hold the capacity; never retry R1 as a new deal |
 | 2 | A mistaken resend of R1 | duplicate rejection from the booking system | booked once | none |
 | 3a | Search by R1 finds the deal booked | state confirmation | booked | cancel once |
-| 3b | Search by R1 finds nothing | provisional absence | not found at this time; not yet "never booked" | hold the capacity until reconciliation closes the deal |
+| 3b | Search by R1 finds nothing | provisional absence | not found at this time; not yet "never booked" | hold the capacity until reconciliation closes the deal (the stricter policy the cases encode; some businesses release here, see the note after the controls table) |
 | 3c | Reconciliation close finds the deal absent | reconciliation close | never booked | release the capacity |
 | 4 | Cancel reply with an event ID | event confirmation | booked and cancelled once | release the capacity |
 
 Cases: `v1_lost_ack_found_by_search_cancelled_once`, `v1_late_booking_held_until_reconciliation_cancelled_once`, `v1_search_absent_reconciliation_closes_never_booked`, `v1_resend_same_reference_rejected`.
 
-Controls that fail, as cases: capacity released on timeout with no evidence (`v1_lost_ack_released_on_timeout_no_evidence`); capacity released at the provisional absence (`v1_late_booking_released_at_search_not_found`); a second live booking of the same quote under a new reference (`v1_resend_new_reference_duplicate_booking`); an unresolved deal dropped from the agent system's limit copy (`v1_unresolved_deal_dropped_from_limit_copy`); the agent system claiming a cancel the booking system never confirmed (`v1_cancel_claimed_by_agent_only`).
+Controls that fail, as cases: capacity released on timeout with no evidence (`v1_lost_ack_released_on_timeout_no_evidence`); capacity released at the provisional absence (`v1_late_booking_released_at_search_not_found`); a second live booking of the same quote under a new reference (`v1_resend_new_reference_duplicate_booking`); an unresolved deal dropped from the agent system's credit limit copy (`v1_unresolved_deal_dropped_from_limit_copy`); the agent system claiming a cancel the booking system never confirmed (`v1_cancel_claimed_by_agent_only`).
 
 ### Variant 2: booking succeeds, LP execution fails, cancellation is unconfirmed
 
 | Step | Agent system sees | Evidence | May assert | Next action |
 | --- | --- | --- | --- | --- |
 | 1 | Acknowledgement and booked record | ACK, state confirmation | booked | send the LP order |
-| 2 | LP rejected | LP result | the deal has no cover | cancel the booking once |
+| 2 | LP rejected, or no LP reply in the window | LP result, or none | the deal has no cover | cancel the booking once; notify operations |
 | 3a | Cancel reply with an event ID | event confirmation | cancelled once | release the capacity |
 | 3b | Cancel error or no reply | none | cancel unconfirmed; deal still counted | hand to operations; take no further automatic action |
+
+An LP timeout is handled like an LP rejection: operations are notified and the deal is cancelled once in the booking system, which is the source of truth. If it later turns out that the LP did execute, operations reverse that position. The rest follows the rows above: the cancel counts only when the booking system returns an event ID, and an unconfirmed cancel goes to operations with no further automatic action. The corpus has no case for the timeout trigger yet.
 
 Cases: `v2_lp_reject_cancel_confirmed_once`, `v2_lp_reject_cancel_error_held_for_operations`.
 
@@ -129,8 +134,10 @@ A record counts only when it names this booking reference and is signed by the r
 | Review question | Control | Evidence required |
 | --- | --- | --- |
 | Duplicate booking | Unique booking reference per deal; a new attempt is a new quote and a new reference; the booking system rejects a resent reference | Duplicate rejection, or exactly one booking for the quote |
-| Premature release of capacity | Release only on a cancel event ID or a reconciliation close showing the deal absent | Event confirmation or reconciliation close |
+| Premature release of capacity | Release only on a cancel event ID, or on the point the business chose for an absent deal (see the note below) | Event confirmation, or the chosen absence point |
 | Duplicate compensation | One cancel per deal, conditional on state; after an unconfirmed cancel, no automatic action | Exactly one cancel event on the reference, whoever made it |
+
+When an absent deal is released from the agent system's copy of the credit limit usage is a business decision that can depend, for example, on the amount or the client type. One policy releases it when the search at the end of the agreed window does not find the deal and treats it as not booked. The other holds it until the next reconciliation cycle. In either policy a late booking found later is cancelled once, at the next cycle. The cases encode the second, stricter policy, so rows 3b and 3c stay separate here; under the first policy they merge into one row. A case for the first policy is a change to the corpus and is not part of this pull request.
 
 ### Reconciliation checks (from the practitioner account)
 
@@ -138,7 +145,7 @@ A record counts only when it names this booking reference and is signed by the r
 2. A deal in the booking system under a booking reference the agent system recorded as failed is a late booking and must show exactly one confirmed cancel.
 3. A deal the agent system shows as booked and the booking system lacks is a break for operations (`break_agent_booked_booking_system_absent`).
 4. Every timed-out deal ends as never booked, or as booked and cancelled exactly once.
-5. The agent system's copy of the limit usage matches the booking system's.
+5. The agent system's copy of the credit limit usage is a working copy; the booking system is the source of truth. A difference goes to operations, who check why and correct the agent system's copy; neither figure is trusted by default. If the agent system also keeps a copy of the account balance, that copy is checked against core banking, not the booking system.
 
 This depends on the booking system storing the agent system's booking reference. Without it, a late booking cannot be tied to its request.
 
@@ -158,8 +165,8 @@ The command checks every corpus member against its manifest, judges all cases fr
 ### Questions for the reviewer
 
 1. Lifecycle accuracy: are these sequences realistic? Which assumptions depend on the bank, the booking system or the LP, for example check-only versus atomic cancel, or all-or-none LP execution?
-2. Is a search by reference that finds nothing final, or is the deal held until a reconciliation closes? The cases hold it, and the stricter reading is a choice to confirm or change.
-3. Which missing failure case would materially change the answers? One known gap: an LP failure that is itself a lost reply.
+2. Is a search by reference that finds nothing final, or is the deal held until a reconciliation closes? Practitioner answer (28 October): after the search at the end of the window, the deal is treated as not booked unless the business chose to hold it until the next cycle. The cases hold it, and the note after the controls table says so.
+3. Which missing failure case would materially change the answers? The LP timeout is now described in variant 2 (handled like an LP rejection); it has no executable case yet.
 
 ### Residual gaps
 
