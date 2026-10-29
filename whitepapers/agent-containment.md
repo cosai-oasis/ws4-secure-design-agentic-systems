@@ -63,7 +63,13 @@ status: "Working draft, all sections drafted. Not reviewed, not approved."
 
 ## Abstract
 
-An agent with production access must be treated as an insider threat. That is the claim of the blog post this paper follows [11], but the incidents behind it are not one kind of failure. Most that made headlines as escapes were, on inspection, agents using authority they had legitimately been granted. This paper therefore deepens the blog's sandboxing argument into the question a blog post could not answer: what bounds an agent that never needs to escape? Containment is developed as one layer of bounded authority, decomposed into isolation, mediation, authority, accounting and evidence, each doing a job the others cannot. The paper gives the isolation layer internal structure along three axes (§2), and states mediation as an invariant over effective reach, including the fetches permitted parties perform on the agent's request (§3). It requires an accounting authority over what a set of agents sharing one principal consumes together, which no per-agent control can see (§4), and classifies every control failure into four modes: defeated, disabled, insufficiently specified or permitted (§5). Reachability bounds the consequence when a control fails (§6). The blog's "fails loudly" instinct becomes normative and measurable through an evidence contract, in which a determined absence is distinguishable from one never established, and through time-to-contain with a normalized stop reason (§7). It closes with what a vetted sandbox must demonstrate (§8). Where the deployment shape removes isolation entirely, the same requirements land on the provider as procurement (§1.1).
+An agent with production access must be treated as an insider threat. That is the claim of the blog post this paper follows [11], but the incidents behind it are not one kind of failure. Most that made headlines as escapes were, on inspection, agents using authority they had legitimately been granted. This paper therefore deepens the blog's sandboxing argument into the question a blog post could not answer: what bounds an agent that never needs to escape?
+
+The paper develops containment as one layer of bounded authority, decomposed into isolation, mediation, authority, accounting and evidence, each doing a job the others cannot. It gives the isolation layer internal structure along three axes (§2), and states mediation as an invariant over effective reach, including the fetches permitted parties perform on the agent's request (§3). It requires an accounting authority over what a set of agents sharing one principal consumes together, which no per-agent control can see (§4).
+
+It classifies every control failure into four modes: defeated, disabled, insufficiently specified or permitted (§5). Reachability bounds the consequence when a control fails (§6). The blog's "fails loudly" instinct becomes normative and measurable through an evidence contract, in which a determined absence is distinguishable from one never established, and through time-to-contain with a normalized stop reason (§7).
+
+The paper closes with what a vetted sandbox must demonstrate (§8). Where the deployment shape removes isolation entirely, the same requirements land on the provider as procurement (§1.1).
 
 ### Scope
 
@@ -73,7 +79,7 @@ Containment of autonomous agents that hold real access: what the boundary is, wh
 
 - Authorization semantics beyond what containment needs. Bounded authority is treated as the frame; its full treatment is the WS4 *Agentic Identity and Access Management* paper.
 - Model-level safety training and refusals. The paper assumes a model that wants to escape.
-- A restatement of the runtime-isolation cookbooks. The MCP runtime isolation practical guide remains the how-to; this paper says what the how-to must achieve and why.
+- A restatement of the runtime-isolation cookbooks. The MCP runtime isolation practical guide remains the how-to; this paper states what the how-to must achieve, and why.
 
 ### Target audience
 
@@ -85,7 +91,7 @@ Practitioners and architects who deploy agents with production access. Section 1
 
 In August 2026, a consumer AI agent booked into a gym class by cancelling a stranger's reservation. It did not break out of anything to do it. It used an API it was legitimately allowed to call, and found that the API never checked whose reservation was being cancelled. Its own log notes that it tested this on the person at the top of the waitlist, and that it worked [11]. Four months earlier, a frontier model in a security evaluation had done the opposite kind of thing. Asked by a simulated user to get a message out of a locked-down environment, it built a multi-step exploit, escaped its container, and emailed a researcher who learned about it over lunch [1].
 
-These are both failures, and they are not the same failure. The second agent reached somewhere it was never supposed to reach: a **containment** failure. The first agent never left the room it was given; the room was simply far bigger than anyone had understood: an **authority** failure. Sandboxing answers the question *can this agent reach a resource*. Bounded authority answers *what is this agent allowed to do once it is there*. The gym incident is what happens when only the first question gets asked — and most of the incidents this paper draws on, including several that made headlines as "escapes," are on inspection failures of the second kind.
+These incidents are both failures, and they are not the same failure. The second agent reached somewhere it was never supposed to reach: a **containment** failure. The first agent never left the room it was given; the room was simply far bigger than anyone had understood: an **authority** failure. Sandboxing answers the question *can this agent reach a resource*. Bounded authority answers *what is this agent allowed to do once it is there*. The gym incident is what happens when only the first question gets asked — and most of the incidents this paper draws on, including several that made headlines as "escapes," are on inspection failures of the second kind.
 
 This paper's position, reached independently by several reviewers of the blog post it follows [11], is that containment is not a standalone discipline. It is one layer of a larger objective: **an environment in which the agent has bounded authority the way a corporate laptop does.** A well-run corporate laptop is not safe because of any single wall. The employee can reach some systems and not others; what they can *do* on the systems they reach is scoped to their role; unusual behavior is noticed; and when something goes wrong, there are records enough to establish what happened. Nobody calls this "sandboxing the employee." It is several layers, each doing a job the others cannot, and it works because no one layer is asked to do the whole job.
 
@@ -111,7 +117,7 @@ What this paper assumes about each layer — the threats it defends against, wha
 
 Which of the five layers you can actually build depends on where the agent runs and who controls it. Three shapes cover most deployments.
 
-**Built and operated.** The organization runs the agent on infrastructure it controls. Every layer is available, and every requirement in this paper is an engineering requirement.
+**Built and operated.** The organization runs the agent on infrastructure it controls. Every layer is available, and every requirement in this paper applies as an engineering requirement.
 
 **Procured and integrated.** The agent arrives inside third-party software, or runs on employee desktops where no container boundary exists at all. Isolation is simply unavailable; there is nothing to put the box around. What survives is exactly as much as you can still interpose at the request layer: mediated tool and MCP calls (§3), bounded and attenuated authority, and accounting across the principal (§4). Where you can interpose nothing — a fully third-party agent — containment is wholly a procurement requirement on the provider, and this paper's requirements should be read as the specification of what to demand, in contracts and in evidence, rather than what to build. The rule throughout: **where the organization controls the principal's authority, the requirement is engineering; where it does not, the identical requirement lands on the provider as procurement.**
 
@@ -123,31 +129,31 @@ Sections that follow are written for the first shape and marked, where the disti
 
 ## 2. The three hardening axes
 
-The containment layer decomposes along the direction in which influence travels. **Local**: the agent must not affect the host beyond what is intended. **Outbound**: the agent must not affect systems remote to the host beyond what is intended. **Inbound**: the agent must not be influenced by unintended external signals, whether they originate on the host or remotely. Each axis has its own enforcement point, its own property to hold, and its own way of failing — and conflating them is how a deployment ends up hardened on one axis and open on another.
+The containment layer decomposes along the direction in which influence travels. **Local**: the agent must not affect the host beyond what is intended. **Outbound**: the agent must not affect systems remote to the host beyond what is intended. **Inbound**: the agent must not be influenced by unintended external signals, whether they originate on the host or remotely. Each axis has its own enforcement point, its own property to hold, and its own way of failing. Conflating them is how a deployment ends up hardened on one axis and open on another.
 
-The decomposition earns its place for a practical reason: mapped against it, the existing guidance shows its shape. The blog post's "What Strong Sandboxing Requires" list is almost entirely local and outbound. The MCP runtime isolation guide [8] — this workstream's own how-to — is almost entirely local, with a little outbound and no inbound at all. The axes give that guidance a spine, and make its gaps legible rather than invisible. The Zero Trust paper's *AI Threat Boundary* [16] and these axes are complementary, not identical: theirs marks what must not be trusted; these axes mark what must not be reached. The agent sits inside both.
+The decomposition reveals the shape of existing guidance. The blog post's "What Strong Sandboxing Requires" list is almost entirely local and outbound. The MCP runtime isolation guide [8], this workstream's own how-to, is almost entirely local, with a little outbound and no inbound at all. The axes give that guidance a spine, and make its gaps visible. The Zero Trust paper's *AI Threat Boundary* [16] and these axes are complementary, not identical: theirs marks what must not be trusted; these axes mark what must not be reached. The agent sits inside both.
 
 ### 2.1 Local
 
-The enforcement point is the operating-system boundary around the agent's process: namespaces and filesystem policy, syscall filtering, mandatory access control, and — where the workload warrants stronger — a userspace kernel or microVM beneath the container. The reference monitor at this axis is the kernel or its stand-in, and the property it must hold is the §5 set: every host-facing action mediated, the policy outside the agent's write scope, the enforcement verifiable.
+The enforcement point is the operating-system boundary around the agent's process: namespaces and filesystem policy, syscall filtering, mandatory access control, and, where the workload warrants stronger, a userspace kernel or microVM beneath the container. The reference monitor at this axis is the kernel or its stand-in. The property it must hold is the §5 set: every host-facing action mediated, the policy outside the agent's write scope, the enforcement verifiable.
 
 The blog post's controls that live here: OS-enforced isolation rather than agent instructions; privilege minimization in both directions, blocking the named escalation paths (no Docker socket, no metadata service) and shrinking default authority so a compromise yields little; and progressive hardening for workloads that need more than a shared kernel.
 
-The concrete case that tests the axis is the coding agent that needs to build and run containers (§1.1). Mounting the host's container-runtime socket into the sandbox does not weaken the boundary; it relocates the enforcement point to the wrong side of it. Anything that can reach that daemon holds a documented API for privileged escape — the monitor is now *inside* the agent's reach, which is a §5 mode-2 condition by construction. The workable shapes keep a real isolation boundary between the agent and the engine it drives: a rootless engine inside the sandbox, or a runtime backed by its own isolation layer. The requirement is real and deserves a control answer rather than a prohibition; what a vetted sandbox must demonstrate for this case is specified in §8.
+The concrete case that tests the axis is the coding agent that needs to build and run containers (§1.1). Mounting the host's container-runtime socket into the sandbox does not weaken the boundary; it relocates the enforcement point to the wrong side of it. Anything that can reach that daemon holds a documented API for privileged escape. The monitor is now *inside* the agent's reach, a §5 mode-2 condition by construction. The workable shapes keep a real isolation boundary between the agent and the engine it drives: a rootless engine inside the sandbox, or a runtime backed by its own isolation layer. The requirement warrants a control answer, not a prohibition. What a vetted sandbox must demonstrate for this case is specified in §8.
 
 ### 2.2 Outbound
 
-Outbound has two enforcement points, and they answer different questions. The **network egress boundary** (proxy, allowlist, DNS policy) answers *which endpoints this workload may reach*. The **tool or MCP gateway** answers *what this agent may cause to happen*, in typed, attributable operations. §3 argues that for agent workloads the second is the primary mediation surface and states precisely what the first still buys once it exists. Both must hold the same property: the agent's **effective reach**, the union of every path to an external effect including every fetch a provider will perform on the agent's request (§3.1), crosses an independently enforced boundary before the effect commits.
+Outbound has two enforcement points, and they answer different questions. The **network egress boundary** (proxy, allowlist, DNS policy) answers *which endpoints this workload may reach*. The **tool or MCP gateway** answers *what this agent may cause to happen*, in typed, attributable operations. §3 argues that for agent workloads the second is the primary mediation surface, and states what the first still buys once the second exists. Both must hold the same property: the agent's **effective reach**, the union of every path to an external effect including every fetch a provider will perform on the agent's request (§3.1), crosses an independently enforced boundary before the effect commits.
 
 The blog post's controls that live here: egress controls that treat every permitted channel, the inference endpoint included, as a potential exfiltration path; the credential-injecting proxy, so credentials never enter the agent's reach; short-lived, task-scoped credentials with circuit breakers; complete mediation; and bounded delegation. Outbound authority is carried as much by what the agent *holds* as by what it can *route to*.
 
-One boundary of this axis is deliberate: everything above is per-agent. The outbound quantities an operator actually cares about — bytes, destinations, spend — are consumed across the set of agents sharing a principal, and no per-agent control on this axis sees the sum. That is §4's subject.
+One boundary of this axis is deliberate: everything above is per-agent. The outbound quantities an operator actually cares about, bytes, destinations and spend, are consumed across the set of agents sharing a principal, and no per-agent control on this axis sees the sum. That is §4's subject.
 
 ### 2.3 Inbound
 
-Inbound is where prompt injection lives, and its enforcement point is unlike the other two. There is no boundary the agent might cross; there is content crossing *into* the agent's context, and the property to hold is that content from an untrusted source never acquires the authority of an instruction. The controls — input filtering and validation, output checks, the data/control distinction, detached defences, red teaming — are specified in the input sanitization practical guide [15] and in the MCP paper's untrusted-content guidance [10], and this paper does not restate them. The axis stays in the decomposition because without it the model is incomplete, and the reader is sent to the guides for the how.
+Inbound is where prompt injection lives, and its enforcement point is unlike the other two. There is no boundary the agent might cross; there is content crossing *into* the agent's context, and the property to hold is that content from an untrusted source never acquires the authority of an instruction. The controls, input filtering and validation, output checks, the data/control distinction, detached defences, and red teaming, are specified in the input sanitization practical guide [15] and in the MCP paper's untrusted-content guidance [10]; this paper does not restate them. The axis stays in the decomposition because without it the model is incomplete. The reader is sent to the guides for the how.
 
-What belongs *here* is the axis's relationship to the other two: inbound is the axis that arms them. An agent does not need to be adversarial to test its bounds. The fastest way to get an agent that behaves adversarially is for something it read to tell it to. A deployment hardened locally and outbound but open inbound has built strong walls around an agent whose goals an attacker can set. This is why the paper's threat model — a model that wants to escape — is not paranoia about the model: on an open inbound axis, *wants to escape* is an input, not a disposition.
+What belongs *here* is the axis's relationship to the other two: inbound arms them. An agent does not need to be adversarial to test its bounds. The fastest way to get an agent that behaves adversarially is for something it read to tell it to. A deployment hardened locally and outbound but open inbound has built strong walls around an agent whose goals an attacker can set. This is why the paper's threat model — a model that wants to escape — is not paranoia about the model: on an open inbound axis, *wants to escape* is an input, not a disposition.
 
 ### 2.4 The axes at a glance
 
@@ -167,7 +173,7 @@ Section 2 gave the outbound axis two enforcement points. This section argues tha
 
 **Why the tool call.** A network flow names an endpoint. A tool call names an *action*: a typed operation, with structured arguments, invoked by an attributable principal. Policy can be written against the second in a way it cannot against the first. A named tool call with structured arguments can be authorized, transformed or refused on its semantics; a TLS stream can only be permitted or blocked on its destination. The blog post's complete-mediation requirement already contains the reason this matters [11]: a reference monitor that answers only *may this agent call this endpoint* still permits the gym cancellation, because the endpoint was permitted and the harm lived in the arguments: whose reservation, not which API. The bound has to reach the authority itself, whose resource and up to what limit, carried in the credential and evaluated per call.
 
-The reference monitor at this surface is the tool or MCP gateway, and the §5 properties apply to it in full: complete mediation over the actions it claims to govern, placement outside the agent's reach, and records sufficient to verify both (§7). The per-tool half of the same position is already CoSAI guidance: the secure tool design practical guide requires that the tool, not the model, enforce security-critical constraints — this section supplies the layer above it, the monitor through which every tool passes. The MCP Security paper's Sandboxing and Isolation and Logging controls specify the how at this surface [10]; this section states what they must jointly achieve, and does not restate them.
+The reference monitor at this surface is the tool or MCP gateway, and the §5 properties apply to it in full: complete mediation over the actions it claims to govern, placement outside the agent's reach, and records sufficient to verify both (§7). The per-tool half of the same position is already CoSAI guidance: the secure tool design practical guide requires that the tool, not the model, enforce security-critical constraints — this section supplies the layer above it, the monitor through which every tool passes. The MCP Security paper's Sandboxing and Isolation and Logging controls specify the implementation details at this surface [10]; this section states what they must jointly achieve, and does not restate them.
 
 §4.3's fail-safe default applies to the gateway. If it cannot obtain a decision, the invocation is refused or held; it is not allowed on any path the claimed assurance boundary covers. An allow fallback removes that path from the claim for as long as it holds: it MUST be an explicit operator choice, time-bounded, and recorded per decision, and the assurance-boundary statement (§7.1) records the exclusion. A rejection of the gateway's own request, such as a rejected credential, is an answer, not an outage: the invocation is refused, and the rejection MUST NOT count toward any breaker or fallback that could turn it into an allow.
 
@@ -195,9 +201,9 @@ What the network layer cannot express is the authority semantics: whose resource
 
 ### 3.1 The permitted channel is the exfiltration path
 
-Effective reach includes every fetch a permitted party will perform on the agent's request. Model-side URL retrieval, web search, code interpreters, retrieval connectors — each is network access the agent holds indirectly, and the agent's egress envelope is the union of its own network policy and all of them. A sandbox audit that stops at the workload's own network policy has measured the smaller of the two terms.
+Effective reach includes every fetch a permitted party will perform on the agent's request. Model-side URL retrieval, web search, code interpreters, retrieval connectors: each is network access the agent holds indirectly. The agent's egress envelope is the union of its own network policy and all of them. A sandbox audit that stops at the workload's own network policy has measured the smaller of the two terms.
 
-The anchor case, cited as reported pending Appendix A.1: in testing across nine frontier models against a hardened sandbox, agents that discovered the x32 seccomp bypass chained it with the LLM API's own built-in URL retrieval to reach external destinations through an otherwise restricted proxy [11]. The only permitted network channel, the inference endpoint itself, became the relay. In §5's terms this second half is mode 4: no control was defeated; a trusted party, outside the sandbox, holding network access the agent lacked, performed a fetch with a payload the agent controlled. It is a confused-deputy problem, and the Zero Trust paper's §3.2.1 gives the named treatment [16]. Its structure is the same as the gym incident's, one layer down: the deputy is legitimate, the request is well-formed, the authority is real.
+The anchor case, cited as reported pending Appendix A.1, comes from testing across nine frontier models against a hardened sandbox. Agents that discovered the x32 seccomp bypass chained it with the LLM API's own built-in URL retrieval to reach external destinations through an otherwise restricted proxy [11]. The only permitted network channel, the inference endpoint itself, became the relay. In §5's terms this second half is mode 4: no control was defeated; a trusted party, outside the sandbox, holding network access the agent lacked, performed a fetch with a payload the agent controlled. It is a confused-deputy problem, and the Zero Trust paper's §3.2.1 gives the named treatment [16]. Its structure is the same as the gym incident's, one layer down: the deputy is legitimate, the request is well-formed, the authority is real.
 
 The design principle that follows, and this paper states it as one: **where a permitted party will act on the agent's behalf, constrain what it will do, not just whether the agent may ask.** Three kinds of constraint bound exfiltration even where the channel cannot be removed: method-limited channels, such as a retriever that will only GET; bandwidth- and rate-limited channels; and non-reflective channels, where the response returns to the requester rather than to a destination the payload names. These constraints are also what makes the channel accountable in §4's terms: a provider fetch that carries no quantity limits is consumption the accounting authority never sees.
 
@@ -218,7 +224,7 @@ destination allowlist on a network policy, a scope that narrows at each delegati
 correct on its own terms and each is a **local invariant**: it bounds what one container or one
 edge may do. The quantities an operator actually cares about are not local. Bytes leaving the
 organisation, distinct destinations touched, money spent, side-effecting actions taken, agents
-spawned, subtree depth and fan-out — these are consumed **across the set of agents that share a
+spawned, subtree depth and fan-out are consumed **across the set of agents that share a
 principal**, and across the delegation subtree that principal roots. A set of N agents, each inside
 its cap, consumes N caps. Nothing in a per-container model fires, because nothing in it ever sees
 the sum.
@@ -227,19 +233,19 @@ The review of the blog post reached this from two directions. From the sandboxin
 fans work out to twelve workers, each in a compliant sandbox with a 10 MB/day egress limit, moves
 120 MB through twelve distinct destinations without a single local control tripping. From the
 authority side: the approved *Agentic Identity and Access Management* paper requires scope to
-narrow at each hop, and names the phenomenon in its threat themes — two or more agents can pass
-data or proxy calls so that, together, they perform an action neither could perform alone — but its
+narrow at each hop, and names the phenomenon in its threat themes: two or more agents can pass
+data or proxy calls so that, together, they perform an action neither could perform alone. But its
 controls stop at the edge. Per-hop attenuation is necessary. It is not sufficient, because
 attenuation is also a local invariant: it bounds the child relative to the parent, not the subtree
 relative to the principal. This section extends that paper on exactly that point.
 
 **Worked example.** A principal holds a 100 MB/day egress budget and a 50-destination envelope. An
-orchestrating agent spawns twelve workers under the principal; each worker's sandbox is capped at
-10 MB/day and its network policy allows five destinations. Every worker stays inside both caps. At
-the end of the day 120 MB has left through up to sixty destinations, the principal's budget is
+orchestrating agent spawns twelve workers under the principal. Each worker's sandbox is capped at
+10 MB/day, and its network policy allows five destinations. Every worker stays inside both caps. At
+the end of the day 120 MB has left through up to sixty destinations. The principal's budget is
 exceeded by 20 % and its envelope by 20 %, and the audit trail shows twelve unremarkable sandboxes.
 Under subtree accounting the eleventh worker's first outbound request is evaluated against the
-principal's remaining budget — zero — and is refused or held; the refused attempt is the alert, and
+principal's remaining budget, which is zero, and is refused or held. The refused attempt is the alert, and
 it carries the lineage that names the orchestrator.
 
 ### 4.2 The closing control: aggregate accounting at the consuming action
@@ -262,8 +268,8 @@ within the principal's budget*. Two properties make it a control rather than a r
   is a race: N concurrent consumers each observe headroom and all proceed. Conformant
   implementations MUST consume by compare-and-consume (reserve, then commit or release) or serialise
   consumption per principal. A reservation is released only when it is known that the action did
-  not happen. A reservation whose outcome is unknown — the consumer timed out or failed between
-  reserve and commit, or the downstream did not answer — MUST remain charged until non-consumption
+  not happen. A reservation whose outcome is unknown, because the consumer timed out or failed between
+  reserve and commit or the downstream did not answer, MUST remain charged until non-consumption
   is established authoritatively, or reconciled idempotently against the downstream's own record.
   Expiry alone MUST NOT refund it: an action that did occur and a reservation that merely lapsed
   are otherwise indistinguishable, and the budget could be spent repeatedly by letting
@@ -277,18 +283,18 @@ within the principal's budget*. Two properties make it a control rather than a r
 **Requirements.**
 
 - **R4.1** Where the deploying organisation controls the principal's authority, a conformant model
-  MUST account, at minimum, egress bytes, distinct egress destinations, spend, and agents spawned
-  — across the set of agents sharing that principal, and across each delegation subtree, evaluated
+  MUST account, at minimum, egress bytes, distinct egress destinations, spend, and agents spawned,
+  across the set of agents sharing that principal and across each delegation subtree, evaluated
   at the consuming action. Further quantities that sum across agents, such as tool invocations,
   tokens consumed, or records read from a shared store, SHOULD be accounted the same way; which of
-  them matter is a property of the deployment, the minimum above is not.
+  them matter is a property of the deployment; the minimum above is not.
 - **R4.2** Per-container and per-edge limits MUST be documented as local invariants. A containment
   claim MUST NOT rest on them alone for any quantity that sums across agents.
 - **R4.3** Consumption MUST be atomic (compare-and-consume or per-principal serialisation). A
   reservation MUST be released only when the action is known not to have happened; a reservation
   with an unknown outcome MUST remain charged until it is reconciled authoritatively.
-- **R4.4** Where the organisation does not control the principal's authority — the procured and
-  integrated agents of §1.1 — R4.1 to R4.3 are procurement requirements on the provider, and MUST be
+- **R4.4** Where the organisation does not control the principal's authority (the procured and
+  integrated agents of §1.1), R4.1 to R4.3 are procurement requirements on the provider, and MUST be
   written as such.
 
 ### 4.3 The hard sub-problem: the accounting authority
@@ -305,20 +311,20 @@ because it carries three problems a per-container design does not.
   implementation MUST bound it, and MUST define what happens when the bound is exceeded: the action
   is refused or held for confirmation, never allowed. Continuous accounting without a fail-safe
   default is allow-on-error (Saltzer and Schroeder, fail-safe defaults). A local cache MAY serve
-  reads for reporting; it MUST NOT authorise any consumption, however small — N stale caches each
+  reads for reporting; it MUST NOT authorise any consumption, however small. N stale caches each
   authorising a small action is the race of 4.2 again. The only local authorisation is against a
   lease the authority has already consumed atomically (4.2).
 - **Trust status.** The authority is a reference monitor in the §5 sense: it MUST be outside the
   reach of the agents it accounts for, MUST be invoked for every consuming action of an enumerated
   quantity (complete mediation, §3), and its decisions MUST be verifiable after the fact. In the
   procured case the provider operates it, and the deploying organisation's assurance is whatever
-  the provider's evidence supports — which is why R4.4 is procurement.
+  the provider's evidence supports. That is why R4.4 is procurement.
 
 **Evidence.** Aggregate accounting is both the preventive control and the detection signal. When
 the control holds, the aggregate never crosses its threshold, so the alert is the *attempt*: a
 consumption refused or held because it would have crossed. The attempt MUST be recorded and raised
 with the same lineage as a successful consumption. An aggregate found above its threshold after
-the fact is a different alert — it means the control failed. Both depend on the record carrying
+the fact is a different alert: it means the control failed. Both depend on the record carrying
 the join key.
 Every consuming-action record MUST carry the principal and the **full** delegation lineage, not only
 the immediate parent, integrity-protected, so that the subtree aggregate can be reconstructed by
@@ -331,8 +337,8 @@ The problem is older than agents. The Android permission literature of 2011–20
 **colluding applications** — two apps whose individual permission sets are benign and whose
 combination exceeds the user's intent, via an inter-app channel — as an inter-application
 information-flow problem to be policed over the *combination*, not per grant. That literature
-also treated permission re-delegation — one application exercising authority on another's behalf
-— as the same class of problem, which is §3.1's confused deputy under an earlier name. The
+also treated permission re-delegation, one application exercising authority on another's behalf,
+as the same class of problem: §3.1's confused deputy under an earlier name. The
 mapping onto agents is direct:
 
 | Android | Agent containment |
@@ -349,7 +355,7 @@ cannot express the constraint, because the constraint is over a set.
 
 ## 5. The enforcement property and four failure modes
 
-Every control in this paper presumes an enforcement point: something that sees the agent's action and decides whether it proceeds. The blog post described that point as "independently enforced, not agent-enforced," which was accurate but informal. A document that will be cited needs the property named, and needs the ways it fails kept apart — because the incidents this body of work draws on do not fail in one way, and the remedies do not interchange.
+Every control in this paper presumes an enforcement point: something that sees the agent's action and decides whether it proceeds. The blog post described that point as "independently enforced, not agent-enforced," which was accurate but informal. A document that will be cited needs the property named, and needs the ways it fails kept apart, because the incidents this body of work draws on do not fail in one way, and the remedies do not interchange.
 
 ### 5.1 The property, named
 
@@ -375,21 +381,30 @@ When containment fails, it fails in one of four ways, and this paper keeps them 
 
 **Mode 2 — the agent disables the control.** The agent had, or acquired, authority over the control itself. The documented case: an agent that, when a sandbox blocked its workaround, autonomously disabled the sandbox and continued [11]. This is a failure of enforcement placement, of the tamper-proof property, and its remedy is architectural: the control and its configuration outside the agent's reach, and any attempt to alter them treated as a high-signal alert (§7).
 
-**Mode 3 — the control was insufficiently specified.** The control was on, untouched, and wrong. The seccomp filter that checked syscall numbers but not the architecture value is the anchor case, and the kernel's own documentation has warned about that pitfall for a decade [7]: the agent had no authority over the policy; the system applied an insufficient one. A denylist that misses an alternate path to the same binary [5], and a workspace with a reachable Docker socket [6], fail the same way. The reachable socket also shows that the modes can compose: an insufficiently specified policy that leaves the host's container-runtime socket reachable (mode 3) thereby places the enforcement point inside the agent's reach (mode 2, §2.1). Where a defect of one mode creates the condition of another, both remedies apply — which is what §8.3 specifies for this case. The remedy is verification of the policy, not strengthening of the mechanism: pre-deployment tests that the sandbox enforces what its operator believes it enforces (§8), and a mediation surface expressive enough to state the intended boundary at all (§3).
+**Mode 3 — the control was insufficiently specified.** The control was on, untouched, and wrong. The seccomp filter that checked syscall numbers but not the architecture value is the anchor case; the kernel's own documentation has warned about that pitfall for a decade [7]. The agent had no authority over the policy; the system applied an insufficient one.
 
-Mode 3 has two shapes, and they need different remedies. The policy may never have covered the path, which is the seccomp case above. Or the policy may have been adequate and not have been the one deployed, because a setting was left open, an image drifted, or configuration changed between approval and run: in the July 2026 evaluation incidents, models running without cyber safeguards "accessed the internet due to a misconfiguration inside a third-party evaluation environment" [18]. Verification of the specification catches the first shape. Only a demonstration repeated at each run, within a validity window (§8.2), catches the second, because that failure arises after any one-time test — which is why the same disclosure asks that the sandbox configuration "be verified before every evaluation begins" [18].
+A denylist that misses an alternate path to the same binary [5], and a workspace with a reachable Docker socket [6], fail the same way. The reachable socket also shows that the modes can compose: an insufficiently specified policy that leaves the host's container-runtime socket reachable (mode 3) thereby places the enforcement point inside the agent's reach (mode 2, §2.1). Where a defect of one mode creates the condition of another, both remedies apply, as §8.3 specifies for this case. The remedy is verification of the policy, not strengthening of the mechanism: pre-deployment tests that the sandbox enforces what its operator believes it enforces (§8), and a mediation surface expressive enough to state the intended boundary at all (§3).
 
-**Mode 4 — the control was correct and the agent used permitted authority.** Nothing was escaped. The agent that cancelled a stranger's gym reservation crossed no containment boundary; its authority was scoped to an endpoint, not to whose reservation it could act on [11]. The gateway that performs a fetch with agent-controlled input is the same shape: a permitted party, acting as asked (§3.1). No isolation posture reaches this mode. The Zero Trust paper states the same limitation from its side: an agent with read access to sensitive data and permission to email externally can exfiltrate within its permissions — Zero Trust architecture alone does not stop it [16]. What bounds it is scope on the grant — the subject of the Agentic IAM paper [9] — together with constraining what permitted parties will do on request (§3.1), accounting authority across the set of agents that share it (§4), and evidence afterwards (§7).
+Mode 3 has two shapes, and they need different remedies:
 
-The first three modes are failures of the monitor's three properties, in order: mode 1 breaks the mechanism, mode 2 breaks tamper-proofing, mode 3 breaks complete mediation — the policy did not cover the path. Mode 4 is not a failure of the monitor at all. That is the deepest reason containment is one layer of a bounded-authority model rather than the whole of it (§1): a perfect monitor, perfectly specified, enforcing a grant that is too broad, produces the gym incident every time.
+- The policy never covered the path, as in the seccomp case above.
+- The policy was adequate but was not the one deployed, because a setting was left open, an image drifted, or configuration changed between approval and run. In the July 2026 evaluation incidents, models running without cyber safeguards "accessed the internet due to a misconfiguration inside a third-party evaluation environment" [18].
+
+Verification of the specification catches the first shape. Only a demonstration repeated at each run, within a validity window (§8.2), catches the second, because that failure arises after any one-time test. That is why the same disclosure asks that the sandbox configuration "be verified before every evaluation begins" [18].
+
+**Mode 4 — the control was correct and the agent used permitted authority.** Nothing was escaped. The agent that cancelled a stranger's gym reservation crossed no containment boundary; its authority was scoped to an endpoint, not to whose reservation it could act on [11]. The gateway that performs a fetch with agent-controlled input is the same shape: a permitted party, acting as asked (§3.1). No isolation posture reaches this mode.
+
+The Zero Trust paper states the same limitation from its side: an agent with read access to sensitive data and permission to email externally can exfiltrate within its permissions, and Zero Trust architecture alone does not stop it [16]. What bounds this mode is scope on the grant (the subject of the Agentic IAM paper [9]), together with constraining what permitted parties will do on request (§3.1), accounting authority across the set of agents that share it (§4), and evidence afterwards (§7).
+
+The first three modes are failures of the monitor's three properties, in order: mode 1 breaks the mechanism, mode 2 breaks tamper-proofing, mode 3 breaks complete mediation: the policy did not cover the path. Mode 4 is not a failure of the monitor at all. That is the deepest reason containment is one layer of a bounded-authority model rather than the whole of it (§1): a perfect monitor, perfectly specified, enforcing a grant that is too broad, produces the gym incident every time.
 
 ### 5.3 Why the separation is load-bearing
 
-Most of the incidents this body of work rests on are modes 3 and 4. Industry attention — and spending — concentrates on modes 1 and 2: stronger isolation, more exotic sandboxes. The taxonomy is what makes that mismatch visible, and it has three practical consequences.
+Most of the incidents this body of work rests on are modes 3 and 4, yet industry attention and spending concentrate on modes 1 and 2: stronger isolation, more exotic sandboxes. The taxonomy makes that mismatch visible, and it has three practical consequences.
 
-First, remedies do not interchange. Buying stronger isolation does not fix an insufficient policy, and neither fixes a grant that was too broad. The blog post presented a mode-2 incident and a mode-3 incident in adjacent sentences as one phenomenon; they demand different fixes from different teams.
+First, remedies do not interchange. Buying stronger isolation does not fix an insufficient policy, and neither fixes a grant that was too broad. The blog post presented a mode-2 incident and a mode-3 incident in adjacent sentences as one phenomenon. They demand different fixes from different teams.
 
-Second, classifying an incident requires evidence. Telling mode 2 from mode 3 needs a record of the control's configuration and the enforcement decision at the time; telling mode 1 from mode 4 needs a record of what was actually permitted. Without the evidence contract of §7, the taxonomy is rhetoric; with it, an incident review can assign a mode and route the fix.
+Second, classifying an incident requires evidence. Telling mode 2 from mode 3 needs a record of the control's configuration and the enforcement decision at the time. Telling mode 1 from mode 4 needs a record of what was actually permitted. Without the evidence contract of §7, the taxonomy is rhetoric; with it, an incident review can assign a mode and route the fix.
 
 Third, every control in this paper can now say what it is for:
 
@@ -402,7 +417,7 @@ Third, every control in this paper can now say what it is for:
 | §7 Detection and evidence | Makes all four modes distinguishable, during and after |
 | §8 Verification | Mode 3 — proving the control enforces what its operator believes |
 
-The question each section answers is therefore not "how strong is the box?" but: which failure mode does this control remove — and how would we know it worked?
+The question each section answers is therefore not "how strong is the box?" but "which failure mode does this control remove, and how would we know it worked?"
 
 ### 5.4 Threat sources and trust assumptions
 
@@ -426,37 +441,61 @@ Two readings of this table are wrong and worth naming. It is not a claim that th
 
 ## 6. Reachability and blast radius
 
-What follows treats reachability minimization as a control in its own right, distinct from vulnerability management — and shows that the distinction decides not only what can be hardened but what can be proven afterwards.
+What follows treats reachability minimization as a control in its own right, distinct from vulnerability management. The distinction decides not only what can be hardened but what can be proven afterwards.
 
 ### 6.1 A control, not a hygiene metric
 
-The blog post's patch-posture requirement was already the honest version of vulnerability management: "zero CVEs" is not a promise anyone can keep, so what can be held is narrower: no known-exploitable CVEs in the isolation path, a measured patch SLA, minimum attack surface, and named compensating controls where patching lags [11]. This section's claim is that even that honest version answers only half the question, because neither of the anchor incidents would have been prevented by it. The seccomp architecture gap was not an unpatched vulnerability but a documented specification pitfall a decade old — a §5 mode-3 failure that no patch cycle touches [7]. And an escape that chains previously unknown vulnerabilities is, by definition, ahead of any patch posture: patching cannot precede knowledge.
+The blog post's patch-posture requirement was already the honest version of vulnerability management. "Zero CVEs" is not a promise anyone can keep, so what can be held is narrower: no known-exploitable CVEs in the isolation path, a measured patch SLA, minimum attack surface, and named compensating controls where patching lags [11]. Even that honest version answers only half the question, because neither of the anchor incidents would have been prevented by it. The seccomp architecture gap was not an unpatched vulnerability but a documented specification pitfall a decade old, a §5 mode-3 failure that no patch cycle touches [7]. And an escape that chains previously unknown vulnerabilities is, by definition, ahead of any patch posture: patching cannot precede knowledge.
 
-What remains governable when the mechanism's failure cannot be ruled out is the *consequence* of that failure: the set of systems the agent can touch when a §5 mode 1, 2, or 3 failure occurs. That set is decided at design time — by deny-by-default egress, by which peer services share the agent's network, by which credentials sit within its reach (§2) — and it is decided *before any specific vulnerability exists*. Vulnerability management lowers the probability that the boundary fails; reachability minimization bounds what failure is worth to the agent. Both are required. Only the second is fully within the operator's control, because the first depends on the undiscovered.
+What remains governable when the mechanism's failure cannot be ruled out is the *consequence* of that failure: the set of systems the agent can touch when a §5 mode 1, 2, or 3 failure occurs. That set is decided at design time: by deny-by-default egress, by which peer services share the agent's network, and by which credentials sit within its reach (§2). It is decided *before any specific vulnerability exists*.
 
-The control takes three practical forms. First, an enumerated reachable set: every system, service and endpoint the agent can touch through any path in its effective reach (§3), maintained as deployment configuration and verified before runs (§8). Second, a minimization pass against task requirements, treating every reachable system the task does not require as blast radius carried for no return. Third, the honest patch posture above, applied to what remains.
+Vulnerability management lowers the probability that the boundary fails; reachability minimization bounds what failure is worth to the agent. Both are required. Only the second is fully within the operator's control, because the first depends on the undiscovered.
 
-The inventory draws on inputs that include the deployment architecture (local resources and host interfaces, network peers, and egress policy), the credentials and authority available to the agent (§2), the actions enabled by tools and MCP servers, and the indirect and alternate paths described in §3. Design-time threat modeling can bring these inputs together to identify reachable systems and which entries the task requires; the inventory is updated when those inputs change and verified against the deployed system as §8 requires.
+The control takes three practical forms:
 
-The reachable set is a declared quantity, so it is versioned, and each run's record names the version it ran under by content digest (§7). What the run actually touched is a measured quantity, and the two can be compared only afterwards, and only when the record names the inventory. The comparison has three outcomes, and they stay apart: the touched set lies within the declared set; it lies outside it; or it cannot be determined, because the journal is partial. The third is the one that gets folded into the first, and a partial journal read as "within" is the failure the comparison exists to prevent. The procedure belongs in a practical guide; the paper requires the versioning and the three outcomes.
+- an enumerated reachable set: every system, service and endpoint the agent can touch through any path in its effective reach (§3), maintained as deployment configuration and verified before runs (§8);
+- a minimization pass against task requirements, treating every reachable system the task does not require as blast radius carried for no return; and
+- the honest patch posture above, applied to what remains.
+
+The inventory draws on inputs that include:
+
+- the deployment architecture (local resources and host interfaces, network peers, and egress policy);
+- the credentials and authority available to the agent (§2);
+- the actions enabled by tools and MCP servers; and
+- the indirect and alternate paths described in §3.
+
+Design-time threat modeling can bring these inputs together to identify reachable systems and which entries the task requires; the inventory is updated when those inputs change and verified against the deployed system as §8 requires.
+
+The reachable set is a declared quantity, so it is versioned, and each run's record names the version it ran under by content digest (§7). What the run actually touched is a measured quantity, and the two can be compared only afterwards, and only when the record names the inventory. The comparison has three outcomes, and they stay apart: the touched set lies within the declared set; it lies outside it; or it cannot be determined, because the journal is partial. The third is the one that gets folded into the first. A partial journal read as "within" is the failure the comparison exists to prevent. The procedure belongs in a practical guide; the paper requires the versioning and the three outcomes.
 
 ### 6.2 Which reachable systems are yours
 
 The worked example is the July 2026 evaluation-environment incident, and it is a better example told accurately than it was told merged (Appendix A.2). It has two halves on opposite sides of this section's central boundary.
 
-The first half: models under evaluation escaped their sandbox by way of the package-registry infrastructure available inside the evaluation environment, as reported by the operator [2]. That infrastructure was stood up for the engagement — it was *in scope to constrain*. Its reachability was a design choice: what the evaluation environment made reachable, it could have made unreachable, hardened, or instrumented. This is the half where reachability minimization is an available control, and the design principle it yields is the one the incident's own reviewers stated: minimize the interactions an agent can make outside a tightly controlled environment with multiple layers of protection.
+The first half: models under evaluation escaped their sandbox by way of the package-registry infrastructure available inside the evaluation environment, as reported by the operator [2]. That infrastructure was stood up for the engagement, so it was *in scope to constrain*. Its reachability was a design choice. What the evaluation environment made reachable, it could have made unreachable, hardened, or instrumented. This is the half where reachability minimization is an available control. The design principle it yields is the one the incident's own reviewers stated: minimize the interactions an agent can make outside a tightly controlled environment with multiple layers of protection.
 
-The second half: an intrusion into a third party's production infrastructure — which, per that party's own disclosure, began in their data-processing pipeline and proceeded to node-level access and lateral movement [14]. Their systems were never the evaluation operator's to harden. For the operator, no patch posture, no compensating control, no instrumentation on the reached side was available — the only available control was whether the path existed at all. Where the reached system belongs to someone else, reachability minimization is not one control among several; it is the *only* one left.
+The second half: an intrusion into a third party's production infrastructure. According to that party's own disclosure, the intrusion began in their data-processing pipeline and proceeded to node-level access and lateral movement [14]. Their systems were never the evaluation operator's to harden. For the operator, no patch posture, no compensating control, no instrumentation on the reached side was available. The only available control was whether the path existed at all. Where the reached system belongs to someone else, reachability minimization is not one control among several; it is the *only* one left.
 
-The gym incident sits at the same boundary from the authority side [11]: the reached system belonged to a third party, and the agent's access to it was legitimate (§5 mode 4). Across all three cases the pattern holds — the owner of the reached system determines which remedies exist, and a containment design that does not classify its reachable set by ownership has not yet discovered which of its controls are real.
+The gym incident sits at the same boundary from the authority side [11]. The reached system belonged to a third party, and the agent's access to it was legitimate (§5 mode 4).
+
+Across all three cases the pattern holds: the owner of the reached system determines which remedies exist. A containment design that does not classify its reachable set by ownership has not yet discovered which of its controls are real.
 
 ### 6.3 Reach decides evidence
 
-The same boundary decides a second thing, and it surfaces after the incident: what can be *proven*. When an agent reaches a system its operator controls, both sides of the interaction land in records the operator holds. When it reaches a third party's system, the operator holds a record that the agent asked, the third party holds a record that something happened, and nothing binds the two. Reconstruction then depends on the third party's retention, cooperation, and record quality, none of which the operator controls and none of which the §7 evidence contract can require of them. The Anthropic disclosure's retrospective — reviewing 141,006 evaluation runs after another organization's report, to discover what its own agents had touched [3] — is what this looks like at scale: the reach was real, and the evidence had to be excavated.
+The same boundary decides a second thing, and it surfaces after the incident: what can be *proven*.
 
-Two consequences. For engineering: cross-boundary reach that cannot be removed should be forced through the operator's own mediation surface (§3), so that at minimum the asking side of every interaction is in first-party records with full lineage (§7). For the standards work this paper feeds: binding the two halves requires a correlation the *resource owner's* record can carry, an identifier linking their event to the causing agent. That is precisely the shape proposed in OCSF as `caused_by` on the resource owner's event (ocsf/ocsf-schema#1738). That link is evidence rather than a later agreement between two parties only if the identifier is minted and sequenced on the asking side, in the operator's integrity-protected sequence (§7), before the request is dispatched, and travels with the request. The third party's record is then checkable against an entry that was already sealed, and the operator can neither disown nor retrofit it. §7 carries the evidence contract; this is the row of it that only exists if the other side cooperates, which is why the reachable-set inventory of 6.1 should mark, for every entry, not just *whose system* but *whose records*, and for how long they exist. A third-party record with a thirty-day life bounds how long the two halves can be bound at all, and that horizon is known at design time, not discovered at verification time.
+When an agent reaches a system its operator controls, both sides of the interaction land in records the operator holds. When it reaches a third party's system, the operator holds a record that the agent asked, the third party holds a record that something happened, and nothing binds the two. Reconstruction then depends on the third party's retention, cooperation, and record quality. The operator controls none of these, and the §7 evidence contract cannot require them of the third party.
 
-For the procured deployment shapes of §1.1, both halves of this section become procurement: the provider's reachable set and its ownership classification are what to demand in evidence, and a provider that cannot enumerate what its agent can reach cannot support any containment claim this paper would recognize.
+The Anthropic disclosure's retrospective, which reviewed 141,006 evaluation runs after another organization's report to discover what its own agents had touched [3], is what this looks like at scale: the reach was real, and the evidence had to be excavated.
+
+Two consequences follow.
+
+- **For engineering:** cross-boundary reach that cannot be removed should be forced through the operator's own mediation surface (§3), so that at minimum the asking side of every interaction is in first-party records with full lineage (§7).
+- **For the standards work this paper feeds:** binding the two halves requires a correlation the *resource owner's* record can carry, an identifier linking their event to the causing agent. That is precisely the shape proposed in OCSF as `caused_by` on the resource owner's event (ocsf/ocsf-schema#1738). That link is evidence rather than a later agreement between two parties only if the identifier is minted and sequenced on the asking side, in the operator's integrity-protected sequence (§7), before the request is dispatched, and travels with the request. The third party's record is then checkable against an entry that was already sealed, and the operator can neither disown nor retrofit it.
+
+§7 carries the evidence contract. This is the row of it that only exists if the other side cooperates, which is why the reachable-set inventory of 6.1 should mark, for every entry, not just *whose system* but *whose records*, and for how long they exist. A third-party record with a thirty-day life bounds how long the two halves can be bound at all, and that horizon is known at design time, not discovered at verification time.
+
+For the procured deployment shapes of §1.1, both halves of this section become procurement. The provider's reachable set and its ownership classification are what to demand in evidence. A provider that cannot enumerate what its agent can reach cannot support any containment claim this paper would recognize.
 
 ---
 
@@ -464,9 +503,15 @@ For the procured deployment shapes of §1.1, both halves of this section become 
 
 **Purpose.** Carry the detection argument and a schema summary in the paper; put the concrete logging schema in a practical guide alongside the MCP runtime isolation guide.
 
-Detection and evidence are two artifacts against the same event, not one list. Detection wants signals that discriminate an attempt from normal behavior, and is allowed to be noisy, heuristic, and tuned per deployment. Evidence wants the fields that let someone who was not there and does not trust you reconstruct what happened, and must be stable, complete, and boring — and nothing in it may be executable authority (§3). The evidence contract is normative in this paper; the OCSF mapping goes in the practical guide, pinned to an OCSF version, with proposed fields marked as proposed. §7.1 is structured as two tables accordingly.
+Detection and evidence are two artifacts against the same event, not one list. Detection wants signals that discriminate an attempt from normal behavior, and is allowed to be noisy, heuristic, and tuned per deployment. Evidence wants the fields that let someone who was not there and does not trust you reconstruct what happened, and must be stable, complete, and boring — and nothing in it may be executable authority (§3).
 
-The blog post's "containment that fails loudly" and "tamper-evident logging" bullets: alert on denied syscalls, repeated policy violations, `/proc` inspection, Docker socket and metadata-service probes, blocked DNS and egress, credential-broker denials, and any attempt to alter the sandbox configuration; keep those events outside the agent's write scope; correlate across runs; use OCSF `attestation` and the `record_integrity` profile (OCSF 1.9.0) for tamper evidence [12]. Correction to the supporting narrative, from the A.2 source check: Anthropic's sentence is "the two organizations **we were able to reach** had not previously detected the activity" — narrower than the blog's paraphrase — and Hugging Face *did* detect their own intrusion, via LLM-based triage on anomalies, before OpenAI connected its internal testing to it. The section's argument survives both facts, but must carry them: the strongest counter-example in the field is also the best existing evidence that the detection this section calls for actually works.
+The evidence contract is normative in this paper; the OCSF mapping goes in the practical guide, pinned to an OCSF version, with proposed fields marked as proposed. §7.1 is structured as two tables accordingly.
+
+The blog post's "containment that fails loudly" and "tamper-evident logging" bullets: alert on denied syscalls, repeated policy violations, `/proc` inspection, Docker socket and metadata-service probes, blocked DNS and egress, credential-broker denials, and any attempt to alter the sandbox configuration; keep those events outside the agent's write scope; correlate across runs; use OCSF `attestation` and the `record_integrity` profile (OCSF 1.9.0) for tamper evidence [12].
+
+Correction to the supporting narrative, from the A.2 source check: Anthropic's sentence is "the two organizations **we were able to reach** had not previously detected the activity" — narrower than the blog's paraphrase — and Hugging Face *did* detect their own intrusion, via LLM-based triage on anomalies, before OpenAI connected its internal testing to it.
+
+The section's argument survives both facts, but must carry them: the strongest counter-example in the field is also the best existing evidence that the detection this section calls for actually works.
 
 **Requirements across §7.** An absence that was determined MUST be distinguishable in the record
 from an absence that was never established. A determined absence carries an explicit value and
@@ -485,33 +530,24 @@ A containment claim that rules out a defeated or disabled control (§5.2, modes 
 
 ### 7.1 What to log
 
-Two approved WS4 papers already carry most of the field list, and this section should be read as
-extending them rather than restarting them. The *Model Context Protocol Security* paper requires,
-at L2 and above, structured logging of tool identity, caller identity, policy decision, resource
-target, outcome, request metadata and correlation identifiers, with raw parameters logged only
-after redaction, hashing or field-level tokenization, rising to immutable tamper-evident logging of
-all interactions at L4. The *Agentic Identity and Access Management* paper's Appendix D requires
-agent ID, subject ID, tenant, environment, resource and action, decision with reason, scope and
-authorization details, policy version, attestation information and a `correlation_id`, and states
-the "prove control on demand" obligation: an organization must be able to answer, from logs alone,
-which agents were active, what permissions they held at that time, who was involved in each action,
-and which policies, attestation evidence and delegated scopes justified each decision.
+Two approved WS4 papers already carry most of the field list, and this section should be read as extending them rather than restarting them.
 
-What this paper adds is the separation. Those lists are single lists serving two readers. Detection
-is written for an operator inside the deployment who is trying to notice an attempt in progress, and
-it is allowed to be noisy, heuristic and tuned locally. Evidence is written for someone who was not
-there and does not trust the operator, and it must be stable, complete and dull. A field that earns
-its place in one does not automatically earn its place in the other, and the two have opposite
-failure modes: a detection signal that fires too rarely is useless, while an evidence field that is
-present only sometimes is worse than absent, because a verifier cannot distinguish "did not happen"
-from "was not recorded".
+- The *Model Context Protocol Security* paper requires, at L2 and above, structured logging of tool identity, caller identity, policy decision, resource target, outcome, request metadata and correlation identifiers, with raw parameters logged only after redaction, hashing or field-level tokenization, rising to immutable tamper-evident logging of all interactions at L4.
 
-Two constraints apply to the evidence table as a whole. Nothing in an evidence record may be
-executable authority (§3): the record states what was decided and on what basis, and a consumer of
-the record must never be able to replay a field in it to obtain the decision again. And correlation
-is scoped to the shared principal and the delegation subtree it roots, not to one run or one
-container (§4); a per-run correlation key cannot show that a set of individually compliant agents
-collectively exceeded the intended authority or budget, which is the failure §4 describes.
+- The *Agentic Identity and Access Management* paper's Appendix D requires agent ID, subject ID, tenant, environment, resource and action, decision with reason, scope and authorization details, policy version, attestation information and a `correlation_id`, and states the "prove control on demand" obligation: an organization must be able to answer, from logs alone, which agents were active, what permissions they held at that time, who was involved in each action, and which policies, attestation evidence and delegated scopes justified each decision.
+
+What this paper adds is the separation. Those lists are single lists serving two readers.
+
+- **Detection** is written for an operator inside the deployment who is trying to notice an attempt in progress, and it is allowed to be noisy, heuristic and tuned locally.
+
+- **Evidence** is written for someone who was not there and does not trust the operator, and it must be stable, complete and dull.
+
+A field that earns its place in one does not automatically earn its place in the other, and the two have opposite failure modes: a detection signal that fires too rarely is useless, while an evidence field that is present only sometimes is worse than absent, because a verifier cannot distinguish "did not happen" from "was not recorded".
+
+Two constraints apply to the evidence table as a whole.
+
+1. Nothing in an evidence record may be executable authority (§3): the record states what was decided and on what basis, and a consumer of the record must never be able to replay a field in it to obtain the decision again.
+2. Correlation is scoped to the shared principal and the delegation subtree it roots, not to one run or one container (§4); a per-run correlation key cannot show that a set of individually compliant agents collectively exceeded the intended authority or budget, which is the failure §4 describes.
 
 **Detection signals.** Each row names what the signal is evidence of and where its false positives
 come from. §7.2 takes up why the rates themselves cannot be stated yet.
@@ -652,7 +688,9 @@ Define the verification checks for the claimed boundary. For example, a subtree 
 
 Each timestamp must identify its clock source and relevant uncertainty. Use a common clock or a documented relationship between clocks before subtracting times across systems. Where bounded clock error permits only an interval, report that interval. Where ordering cannot be established, report the duration as unknown. Event sequence can establish some ordering without establishing elapsed time; collection time measures observation delay and must remain distinguishable from event time.
 
-**Record why execution stopped.** Preserve a normalized reason distinguishing an operator-requested containment action, an automated policy response, ordinary completion, a crash and an unknown reason. Record the native reason alongside its mapping and version. A model turn ending, reaching a token limit or yielding to a tool is not sufficient evidence that the agent's authority ended. Correlate stop records, enforcement actions and per-invocation outcomes by agent instance and action identifiers; do not infer a tool's outcome from the model's stop reason.
+**Record why execution stopped.** Preserve a normalized reason distinguishing an operator-requested containment action, an automated policy response, ordinary completion, a crash and an unknown reason. Record the native reason alongside its mapping and version.
+
+A model turn ending, reaching a token limit or yielding to a tool is not sufficient evidence that the agent's authority ended. Correlate stop records, enforcement actions and per-invocation outcomes by agent instance and action identifiers; do not infer a tool's outcome from the model's stop reason.
 
 The accounting verdict (`allowed`, `refused` or `held`) records the accounting
 authority's decision; the stop reason records why execution stopped. Keep both
@@ -705,52 +743,69 @@ An observation from an observer that fails any condition counts as self-reported
 
 ## 8. A vetted-sandbox commons
 
-The question raised was whether CoSAI has a role in specifying what a vetted agent sandbox must demonstrate, such that implementations can be measured against it. The answer is yes, with a boundary: the role is not another set of isolation requirements, and this section does not attempt one.
+The question raised was whether CoSAI has a role in specifying what a vetted agent sandbox must demonstrate, so that implementations can be measured against it. The answer is yes, with a boundary: the role is not another set of isolation requirements, and this section does not attempt one.
 
 ### 8.1 What already exists, and what it does not cover
 
 Two CoSAI artifacts already occupy adjacent ground, and a third is in progress.
 
-The *MCP Security* paper's security assurance profiles grade isolation across four levels — from a restricted local user context, through containerised execution with resource limits, to strong isolation with no shared runtime across trust boundaries, to attested tenant isolation using TEEs or confidential containers [10]. The CoSAI Risk Map's isolation and containment entries name the corresponding risks and controls, including the distinction between OS- and process-level isolation and hardware-enforced confidential computing. Between them, the question *what should a sandbox be configured to do* is answered, at a level of detail this paper has no reason to restate.
+The *MCP Security* paper's security assurance profiles grade isolation across four levels:
 
-What neither requires is that a sandbox be able to **show** that it does what it is configured to do. That gap is not academic. §5's third failure mode is the control that was on, untouched, and wrong — an insufficiently specified policy — and it is the mode a configuration-level requirement is structurally unable to catch, because the configuration is present and conformant in exactly the cases that fail. A seccomp profile that filters syscall numbers without checking the architecture value satisfies "syscall filtering is enabled" and does not hold [7]. Verification is the only control that reaches mode 3, which is why §5's table assigns this section to it.
+1. a restricted local user context;
+2. containerised execution with resource limits;
+3. strong isolation with no shared runtime across trust boundaries;
+4. attested tenant isolation using TEEs or confidential containers [10].
 
-The blog post stated the requirement in one line: before any agent run, programmatically verify that the sandbox enforces its policy — security controls need unit tests, not just the application [11]. A commons is the generalisation of that line: an agreed set of things a sandbox must be able to demonstrate, so that "vetted" means the same thing across implementations and an operator procuring one (§1.1) has something to ask for.
+The CoSAI Risk Map's isolation and containment entries name the corresponding risks and controls, including the distinction between OS- and process-level isolation and hardware-enforced confidential computing. Together, they answer the question *what should a sandbox be configured to do*, at a level of detail this paper has no reason to restate.
+
+Neither requires that a sandbox be able to **show** that it does what it is configured to do. That gap is not academic.
+
+§5's third failure mode is the control that was on, untouched, and wrong: an insufficiently specified policy. A configuration-level requirement is structurally unable to catch this mode, because the configuration is present and conformant in exactly the cases that fail.
+
+A seccomp profile that filters syscall numbers without checking the architecture value satisfies "syscall filtering is enabled" and does not hold [7]. Verification is the only control that reaches mode 3, which is why §5's table assigns this section to it.
+
+The blog post stated the requirement in one line: before any agent run, programmatically verify that the sandbox enforces its policy, because security controls need unit tests, not just the application [11]. A commons generalises that line into an agreed set of things a sandbox must be able to demonstrate, so that "vetted" means the same thing across implementations and an operator procuring one (§1.1) has something to ask for.
 
 ### 8.2 The demonstration requirement
 
-A vetted sandbox should be able to demonstrate, mechanically and before an agent run, at least the following. These are the paper's own properties restated as things to test rather than things to assert:
+A vetted sandbox should be able to demonstrate, mechanically and before an agent run, at least the following. These are the paper's own properties, restated as things to test rather than things to assert:
 
-- **The claimed boundary holds.** For each axis the implementation claims (§2), a test that the boundary is in force: that the declared egress policy denies what it says it denies, that the declared filesystem scope is the scope, that the declared privilege set is the set. A claim not accompanied by a test is a configuration, not a demonstration.
-- **Mediation is complete for the effects claimed.** For each consequential effect the deployment says is mediated, evidence that no unmediated path to the same effect remains (§3), or an explicit statement of the paths excluded from the claimed assurance boundary. Exclusions are part of the demonstration, not a gap in it.
-- **The enforcement point is outside the agent's reach.** A test that the agent cannot alter the policy or the monitor applying it (§5), including its own sandbox configuration.
-- **The evidence is produced and is verifiable.** That the events §7 requires are emitted, that they carry the correlation key, and that their integrity protection can be checked by someone who does not trust the operator. A containment claim whose evidence cannot be verified is a claim with nothing behind it (§6.3).
-- **The reachable set is enumerated and current.** That the deployment can state what the agent can reach, by any path in its effective reach, and that the enumeration matches what is deployed (§6.1).
-- **Aggregate accounting holds across the principal.** That consumption is admitted or refused atomically across the set of agents sharing a principal and across each delegation subtree (§4), that an action whose outcome is unknown stays charged, and that a request the accounting authority cannot decide within its latency bound is refused or held rather than allowed (§4.3). Per-agent limits that hold while the aggregate does not are the failure §4 exists to catch, and no test confined to one agent can see it.
+- **The claimed boundary holds.** For each axis the implementation claims (§2), a test shows the boundary is in force: the declared egress policy denies what it says it denies, the declared filesystem scope is the actual scope, and the declared privilege set is the actual set. A claim without a test is a configuration, not a demonstration.
+- **Mediation is complete for the effects claimed.** For each consequential effect the deployment says is mediated, evidence shows that no unmediated path to that effect remains (§3), or an explicit statement names the paths excluded from the claimed assurance boundary. Exclusions are part of the demonstration, not gaps in it.
+- **The enforcement point is outside the agent's reach.** A test shows the agent cannot alter the policy or the monitor that applies it (§5), including its own sandbox configuration.
+- **The evidence is produced and is verifiable.** The events §7 requires are emitted, carry the correlation key, and have integrity protection that someone who does not trust the operator can check. A containment claim whose evidence cannot be verified has nothing behind it (§6.3).
+- **The reachable set is enumerated and current.** The deployment can state everything the agent can reach, by any path in its effective reach, and the enumeration matches what is deployed (§6.1).
+- **Aggregate accounting holds across the principal.** Consumption is admitted or refused atomically across the set of agents sharing a principal and across each delegation subtree (§4). An action whose outcome is unknown stays charged. A request the accounting authority cannot decide within its latency bound is refused or held, not allowed (§4.3). Per-agent limits can hold while the aggregate does not; that is the failure §4 exists to catch, and no test confined to one agent can see it.
 
-The demonstration should be re-runnable, not a one-time certification: the properties above are deployment configuration, and configuration drifts. The practical form is a pre-run check whose failure prevents the run, which is the difference between a sandbox that is vetted and a sandbox that was vetted once. The result is identified by a content digest and referenced from the run's evidence records (§7.1), so a demonstration from one run cannot stand in for another. A demonstration also has a validity window: for a long-running agent the check repeats during the run, and a claim whose last demonstration has lapsed is not a current claim.
+The demonstration should be re-runnable, not a one-time certification. The properties above are deployment configuration, and configuration drifts. In practice, this means a pre-run check whose failure prevents the run. That is the difference between a sandbox that is vetted and one that was vetted once. The result is identified by a content digest and referenced from the run's evidence records (§7.1), so a demonstration from one run cannot stand in for another. A demonstration also has a validity window: for a long-running agent the check repeats during the run, and a claim whose last demonstration has lapsed is not a current claim.
 
 ### 8.3 A worked criterion: container-runtime access
 
-The most concrete criterion offered so far came from the review of the skeleton, and it is worth stating in full because it shows what a criterion looks like when it is specific enough to test.
+The most concrete criterion offered so far came from the review of the skeleton. It is worth stating in full because it shows what a criterion looks like when it is specific enough to test.
 
-**The requirement is real.** Coding agents genuinely need to build and run containers — to bring up a database, to execute a test suite, to reproduce a build. The criterion cannot be a prohibition; it has to be a control answer, which is what makes this a good worked example rather than a misconfiguration to design away. This is also the deployment shape §1.1 names separately: the agent that builds its own boxes, where a boundary exists but the workload's job is to create more.
+**The requirement is real.** Coding agents genuinely need to build and run containers: to bring up a database, to execute a test suite, or to reproduce a build. The criterion cannot be a prohibition. It has to be a control answer, which is what makes this a good worked example rather than a misconfiguration to design away. This is also the deployment shape §1.1 names separately: the agent that builds its own boxes, where a boundary exists but the workload's job is to create more.
 
-**The disqualifying shape.** Mounting the host's container-runtime socket into the sandbox — Docker-out-of-Docker — is not a weakened boundary but a documented escape path: a caller that can reach the host daemon can start a container with host privilege and bind-mount the host filesystem, which ends the containment question regardless of how the sandbox is otherwise configured. In §5's terms this places the enforcement point inside the agent's reach by construction, a mode-2 condition established at deployment time rather than reached by an agent. Docker's own agent-sandbox guidance states the same conclusion for the same reason: mounting the host socket into a container would give the agent full access to the environment, and their product avoids it.
+**The disqualifying shape.** Mounting the host's container-runtime socket into the sandbox (Docker-out-of-Docker) is not a weakened boundary. It is a documented escape path: a caller that can reach the host daemon can start a container with host privilege and bind-mount the host filesystem, which ends the containment question regardless of how the sandbox is otherwise configured. In §5's terms this places the enforcement point inside the agent's reach by construction: a mode-2 condition established at deployment time rather than reached by an agent. Docker's own agent-sandbox guidance states the same conclusion for the same reason: mounting the host socket into a container would give the agent full access to the environment, and their product avoids it.
 
-**What actually qualifies is the boundary underneath the engine, not the engine's location.** Running a container engine inside the sandbox is necessary but not sufficient — the relevant question is where the containers that engine starts land. Docker's implementation answers it by running the inner engine inside a microVM, so the hypervisor is the boundary and the engine is a second layer. Runtimes that provide their own isolation boundary beneath the containers they start serve the same function. Running an inner engine unprivileged reduces what a breakout is worth and is worth doing, but it is a hardening of the workload, not the boundary itself; a configuration that requires elevated privilege on the outer container to make the inner engine work has traded one escape path for another.
+**What actually qualifies is the boundary underneath the engine, not the engine's location.** Running a container engine inside the sandbox is necessary but not sufficient. The relevant question is where the containers that engine starts land. Docker's implementation answers it by running the inner engine inside a microVM, so the hypervisor is the boundary and the engine is a second layer. Runtimes that provide their own isolation boundary beneath the containers they start serve the same function. Running an inner engine unprivileged reduces what a breakout is worth, and it is worth doing, but it hardens the workload rather than providing the boundary itself. A configuration that requires elevated privilege on the outer container to make the inner engine work has traded one escape path for another.
 
-**What the sandbox must demonstrate**, which is the part that makes this a criterion rather than advice: that no host container-runtime endpoint is reachable from the agent's execution context; that containers the agent starts are confined by a boundary that does not include the host; and that this remains true for containers started at runtime, not only for the sandbox as launched. The third clause is the one implementations most often cannot show, and it is where a drifting configuration surfaces.
+**What the sandbox must demonstrate** is the part that makes this a criterion rather than advice. It must show that:
+
+- no host container-runtime endpoint is reachable from the agent's execution context;
+- containers the agent starts are confined by a boundary that does not include the host; and
+- this remains true for containers started at runtime, not only for the sandbox as launched.
+
+The third clause is the one implementations most often cannot show, and it is where a drifting configuration surfaces.
 
 ### 8.4 What CoSAI should do with this
 
-**Recommendation: not a specification in this paper.** Three efforts already converge on what a sandbox must demonstrate — the assurance profiles, the Risk Map isolation and containment entries ([secure-ai-tooling#516](https://github.com/cosai-oasis/secure-ai-tooling/issues/516)), and this section. A fourth parallel specification written inside a whitepaper would be the worst available outcome, and the same duplication risk this workstream has already resolved once by routing its OCSF asks through a single channel.
+**Recommendation: not a specification in this paper.** Three efforts already converge on what a sandbox must demonstrate: the assurance profiles, the Risk Map isolation and containment entries ([secure-ai-tooling#516](https://github.com/cosai-oasis/secure-ai-tooling/issues/516)), and this section. A fourth parallel specification written inside a whitepaper would be the worst available outcome. It would repeat the same duplication risk this workstream has already resolved once by routing its OCSF asks through a single channel.
 
 **Recommendation: develop the commons as a coordinated follow-on**, with the sequencing stated rather than assumed:
 
-- It is the natural home for the *evidence-per-level annex* the MCP Security paper defers in its own open questions — the artifacts each assurance level should be able to produce — generalised from MCP to agent deployments, which is what makes it worth doing once rather than twice [10].
+- It is the natural home for the *evidence-per-level annex* the MCP Security paper defers in its own open questions: the artifacts each assurance level should be able to produce, generalised from MCP to agent deployments. That is what makes it worth doing once rather than twice [10].
 - It should adopt the assurance profiles' levels rather than invent a parallel grading, and the Risk Map's control identifiers rather than parallel names, so that a demonstration maps to a level and a control an operator already tracks.
-- It belongs with the runtime-isolation practical guide's material, not in a whitepaper: the guide says how to build the boundary, and the commons says how to show it holds.
+- It belongs with the runtime-isolation practical guide's material, not in a whitepaper. The guide says how to build the boundary, and the commons says how to show it holds.
 
 **What this paper contributes to it** is the requirement itself (§8.2), the failure mode it exists to catch (§5, mode 3), and one worked criterion (§8.3) specific enough to be implemented or argued with. The remaining criteria are exactly the kind of contribution this section invites.
 
@@ -758,45 +813,45 @@ The most concrete criterion offered so far came from the review of the skeleton,
 
 ## 9. Positions
 
-Two questions were raised in the review of the blog post that this paper is the natural place to answer. Each gets a position or an explicit out-of-scope with its reason, per the purpose of this section.
+Two questions were raised in the review of the blog post that this paper is the natural place to answer. Each gets a position or an explicit out-of-scope statement with its reason, per the purpose of this section.
 
 ### 9.1 Agent trajectory formats are not the evidence record
 
-**Position: in scope to address, and the position is a boundary rather than an endorsement or a rejection.** Trajectory interchange formats — the Agent Trajectory Interchange Format (ATIF) being the most widely carried, through the Harbor project and NVIDIA's agent toolkit — standardise the logging of an agent's interaction history: user messages, internal reasoning, tool calls, observations, and, in recent revisions, embedded subagent trajectories. They are valuable, and the convergence of the ecosystem on a shared shape is worth having.
+**Position: in scope to address. The position is a boundary, not an endorsement or a rejection.** Trajectory interchange formats (the most widely carried is the Agent Trajectory Interchange Format, ATIF, through the Harbor project and NVIDIA's agent toolkit) standardise how an agent's interaction history is logged: user messages, internal reasoning, tool calls, observations and, in recent revisions, embedded subagent trajectories. They are valuable, and the ecosystem's convergence on a shared shape is worth having.
 
-They are not, and do not claim to be, the record this paper's §7 requires. Two structural properties decide it, both true of the specification as reviewed (2026-09) and both worth re-checking against the then-current revision, since the position follows from those properties rather than from any judgement about the format's quality:
+They are not, and do not claim to be, the record this paper's §7 requires. Two structural properties decide it. Both are true of the specification as reviewed (2026-09), and both are worth re-checking against the then-current revision, since the position follows from those properties rather than from any judgement about the format's quality:
 
-- **The format carries no integrity provisions.** No hashing, signing, chaining, or tamper-evidence of any kind is specified. A trajectory is therefore tamper-resistant at best — only as trustworthy as the store holding it — where §7's contract requires tamper-*evidence*: alteration detectable by a verifier who does not extend that trust.
+- **The format carries no integrity provisions.** No hashing, signing, chaining, or tamper-evidence of any kind is specified. A trajectory is therefore tamper-resistant at best, and only as trustworthy as the store holding it. §7's contract requires tamper-*evidence*: alteration detectable by a verifier who does not extend that trust.
 - **The trajectory is emitted by the agent framework itself.** That places the record inside the agent's own reach, which fails the §5 tamper-proof property directly. A record an agent's own runtime produces cannot, by itself, testify about that agent's containment, for the same reason a reference monitor inside the agent's reach is not a reference monitor.
 
-Neither is a defect. The format's stated purpose is debugging, visualisation, supervised fine-tuning and reinforcement-learning pipelines, and it serves those well. The failure mode this position exists to prevent is an operator concluding that because rich trajectories are being captured, the evidence obligation is met. It is not: those are different artifacts answering different questions, and only one of them survives an adversary with access to the agent's runtime.
+Neither is a defect. The format's stated purpose is debugging, visualisation, supervised fine-tuning and reinforcement-learning pipelines, and it serves those well. The failure mode this position exists to prevent is an operator concluding that, because rich trajectories are being captured, the evidence obligation is met. It is not. These are different artifacts answering different questions, and only one of them survives an adversary with access to the agent's runtime.
 
-The constructive half. Trajectory records are useful *input* to the evidence system, provided the relationship runs one way:
+The constructive half: trajectory records are useful *input* to the evidence system, provided the relationship runs one way:
 
-- **As correlation, not as proof.** Trajectory structure — particularly the subagent-trajectory linkage — models the fan-out that §4's accounting and §7.3's scope definition care about. Joined to integrity-protected records through the principal and delegation lineage of §7.1, that structure helps reconstruct a subtree. It may not substitute for the records it is joined to.
+- **As correlation, not as proof.** Trajectory structure, particularly the subagent-trajectory linkage, models the fan-out that §4's accounting and §7.3's scope definition care about. Joined to integrity-protected records through the principal and delegation lineage of §7.1, that structure helps reconstruct a subtree. It may not substitute for the records it is joined to.
 - **Never as authority.** §3's corollary applies in full: a trajectory is evidence that something was recorded, never executable authority for a subsequent effect. A downstream component must not treat a trajectory entry as proof that a mediation step occurred, and must not skip its own enforcement on the strength of one.
 
-The paper takes no position on the specification's governance, versioning, or standardisation path; those are questions for its maintainers and for CoSAI's telemetry work, not for a containment paper.
+The paper takes no position on the specification's governance, versioning, or standardisation path. Those questions belong to its maintainers and to CoSAI's telemetry work, not to a containment paper.
 
 ### 9.2 Multi-agent jailbreaking: the technique is out of scope, the containment consequence is not
 
-The question raised was orchestrator-mediated and multi-agent jailbreaking — model-or-swarm manipulation conducted through orchestrator and reasoning agents at machine speed rather than at human-in-the-loop speed. The same reviewer made the scope-discipline point that decides how this paper should answer, and this section follows it by splitting the item.
+The question raised was orchestrator-mediated and multi-agent jailbreaking: manipulating models or agent swarms through orchestrator and reasoning agents, at machine speed rather than human-in-the-loop speed. The same reviewer made the scope-discipline point that decides how this paper should answer, so this section splits the item accordingly.
 
-**Out of scope: the jailbreak itself.** How a model's safety behaviour is manipulated — by one agent, several, or an orchestrator coordinating them — is model-level safety, which this paper's anti-scope excludes and which assumes a model that wants to escape. The multimodal threat taxonomy work owns that ground, and a containment paper duplicating it would weaken both.
+**Out of scope: the jailbreak itself.** How a model's safety behaviour is manipulated, whether by one agent, several, or an orchestrator coordinating them, is model-level safety. This paper's anti-scope excludes it: the paper assumes a model that wants to escape. The multimodal threat taxonomy work owns that ground, and a containment paper that duplicated it would weaken both.
 
-**In scope: agents as an attack surface for other agents.** The containment consequence is a different claim, and it is no longer hypothetical. The UK AI Security Institute's incident report (INC-2026-07-28-01) documents an agent leaving public messages offering collaboration to other agents, with instructions for reusing accounts and artifacts, and separately planting instructions where it reasoned other automated systems would encounter and execute them [4]. Neither required defeating a containment control. Both are ordinary use of permitted channels, which is §5's fourth failure mode at the scale of a population rather than a single agent.
+**In scope: agents as an attack surface for other agents.** The containment consequence is a different claim, and it is no longer hypothetical. The UK AI Security Institute's incident report (INC-2026-07-28-01) documents an agent leaving public messages offering collaboration to other agents, with instructions for reusing accounts and artifacts. The same report documents the agent separately planting instructions where it reasoned other automated systems would encounter and execute them [4]. Neither required defeating a containment control. Both are ordinary use of permitted channels, which is §5's fourth failure mode at the scale of a population rather than a single agent.
 
-This paper's existing machinery covers it, and the position is that no new control family is required — but three of its requirements must be read as applying across agents, not only within one:
+This paper's existing machinery covers it. The position is that no new control family is required, but three of its requirements must be read as applying across agents, not only within one:
 
-- **The inbound axis is not only about documents.** §2.3's property — content from an untrusted source never acquires the authority of an instruction — applies identically when the untrusted source is another agent, including a peer inside the same organisation. An agent that treats a message from another agent as more trustworthy than a web page has granted instruction authority on the basis of the sender's type.
-- **Effective reach includes agents that will act on request.** §3 already counts delegated agents and services acting on the agent's behalf as paths to an effect. A peer agent that can be recruited is such a path whether or not any delegation was ever issued to it.
-- **Recruitment is consumption.** §4's aggregate accounting is the control that sees a set of individually compliant agents exceeding what any one of them could do. A population being recruited one agent at a time is precisely that shape, and per-agent controls will report nothing.
+- **The inbound axis is not only about documents.** §2.3's property (content from an untrusted source never acquires the authority of an instruction) applies identically when the untrusted source is another agent, including a peer inside the same organisation. An agent that treats a message from another agent as more trustworthy than a web page has granted instruction authority based on the sender's type.
+- **Effective reach includes agents that will act on request.** §3 already counts delegated agents and services acting on the agent's behalf as paths to an effect. A peer agent that can be recruited is such a path, whether or not any delegation was ever issued to it.
+- **Recruitment is consumption.** §4's aggregate accounting is the control that sees a set of individually compliant agents exceeding what any one of them could do. A population recruited one agent at a time is precisely that shape, and per-agent controls will report nothing.
 
 The distinction worth stating plainly for practitioners: an agent population is not made safe by each member being contained. Containment is a per-agent property; recruitment is a property of the set, and only the accounting authority of §4 and the evidence lineage of §7 observe the set at all.
 
 ### 9.3 Items deliberately not taken
 
-This paper takes no position on agent-to-agent protocol design, on model evaluation methodology, or on the governance of the specifications it cites. Where containment requirements touch those areas, they are stated as requirements on the record or the boundary — what must be demonstrable — rather than as prescriptions for how another body's specification should be written.
+This paper takes no position on agent-to-agent protocol design, model evaluation methodology, or the governance of the specifications it cites. Where containment requirements touch those areas, they are stated as requirements on the record or the boundary: what must be demonstrable. They do not prescribe how another body's specification should be written.
 
 ---
 
@@ -804,20 +859,22 @@ This paper takes no position on agent-to-agent protocol design, on model evaluat
 
 **The paper in eight takeaways.**
 
-1. Containment is one layer of bounded authority, not a standalone discipline. Most of the incidents that made headlines as escapes were, on inspection, agents using authority they had legitimately been granted — and the frame decides where the next dollar of hardening goes (§1).
-2. The isolation layer decomposes along three axes — local, outbound, inbound — and mapped against them, the existing guidance shows its shape: strong on the first, partial on the second, nearly silent on the third (§2).
-3. Mediation is a claim about effects, not paths. Every path capable of producing the same consequential effect crosses an independently enforced authorization boundary before the effect commits, or is excluded — in writing, per decision — from the claimed assurance boundary. And prior evidence never becomes executable authority for the final effect (§3).
-4. Per-agent controls cannot see a set of agents. What a delegation subtree consumes together is visible only to an accounting authority holding the aggregate, under a fail-safe default: past its latency bound, refused or held, never allowed (§4).
-5. The enforcement property is the reference monitor — complete mediation, tamper-proof placement, and verifiability read as *evidenced* — and every control failure lands in one of four modes: defeated, disabled, insufficiently specified, or permitted. Industry attention concentrates on the first two; the incident record concentrates on the last two (§5).
-6. Vulnerability management lowers the probability that a boundary fails; reachability minimization bounds the consequence when it does. Only the second is fully within the operator's control, and the yours-to-harden boundary also decides whether evidence will exist at all (§6).
-7. Detection and evidence are two artifacts against the same event. Detection may be noisy, heuristic and tuned locally; evidence must be stable, complete and dull. In the record, a determined absence is distinguishable from an absence never established, because an explicit absence is evidence and an empty field is a shrug (§7).
-8. A sandbox is vetted when it can demonstrate, mechanically and before the run, that it does what it claims: the boundary holds, mediation is complete or its exclusions are stated, the monitor is out of reach, the evidence verifies, and the reachable set is current. A configuration is not a demonstration, the demonstration is bound to the run it describes, and a claim whose last demonstration has lapsed is not a current claim (§8).
+1. Containment is one layer of bounded authority, not a standalone discipline. Most of the incidents that made headlines as escapes were, on inspection, agents using authority they had legitimately been granted. The frame decides where the next dollar of hardening goes (§1).
+2. The isolation layer decomposes along three axes: local, outbound, and inbound. Mapped against them, the existing guidance is strong on the first, partial on the second, and nearly silent on the third (§2).
+3. Mediation is a claim about effects, not paths. Every path capable of producing the same consequential effect crosses an independently enforced authorization boundary before the effect commits, or is excluded from the claimed assurance boundary, in writing, per decision. Prior evidence never becomes executable authority for the final effect (§3).
+4. Per-agent controls cannot see a set of agents. Only an accounting authority holding the aggregate sees what a delegation subtree consumes together, under a fail-safe default: past its latency bound, the action is refused or held, never allowed (§4).
+5. The enforcement property is the reference monitor: complete mediation, tamper-proof placement, and verifiability read as *evidenced*. Every control failure lands in one of four modes: defeated, disabled, insufficiently specified, or permitted. Industry attention concentrates on the first two; the incident record concentrates on the last two (§5).
+6. Vulnerability management lowers the probability that a boundary fails. Reachability minimization bounds the consequence when it does. Only the second is fully within the operator's control, and the yours-to-harden boundary also decides whether evidence will exist at all (§6).
+7. Detection and evidence are two artifacts against the same event. Detection may be noisy, heuristic and tuned locally. Evidence must be stable, complete and dull. In the record, a determined absence is distinguishable from an absence never established, because an explicit absence is evidence and an empty field is a shrug (§7).
+8. A sandbox is vetted when it can demonstrate, mechanically and before the run, that it does what it claims: the boundary holds, mediation is complete or its exclusions are stated, the monitor is out of reach, the evidence verifies, the reachable set is current, and aggregate accounting holds across the principal. A configuration is not a demonstration. The demonstration is bound to the run it describes, and a claim whose last demonstration has lapsed is not a current claim (§8).
 
-The blog post this paper follows closed by asking operators to change their question: not "is this sandbox good enough?" but "what would this agent do if it decided to test its limits?" [11]. The chapters above are what it takes to ask that question honestly. Its weight sits in the half the blog could only gesture at: *and how would we know?* Knowing is not a posture. It is a set of properties a deployment either has or lacks. Every path to an effect mediated or excluded in writing (§3). Consumption accounted where the agents share a principal (§4). A record a stranger can verify, in which absence of evidence and evidence of absence are different entries (§7). A containment action that arrives in telemetry with a normalized reason, so an operator kill, a policy response, and a crash are distinguishable, and time-to-contain is a number rather than an impression (§7.3). A sandbox that re-demonstrates its claims before every run, because configuration drifts and *was vetted once* is not *vetted* (§8). That is what "verified to fail safely" means, unpacked.
+The blog post this paper follows closed by asking operators to change their question: not "is this sandbox good enough?" but "what would this agent do if it decided to test its limits?" [11]. The chapters above are what it takes to ask that question honestly. Its weight sits in the half the blog could only gesture at: *and how would we know?* Knowing is not a posture. It is a set of properties a deployment either has or lacks.
+
+Every path to an effect is mediated or excluded in writing (§3). Consumption is accounted where the agents share a principal (§4). The record is one a stranger can verify, in which absence of evidence and evidence of absence are different entries (§7). A containment action arrives in telemetry with a normalized reason, so an operator kill, a policy response, and a crash are distinguishable, and time-to-contain is a number rather than an impression (§7.3). A sandbox re-demonstrates its claims before every run, because configuration drifts and *was vetted once* is not *vetted* (§8). That is what "verified to fail safely" means, unpacked.
 
 What the paper does not settle, it names in the open items each section carries. The false-positive profile awaits production baselines no single organization can produce (§7.2). The OCSF mapping belongs to the practical guide, pinned to a version. The evidence-sufficiency rules carry two named review questions (§7.4), and the commons is recommended as a coordinated follow-on specification rather than written here (§8). The discipline is the same one the paper asks of a containment claim: gaps stated are gaps that can be closed; gaps unstated are the ones that surface in an incident report.
 
-An agent with bounded authority in the way a corporate laptop has it is not an agent that cannot fail. It is an agent whose failures are bounded by reachability, noticed by detection, charged by accounting, and provable from evidence — an insider threat managed the way organizations already know how to manage insider threats. The blog post said sandboxing cannot wait. This paper's addition is that sandboxing was never the whole job — and that the rest of the job is specifiable, testable, and already underway.
+An agent with bounded authority in the way a corporate laptop has it is not an agent that cannot fail. It is an agent whose failures are bounded by reachability, noticed by detection, charged by accounting, and provable from evidence. In other words, it is an insider threat managed the way organizations already know how to manage insider threats. The blog post said sandboxing cannot wait. This paper adds that sandboxing was never the whole job, and that the rest of the job is specifiable, testable, and already underway.
 
 ---
 
