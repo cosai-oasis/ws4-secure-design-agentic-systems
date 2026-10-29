@@ -1,0 +1,9 @@
+# Keeps the pinned corpus of the trade-booking example current. A new release
+# opens a pull request that the trade-booking-example workflow grades before review.
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: "/whitepapers/taxonomy-examples"
+    target-branch: feat/multimodal
+    schedule:
+      interval: weekly
