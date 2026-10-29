@@ -1,0 +1,42 @@
+{
+ "accept": {
+  "consumer_result": {
+   "result": "pass",
+   "unmet_obligation": null
+  },
+  "corpus": "vectors-agent-audit-record",
+  "member": "v0d65a70ec5288821",
+  "reader_expected": {
+   "codes": [],
+   "tier": "authoritative",
+   "verdict": "valid"
+  },
+  "sha256": "0d65a70ec528882170927d08c9396a7efa7cef211d047626be7dc0736a6fc09b"
+ },
+ "differs_in": "a write outside the declared scope marked as in scope",
+ "id": "RR-15-WRITE-OUTSIDE-ENTITLEMENT",
+ "note": "Scope membership is derived from the declared scope, never asserted by the evidence.",
+ "reader": "auditrecord",
+ "record": {
+  "pointer": "/provider_entitlements/spiffe:~1~1trust.example~1mcp~1ledger/egress_destinations"
+ },
+ "reject": {
+  "consumer_result": {
+   "result": "processing_failure",
+   "unmet_obligation": null
+  },
+  "corpus": "vectors-agent-audit-record",
+  "member": "v770e3bf440bbac4f",
+  "reader_expected": {
+   "codes": [
+    "write-scope-mismatch"
+   ],
+   "verdict": "malformed"
+  },
+  "sha256": "770e3bf440bbac4f613eaae402c04f86c46695343cf14e71fcfa917556ceda85"
+ },
+ "relationship": "decision_to_effect",
+ "rfc_scope": "runtime-appraisal",
+ "source": "agent-evidence-vectors==0.17.5",
+ "status": "candidate"
+}

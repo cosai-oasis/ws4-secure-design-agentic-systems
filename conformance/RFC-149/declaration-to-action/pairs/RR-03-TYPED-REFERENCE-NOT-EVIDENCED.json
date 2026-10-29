@@ -1,0 +1,37 @@
+{
+ "accept": {
+  "consumer_result": {
+   "result": "pass",
+   "unmet_obligation": null
+  },
+  "corpus": "vectors-artifact-binding",
+  "member": "vd05d2e7059332fd5",
+  "reader_expected": {
+   "verdict": "verified"
+  },
+  "sha256": "37ff774ee7479c855f9f444898e331d886b640ac2cee5f88e842413f2890292a"
+ },
+ "differs_in": "the artifact for one required role was never captured",
+ "id": "RR-03-TYPED-REFERENCE-NOT-EVIDENCED",
+ "note": "A typed reference with no evidence behind it leaves the relationship open. It is neither a pass nor evidence of tampering.",
+ "reader": "aee-verify",
+ "record": {
+  "pointer": "/approved_software_refs"
+ },
+ "reject": {
+  "consumer_result": {
+   "result": "not_established",
+   "unmet_obligation": "content_coverage"
+  },
+  "corpus": "vectors-artifact-binding",
+  "member": "v63555b6f69adb453",
+  "reader_expected": {
+   "verdict": "not-established"
+  },
+  "sha256": "37ff774ee7479c855f9f444898e331d886b640ac2cee5f88e842413f2890292a"
+ },
+ "relationship": "instance_to_software",
+ "rfc_scope": "typed-references",
+ "source": "agent-evidence-vectors==0.17.5",
+ "status": "candidate"
+}
