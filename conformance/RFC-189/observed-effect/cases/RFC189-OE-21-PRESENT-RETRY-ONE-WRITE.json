@@ -1,0 +1,49 @@
+{
+ "against": {
+  "commit": "84604125869469926968acdf433501f87d1d1665",
+  "document": "whitepapers/agent-containment.md",
+  "section": "7.4"
+ },
+ "checker_input": {
+  "context": {
+   "anchored_commitment_digest": "80887323572156af1b8b842b97a0607a999ebd3079d286f93d43c7dd9787bd83",
+   "claim_ref": "iv-0401",
+   "observer_key_basis": "published test key, MANIFEST.json keys.observer in vectors-observed-effect; anchored out of band, never read from the record",
+   "observer_public_key": "4f2a59edc8367deb40047ce83ee7f5ce711a57d93abbda9d1ce8588c56a3ce88",
+   "producer_capability": {
+    "claim_ref": "iv-0401",
+    "visible_write_paths": [
+     "/srv/app/"
+    ]
+   }
+  },
+  "evidence": {
+   "observed_effect": {
+    "sha256": "d51ac871a00e7e929a64abf3a88dc3e601f1a69d7b1859b9d99d73c8a0e106b1",
+    "slug": "retry-one-write-across-two-attempts",
+    "source": "agent-evidence-vectors==0.16.0",
+    "vector": "vd51ac871a00e7e92"
+   }
+  },
+  "property": {
+   "name": "action_outcome",
+   "scope": [
+    "/srv/app/orders/"
+   ],
+   "statement": "whether the invoked action's write landed under these paths"
+  }
+ },
+ "clauses": [
+  "C3"
+ ],
+ "expected": {
+  "outcome": "present",
+  "unmet_obligation": null
+ },
+ "id": "RFC189-OE-21-PRESENT-RETRY-ONE-WRITE",
+ "note": "Two attempts, one write observed below the agent under /srv/app/orders/. An admissible observation of the write settles the outcome as present.",
+ "open_item_dependencies": [
+  "claim_binding"
+ ],
+ "status": "candidate"
+}

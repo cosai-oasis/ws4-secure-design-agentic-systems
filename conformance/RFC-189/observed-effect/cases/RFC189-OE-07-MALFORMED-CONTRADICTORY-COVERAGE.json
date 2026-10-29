@@ -1,0 +1,49 @@
+{
+ "against": {
+  "commit": "84604125869469926968acdf433501f87d1d1665",
+  "document": "whitepapers/agent-containment.md",
+  "section": "7.4"
+ },
+ "checker_input": {
+  "context": {
+   "claim_ref": "iv-0117",
+   "observer_key_basis": "published test key, MANIFEST.json keys.observer in vectors-observed-effect; anchored out of band, never read from the record",
+   "observer_public_key": "4f2a59edc8367deb40047ce83ee7f5ce711a57d93abbda9d1ce8588c56a3ce88",
+   "producer_capability": {
+    "claim_ref": "iv-0117",
+    "visible_write_paths": [
+     "/srv/app/"
+    ]
+   }
+  },
+  "evidence": {
+   "observed_effect": {
+    "sha256": "6e71bd22b5d75d1c2b38ab76836db5c99f5e4bec3fb7fbb6f4feca6d1c1e6956",
+    "slug": "coverage-contradiction",
+    "source": "agent-evidence-vectors==0.16.0",
+    "vector": "v6e71bd22b5d75d1c"
+   }
+  },
+  "property": {
+   "name": "no_write_in_scope",
+   "scope": [
+    "/srv/app/"
+   ],
+   "statement": "no write occurred under these paths during the evaluated interval"
+  }
+ },
+ "clauses": [
+  "C2"
+ ],
+ "expected": {
+  "codes": [
+   "coverage-self-contradictory"
+  ],
+  "processing_failure": "MalformedEvidence",
+  "verdict": null
+ },
+ "id": "RFC189-OE-07-MALFORMED-CONTRADICTORY-COVERAGE",
+ "note": "Declares complete coverage and names a gap inside the scope. The two members contradict; a verifier prefers neither.",
+ "open_item_dependencies": [],
+ "status": "candidate"
+}

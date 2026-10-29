@@ -1,0 +1,61 @@
+{
+ "against": {
+  "commit": "672b8c50502274be634b05c6a11a7ad69330936b",
+  "document": "whitepapers/agent-containment.md",
+  "section": "7.4"
+ },
+ "checker_input": {
+  "context": {
+   "claim_ref": "iv-0004",
+   "independence_evidence": {
+    "identity_basis": {
+     "basis": "attestation evidence appraised against reference values",
+     "controlled_by": "attestation-verifier",
+     "established_by": "attestation-verifier",
+     "evidence_ref": "attestation/observer-appraisal.json"
+    },
+    "key_control": {
+     "basis": "observer signing key held in a key store only the observer's operator can use",
+     "controlled_by": "platform-operator",
+     "established_by": "key-custody-review",
+     "evidence_ref": "custody/observer-key-store.json"
+    },
+    "trust_domain": {
+     "basis": "observer runs in a separate host account and failure domain",
+     "controlled_by": "platform-operator",
+     "established_by": "deployment-inventory-review",
+     "evidence_ref": "inventory/observer-placement.json"
+    }
+   },
+   "observer_key_basis": "published test key, MANIFEST.json keys.observer in vectors-observed-effect; anchored out of band, never read from the record",
+   "observer_public_key": "4f2a59edc8367deb40047ce83ee7f5ce711a57d93abbda9d1ce8588c56a3ce88",
+   "producer": "agent-runtime"
+  },
+  "evidence": {
+   "observed_effect": {
+    "sha256": "68921dec001a6df39a2dc72cf90022270a3a281dea2cdd0142fec00c525f0eaa",
+    "slug": "voluntary-self-vantage",
+    "source": "agent-evidence-vectors==0.16.0",
+    "vector": "v68921dec001a6df3"
+   }
+  },
+  "property": {
+   "name": "observer_independence",
+   "scope": [
+    "/srv/app/"
+   ],
+   "statement": "the observer of this record is independent of the named producer for this claim"
+  }
+ },
+ "clauses": [
+  "C3"
+ ],
+ "expected": {
+  "unmet_obligation": "observation_vantage",
+  "verdict": "not_established"
+ },
+ "id": "RFC189-IND-09-NE-SELF-VANTAGE-WITH-EVIDENCE",
+ "note": "Full evidence for all three conditions does not rescue a record at the observed party's own vantage.",
+ "open_item_dependencies": [],
+ "status": "candidate"
+}
