@@ -1,0 +1,10 @@
+# Keeps the pinned corpus of the aggregate-accounting example current. A new
+# release opens a pull request that the aggregate-accounting-example workflow
+# grades before review.
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: "/practical-guides/examples/aggregate_accounting"
+    target-branch: feat/containment
+    schedule:
+      interval: weekly
