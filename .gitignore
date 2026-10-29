@@ -3,3 +3,6 @@ meeting_minutes
 .claude
 CLAUDE.md
 notes
+.env
+.venv
+__pycache__
