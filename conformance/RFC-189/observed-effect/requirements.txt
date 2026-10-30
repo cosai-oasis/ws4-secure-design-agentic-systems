@@ -1,5 +1,5 @@
 # The reference verifier for Observed Effect records, and the published corpus.
 # Stdlib only; requires Python 3.13 or later.
-agent-evidence-vectors==0.25.0 \
-    --hash=sha256:0bc14207b0832193bb0e7490a2ce29dd3b46d37c2830f23bb981c76512dc9c9e \
-    --hash=sha256:865c8f2d71960c6919e69fd003e827723feda371a87bae7e03c53d06aef9aebb
+agent-evidence-vectors==0.30.0 \
+    --hash=sha256:f2a0a41c275bfda404f26ab75d296857413cf1049aadb6ab1bf049301a1c2301 \
+    --hash=sha256:fdb6ce53d819ee339d3ea44da263a07908f7ad826dae514d74fa939dab39d49c
