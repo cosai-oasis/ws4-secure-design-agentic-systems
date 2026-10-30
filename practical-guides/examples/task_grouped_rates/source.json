@@ -1,0 +1,24 @@
+{
+  "format": "cosai-task-grouped-rates-source-v1",
+  "evidenceKind": "synthetic-illustration",
+  "upstreamRepository": "https://github.com/probityai/agent-evidence-atlas",
+  "upstreamCommit": "ec68111f4b68a27c9932e4eb67a525a4404d97d7",
+  "upstreamReaderPath": "tools/check_grouped_rates.py",
+  "upstreamExamplePath": "examples/task-grouped-rates",
+  "sha256": {
+    "input.json": "92940ce8ee827ad09e895ea18903d7f49d7ce94d1bcb1d8fce5d5eba0180bfea",
+    "report.json": "f1ed9b4c8b8c4c5f8961926ed2a7ef3553c9c21c24a8191a4648d82717a30650",
+    "reader": "0cf440715fc531a2f03079f56c63823bcf55192c94ac6446d9f2c34193ce5c9e",
+    "contract": "617775d660025ec8023741377c329cc98993216fcdd10445a58f8f599ca3ed1e"
+  },
+  "provenance": {
+    "labels": "authored illustration",
+    "calculations": "reader-produced arithmetic",
+    "independence": "assumed for illustration",
+    "intervalCoverage": "unestablished"
+  },
+  "upstreamContractPath": "examples/task-grouped-rates/contract.json",
+  "upstreamReaderUrl": "https://github.com/probityai/agent-evidence-atlas/blob/ec68111f4b68a27c9932e4eb67a525a4404d97d7/tools/check_grouped_rates.py",
+  "upstreamExampleUrl": "https://github.com/probityai/agent-evidence-atlas/tree/ec68111f4b68a27c9932e4eb67a525a4404d97d7/examples/task-grouped-rates",
+  "upstreamContractUrl": "https://github.com/probityai/agent-evidence-atlas/blob/ec68111f4b68a27c9932e4eb67a525a4404d97d7/examples/task-grouped-rates/contract.json"
+}
