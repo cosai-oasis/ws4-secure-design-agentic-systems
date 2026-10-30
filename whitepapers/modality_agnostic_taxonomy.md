@@ -87,7 +87,7 @@ In reviewing several prominent frameworks and standards, we identified an import
 
 **Our proposed taxonomy is designed to address this gap, not by replacing existing frameworks, but by complementing them with a more granular, mechanism-focused, and modality-agnostic perspective.** We believe this perspective can help industry practitioners systematically identify and understand emerging security risks in multimodal agentic systems, while providing a consistent approach that can generalize and scale across existing and future modalities.
 
-To illustrate the value of this approach, let us consider a concrete example that highlights some of the limitations of existing standards and frameworks. This example demonstrates how our proposed mechanism.
+To illustrate the value of this approach, let us consider a concrete example that highlights some of the limitations of existing standards and frameworks. This example shows what each framework records about one attack, and what the mechanism view adds.
 
 #### Trail of Bits Image Scaling attack.
 The Image Scaling Attack, demonstrated by Trail of Bits in 2025, is a prompt injection technique that hides malicious instructions inside an image. These instructions become visible when an AI system resizes the image.
@@ -122,13 +122,16 @@ Now, let's see what existing taxonomies or standards see in this example context
 | **NIST AI 100-2e2025** | `NISTAML.015` — Indirect Prompt Injection; `NISTAML.039` — Compromising Connected Resources | Classifies inference-time indirect prompt injection, attacker control over external resources, and potential integrity and confidentiality impacts. Also discusses injection hiding and obfuscation. | Does not systematically encode the image-resampling algorithm, how resizing changes payload visibility, or the processing stage where hidden content becomes actionable. |
 | **NIST AI RMF 1.0** | `MAP 4.1`; `MEASURE 2.7`; `MANAGE 1.3` | Supports risk identification, security evaluation, resilience assessment, and mitigation planning. | Does not provide attack-mechanism identifiers or specify image transformation, payload representation, and activation sequence. |
 | **IBM AI Risk Atlas** | Prompt Injection Attack; Indirect Instructions Attack; Sharing IP/PI/Confidential Information with Tools | Identifies malicious instructions embedded in untrusted content, model manipulation, and confidentiality risks associated with connected tools. | Does not systematically distinguish image-resizing-based injection from other indirect attacks using structured fields for interpolation, concealment, and transformation-dependent activation. |
+| **OWASP Top 10 for LLM Applications 2025** [8] | `LLM01:2025` — Prompt Injection (Attack Scenario #7, Multimodal Injection); `LLM06:2025` — Excessive Agency; `LLM02:2025` — Sensitive Information Disclosure | Names the risk class directly: instructions hidden in an image that accompanies benign text, an agent that takes a high-impact action without human approval (excessive autonomy), and disclosure of private data. Its prevention guidance (require a human to approve high-impact actions) matches a mitigation Trail of Bits recommends. | Does not describe how the hidden instruction becomes visible (the resampling step), the difference between the representation the user previewed and the one the model received, or the processing stage at which the injection activates. Treats multimodal injection as one scenario of a single risk entry rather than as a mechanism class with its own controls. |
+| **OWASP Top 10 for Agentic Applications 2026** [9] | `ASI01` — Agent Goal Hijack; `ASI02` — Tool Misuse and Exploitation (its Appendix A mapping matrix maps `ASI01` to `T6` and `ASI02` to `T2` of the Agentic AI Threats and Mitigations guide [10], each among other entries) | Describes the agentic consequence: an agent's goals or decision pathways redirected through manipulated inputs, and a legitimately authorized tool misused through injection, including tools approved to auto-run without confirmation. | Lists text-like vectors for goal hijack (documents, retrieved content, emails, calendar invites, web content) and does not name image or other non-text inputs; does not model the transformation that reveals the payload or the stage at which it activates. |
+| **CoSAI Risk Map (CoSAI-RM)** [11] | `riskPromptInjection` — Prompt Injection (notes multi-modal prompt injection); `riskRogueActions` — Rogue Actions; `riskSensitiveDataDisclosure` — Sensitive Data Disclosure; `riskInsecureIntegratedComponent` — Insecure Integrated Component (related) | Places the risk in the AI lifecycle and architecture: runtime stage, impact type, actor access, the personas that own it, the controls that apply (Input Validation and Sanitization; Output Validation and Sanitization; Agent Permissions; Agent User Control), and cross-mappings to ATLAS `AML.T0051`, STRIDE and `LLM01:2025`. States that the blast radius of injection grows with Rogue Actions and insecure integrated components. | Classifies multi-modal injection as a variant of Prompt Injection; does not encode the downscaling transformation, the previewed-versus-model-side difference, or the processing stage. Its controls attach to components and personas, not to a pipeline stage, so "sanitize input" does not say *which* representation to inspect. |
 | **MITRE ATLAS** | `AML.T0051.001` — Indirect Prompt Injection; `AML.T0068` — LLM Prompt Obfuscation; `AML.T0129` — Triggers in Multimodal Inputs (related) | Describes attacker techniques, untrusted multimodal content, payload concealment, and adversarial behavior. Recognizes hidden instructions in image pixels and multimodal triggers. | Does not require a structured description of the exact resampling primitive, differences between original and transformed representations, or the activation stage. |
 | **MITRE D3FEND** | `D3-FCOA` — File Content Analysis; `D3-FCR` — File Content Rules; `D3-OTF` — Outbound Traffic Filtering | Provides candidate defensive techniques for inspecting files, applying content-analysis rules, and restricting unauthorized data transmission. | Does not classify the offensive image-scaling mechanism or explicitly describe detection of instructions revealed by resizing. The listed controls are candidate defenses, not a verified attack-specific mapping. |
-| **MAESTRO** | `L2` — Data Operations; `L1` — Foundation Model; `L3` — Agent Frameworks; `L7` — Agent Ecosystem; related ASI threats `T2`, `T6` | Identifies affected architectural layers, cross-layer attack propagation, trust boundaries, and potential misuse of connected tools. | Does not systematically represent pixel-level manipulation, the exact resampling algorithm, pre-/post-transformation semantic differences, or the precise activation condition. |
+| **MAESTRO** [12] | `L1` — Foundation Models; `L2` — Data Operations; `L3` — Agent Frameworks; `L7` — Agent Ecosystem; related OWASP Agentic AI Threats and Mitigations entries `T2` — Tool Misuse and `T6` — Intent Breaking & Goal Manipulation (see the OWASP Top 10 for Agentic Applications row) | Identifies affected architectural layers, cross-layer attack propagation, trust boundaries, and potential misuse of connected tools. | Does not systematically represent pixel-level manipulation, the exact resampling algorithm, pre-/post-transformation semantic differences, or the precise activation condition. |
 | **STRIDE** | `T` — Tampering; `I` — Information Disclosure; `E` — Elevation of Privilege (conditional) | Classifies security threats involving input manipulation, confidential data exposure, and potential authorization-boundary violations. | Does not distinguish image-scaling attacks from other attacks with the same security consequences or specify payload representation, transformation, and activation mechanisms. |
 
 
-The comparative analysis demonstrates that existing AI security frameworks provide valuable but complementary perspectives on the Trail of Bits image-scaling attack. NIST and IBM AI Risk Atlas identify adversarial techniques and associated risks; MITRE ATLAS captures attacker behavior and prompt injection techniques; MITRE D3FEND provides defensive countermeasures; MAESTRO examines architectural exposure and trust boundaries; and STRIDE classifies potential security consequences.
+The comparative analysis demonstrates that existing AI security frameworks provide valuable but complementary perspectives on the Trail of Bits image-scaling attack. NIST and IBM AI Risk Atlas identify adversarial techniques and associated risks; the OWASP Top 10 lists and the CoSAI Risk Map name the risk class, its agentic consequences, and the controls that apply; MITRE ATLAS captures attacker behavior and prompt injection techniques; MITRE D3FEND provides defensive countermeasures; MAESTRO examines architectural exposure and trust boundaries; and STRIDE classifies potential security consequences.
 
 However, these frameworks do not consistently provide a structured, mechanism-level representation of **how an attack is constructed, transformed, activated, and propagated through an AI system**. In the Trail of Bits example, the critical mechanism involves pixel-level manipulation followed by image downscaling, which reveals previously concealed instructions that may subsequently influence model behavior and agent actions. Although existing frameworks recognize prompt injection, obfuscation, and multimodal threats, they do not uniformly capture the relationship between these processing transformations and the resulting security boundary violations.
 
@@ -446,14 +449,41 @@ Note: Cross-modal alignment gaps are considered as an additional layer of intera
 
 The immediate purpose of this paper is classification and coverage. Threat modeling and control selection are subsequent stages of the program rather than additional dimensions of the core taxonomy. 
 
-There are two ways to use this taxonomy. First, given a specification outlining the flow of information through an agentic system, we can outline a list of potential faults:
+There are two ways to use this taxonomy. First, given a specification outlining the flow of information through an agentic system, we can outline a list of potential faults. Each step fills in one table (Steps 5 and 6 share one), so the procedure runs the same way on any system. The templates follow the list; Section 4.2 is a filled-in copy.
 
-**1\. Itemize the artifacts:** Itemize what exact data or signals might be attacker-controlled or system-generated.  
-**2\. Itemize each ML inference**: Each ml model and it’s default configuration is considered a unique element in the graph  
-**3\. Itemize processing between ML Systems:** Data transformation, tool calls, and aggregations must be outlined. This will allow identification of potential discontinuities   
-**2\. Itemize the boundaries:** For each evaluation of an artifact, determine which security-relevant discontinuity or trust assumption might be exploited. This requires identifying points where the data is processed, transformed, or processed differently as time/sequencing varies.  
-**3\. Classify the representation:** Assign one or more representation forms and optional modifiers.  
-**4\. Locate the system stage:** Map where the artifact enters, activates, and first produces a security-relevant effect.
+1. **Itemize the artifacts:** Itemize what exact data or signals might be attacker-controlled or system-generated.
+1. **Itemize each ML inference and every other consumer:** Each ML model and its default configuration is considered a unique element in the graph. So is every other consumer that reads an artifact and acts on what it reads: parsers, scanners, renderers, downstream systems, and humans, such as an approver whose reading the design relies on.
+1. **Itemize processing between ML systems:** Data transformation, tool calls, and aggregations must be outlined. This will allow identification of potential discontinuities.
+1. **Itemize the boundaries:** For each artifact, list every evaluation of it: each consumer that reads it, and each later point where it is read again or acted on. Take the evaluations in pairs and ask whether the design assumes the two agree on meaning, authority, cost or confidentiality. Each pair the design relies on is one row: the Boundary Invariant Axiom of Section 2.2.1, applied one pair at a time. Pairs with no assumed agreement are dropped. The second generating axis of Section 2.2.2 (what differs: evaluator, artifact state, input instance, time, pipeline position) lists the ways two evaluations can differ, so it serves as a checklist for finding pairs. Each row ends with a metadata check: what must travel with the artifact (source, modality, signature), and whether it is logged.
+1. **Classify the representation:** Assign one or more representation forms and optional modifiers.
+1. **Locate the system stage:** Map where the artifact enters, activates, and first produces a security-relevant effect.
+
+**Templates.** Fill one row per item and give each an identifier, so later rows can name the rows they rest on.
+
+*Step 1: artifacts*
+
+| Artifact | Surface | Source | Consumers: who evaluates it, and in what form |
+| :---- | :---- | :---- | :---- |
+
+*Step 2: consumers*
+
+| Consumer | Kind (ML model, other component, or human) | Reads (form) | Produces |
+| :---- | :---- | :---- | :---- |
+
+*Step 3: processing*
+
+| Processing | What happens | Input form → output form |
+| :---- | :---- | :---- |
+
+*Step 4: boundaries*
+
+| Pair | Artifact | Evaluation *f* | Evaluation *g* | Assumed to agree on | Boundary | Metadata check (must travel; logged?) |
+| :---- | :---- | :---- | :---- | :---- | :---- | :---- |
+
+*Steps 5 and 6: mechanism records (each record names its pairs)*
+
+| Record | Attack on the pair | Boundary | Representation | Stage (entry → activation → effect) | Likely STRIDE | Evidence maturity |
+| :---- | :---- | :---- | :---- | :---- | :---- | :---- |
 
 The other use of the taxonomy is resolving a description of an incident into the exact mechanism for the fault. This mechanism maps to a specific place in the taxonomy’s matrix. IIn the future, we plan on identifying controls for each cell in the matrix. This should enable engineers to rapidly fix known exploits.
 
@@ -501,7 +531,101 @@ An attack first discovered in video frames predicts a non-obvious vulnerability 
 |  |  | **Stateless per-chunk guardrail** | **Misses (Fails)** | **Fails:** Operates on pre-composition artifact state; fragments pass individually because meaning only emerges upon assembly. |
 |  |  | **Strict Data-Control isolation** | **Covers (partial)** | **Partial:** Succeeds where trusted infrastructure preserves source labels and an independent executor rejects operations outside authorized scope. If this is not possible, it will not work. |
 
-### 4.2 Program Roadmap
+### 4.2 Worked Example: Using the Taxonomy in a System Threat Model
+
+This example fills in the templates above for one hypothetical system. The attacks it finds are not new; several are demonstrated elsewhere in this paper. The point is the procedure: for each artifact, name the pairs of evaluations the system assumes will agree, classify the mechanism that breaks the agreement, and locate the stage at which a control must sit. The system, the numbers and the findings are illustrative, not measured.
+
+**The system.** An accounts-payable agent receives supplier emails and pays invoices.
+
+* **Inputs:** the email body (text); an invoice attached as a PDF (composite: text layer, embedded images, metadata) or as a scanned image or phone photo (image); a vendor master record returned by a lookup tool (structured data, including a free-text *notes* field that suppliers can edit through a portal).
+* **Processing:** the mail gateway runs antivirus and a text-only content filter over the email body and the extracted PDF text layer; the orchestrator extracts the text layer and the document metadata (PDF properties, image EXIF fields) into the context, renders each PDF page to an image, downscales pages and image attachments to the document model's fixed input resolution, and runs OCR on images.
+* **Models and tools:** a vision-language document model extracts invoice fields; an orchestrator LLM reads the fields, the text, the vendor record and the policy prompt, then calls tools: vendor lookup, ERP *create payable*, ERP *approve payment* (automatic below a threshold; above it a human approves from a summary card), and *notify* (a Markdown message in the finance team's chat channel, which renders links and images).
+* **Feedback:** tool results and the human's decision re-enter the orchestrator's context. The vendor record is read again at execution time.
+
+**Step 1 — Itemize the artifacts.**
+
+| Artifact | Surface | Source | Consumers: who evaluates it, and in what form |
+| :---- | :---- | :---- | :---- |
+| A1 Email body | Text | Supplier (untrusted) | Content filter (text); orchestrator (text in context); human, if escalated |
+| A2 PDF invoice | Composite | Supplier | Antivirus and content filter (text layer); human (viewer rendering); extractor (text layer and PDF metadata); document model (rendered, downscaled page images) |
+| A3 Scanned or photographed invoice | Image | Supplier | Antivirus (bytes); human (thumbnail or no preview); extractor (EXIF fields); OCR engine (pixels to text); document model (downscaled image) |
+| A4 Vendor record | Structured data | Supplier-editable field inside a system-generated record | Orchestrator (JSON in context), read at analysis time and again at execution time; human approver, through the card (A6) |
+| A5 ERP tool results | Structured data | System-generated | Orchestrator (JSON in context) |
+| A6 Summary card and chat notification | Composite (rendered Markdown) | Generated from A1–A5 | Human approver (rendered); chat client (fetches links and images) |
+| A7 Tool arguments | Structured data | Generated by the orchestrator from A1–A5 | ERP (executes the calls); human approver (approves from the card, above the threshold) |
+
+**Step 2 — Itemize each ML inference and every other consumer.**
+
+| Consumer | Kind (ML model, other component, or human) | Reads (form) | Produces |
+| :---- | :---- | :---- | :---- |
+| I1 Document model | ML model (vision-language) | Downscaled page images and image attachments | Invoice fields and a free-text summary |
+| I2 Orchestrator | ML model (LLM) | Email body, fields, text layer, metadata, OCR output, vendor record, tool results, policy prompt | Tool arguments (A7) and the card text |
+| I3 OCR engine | ML model (non-LLM perception) | Image pixels | Text |
+| I4 Gateway content filter | ML model (non-LLM classifier) | The email body and the extracted PDF text layer (text only) | Pass or block |
+| I5 Extractor | Other component (parser) | PDF text layer and properties; image EXIF fields | Text and metadata in the context |
+| I6 Antivirus | Other component (scanner) | Attachment bytes | Pass or block |
+| I7 Chat client | Other component (renderer) | The notification Markdown (A6) | The rendered card, after fetching every link and image in it |
+| I8 ERP | Other component (system of record) | Tool arguments (A7) | The payable and the payment approval |
+| H1 Approver | Human | The rendered card (A6), which shows vendor data (A4) and the payment to approve (A7); the PDF in a viewer and the image at preview size (A2, A3); the email (A1), if escalated | Approve or reject, above the threshold |
+
+**Step 3 — Itemize processing between ML systems.**
+
+| Processing | What happens | Input form → output form |
+| :---- | :---- | :---- |
+| P1 | Attachment extraction and gateway scan of the text layer | PDF → text layer → pass or block |
+| P2 | Text-layer and metadata extraction | PDF or image → text, PDF properties, EXIF fields |
+| P3 | Page rendering and downscaling | PDF page or image → image at the document model's input resolution |
+| P4 | OCR | Image pixels → text |
+| P5 | Aggregation of A1–A5 into one context | Several artifacts → one context |
+| P6 | Tool-argument construction and execution | Model output → tool call (ERP, notify) |
+| P7 | Markdown rendering in the chat client | Markdown → rendered card, plus link and image fetches |
+| P8 | Re-entry of tool results and the approval decision | Tool result or decision → context (Feedback) |
+
+**Step 4 — Itemize the boundaries.** Each row is a pair of evaluations the design assumes will agree (the Boundary Invariant Axiom in Section 2.2.1).
+
+| Pair | Artifact | Evaluation *f* | Evaluation *g* | Assumed to agree on | Boundary | Metadata check (must travel; logged?) |
+| :---- | :---- | :---- | :---- | :---- | :---- | :---- |
+| B1 | A2, A3 | Human (H1) reads A2 in a PDF viewer, or views A3 | Extractor (I5) reads the whole text layer and the metadata fields (PDF properties, image EXIF), including white, off-page or 1-pt text and properties the viewer does not display | Meaning | Human-Machine Perception; Parser / Interpreter Differential | Where each extracted span came from (visible text, hidden text, metadata field). Not carried; not logged. |
+| B2 | A2, A3 | Gateway filter (I4) reads the text layer of A2 | Document model (I1) reads pixel text from rendered pages and from A3; the OCR engine (I3) reads A3 | Meaning | Guard-Model Capability | The scan's coverage, beside its verdict: text layer only; OCR output and rendered-page text not read. Logged as "scanned", without the coverage. |
+| B3 | A2, A3 | Human (H1) sees A3 (or a page of A2) at preview size, or not at all | Document model (I1) receives the downscaled image (P3) | Meaning | Transform Consistency; Human-Machine Perception | The image as the model received it, or its digest. Not logged. |
+| B4 | A1–A4 | The design treats A1–A4 as data; only the policy prompt is control | Orchestrator (I2) reads A1–A4 in the same context as the policy prompt (P5) | Authority | Data-Control | Source and trust label on every span in the context. Lost when P5 joins them; not logged. |
+| B5 | A7 | Human (H1) approves above the threshold | Below it, the orchestrator's (I2) decision executes under the service account with no independent check | Authority | Decision-Action | Who decided (orchestrator or human) and under which rule. Logged as the service account only. |
+| B6 | A6 | Human (H1) reads the rendered card A6 | Chat client (I7) fetches every image and link in it automatically (P7) | Meaning; Authority; Confidentiality | Output-Consumer; Human-Machine Perception | Every outbound link and image destination in the card. Not logged; the fetch happens in the chat client. |
+| B7 | A2, A3 | Gateway admits an attachment by size (P1) | Rendering, decoding and OCR cost (P3, P4) depends on page count, resolution and compression | Cost; Meaning | Resource Accounting; Parser / Interpreter Differential | Page count, resolution and expected decode cost, with the admission decision. Only size is logged. |
+| B8 | A4 | Human (H1) approves the card built from A4 at time *t* | Orchestrator (I2) re-reads A4 at execution time *t + Δ* | Meaning | Check-Use Consistency | A digest of the record and the tool arguments as approved. The approval is logged without it. |
+| B9 | A1, A2 | Gateway filter (I4) reads A1 and the text layer of A2, each on its own | Orchestrator (I2) reads them joined in one context (P5) | Meaning | Transform Consistency | The scan's scope, beside its verdict: each artifact alone, not the joined context. Logged per artifact as "scanned". |
+
+**Steps 5 and 6 — Classify the representation and locate the stage.** Each boundary that an attacker can reach yields a mechanism record. The two tables join on the pair: every pair gets a record, or a note saying why no attacker reaches it, and every record names its pairs.
+
+| Record | Attack on the pair | Boundary | Representation | Stage (entry → activation → effect) | Likely STRIDE | Evidence maturity |
+| :---- | :---- | :---- | :---- | :---- | :---- | :---- |
+| M1 | Instruction in the PDF text layer or in document and image metadata that the viewer does not show (B1, B4) | Human-Machine Perception; Parser / Interpreter Differential; Data-Control | Overt Semantic (text layer and metadata fields). The instruction is plain text that any parser recovers; it reads as hidden only because the viewer does not show that field or renders that text invisibly, which is the Human-Machine Perception boundary in this row. | Ingestion → Transformation (text and metadata extraction) → Interpretation / Decision → Generation → Action | Elevation of Privilege; Tampering | Demonstrated for documents and retrieved content [14] |
+| M2 | Image-scaling injection in A3 or a rendered page (B2, B3, B4) | Transform Consistency; Guard-Model Capability; Data-Control | Overt Semantic + Transformation-Activated | Transformation (downscale) → Perception / Decoding → Interpretation / Decision → Generation → Action | Elevation of Privilege; Tampering | Demonstrated [13]; Worked Example 1 |
+| M3 | Instruction in the vendor record's notes field, returned by the lookup tool (B4 at Feedback, B5) | Data-Control; Decision-Action | Overt Semantic | Feedback → Interpretation / Decision → Generation → Action | Elevation of Privilege | Demonstrated through a tool-returned artifact [15] |
+| M4 | Invoice or vendor data placed in an image URL inside the notification; the chat client fetches it (B6) | Output-Consumer; Human-Machine Perception | Overt Semantic (Encoded / Obfuscated if the data is encoded in the URL) | Generation → Consumption | Information Disclosure | Demonstrated in a chat renderer (CVE-2025-54132 [16]; Introduction) |
+| M5 | PDF or image crafted to be cheap to admit and expensive to render, decode or OCR (B7) | Resource Accounting; Parser / Interpreter Differential | Encoded / Obfuscated (Intrinsic Amplification) | Ingestion → Transformation | Denial of Service | Feasible; see the compression-bomb row in Section 3.1 |
+| M6 | Vendor record changed between approval and execution (B8, B5) | Check-Use Consistency; Decision-Action | Overt Semantic | Feedback (re-read) → Generation → Action | Tampering; Repudiation (the approver approved something else) | Feasible |
+| M7 | Instruction split between the email body and the PDF text layer; each passes the filter alone, the context joins them (B9, B4) | Transform Consistency; Data-Control | Overt Semantic + Fragmented / Distributed | Ingestion → Transformation (aggregation) → Interpretation / Decision → Action | Elevation of Privilege | Feasible; the Section 4.1 pattern across attachments |
+| M8 | Perturbation optimized against the document model so that the extracted total or payee differs from what a human reads on the same image (B3 pair; instance differs) | Semantic Stability; Human-Machine Perception | Adversarially Optimized | Perception / Decoding → Interpretation / Decision → Generation → Action | Tampering | Feasible; evasion attacks on vision models are established [1] |
+
+**What the mechanism pass added.** A conventional STRIDE pass over this system's data-flow diagram lists spoofed supplier identity, tampered invoice content, repudiated approvals, disclosure of vendor data, attachment-based denial of service and an over-privileged ERP account. Those findings are correct and remain. What they do not say is which representation each evaluator saw, and so where a control belongs. The records above answer that.
+
+| Record | Pair | Conventional finding it refines | Control placement suggested by the classification (candidate, not verified) |
+| :---- | :---- | :---- | :---- |
+| M1, M2, M8 | B1, B3 | Tampered invoice content | Show the approver the representation the model received and the fields it extracted beside the page it read: the extracted text layer, the metadata, and the page at model resolution. Trail of Bits recommends a preview of the model's input and limits on upload dimensions [13]. For M8, add adversarial-robustness testing of the document model under the NIST evasion threat scenario (Section 3.3). Stages: Transformation; Perception / Decoding. |
+| M1, M2, M3, M7 | B4, B5 | Prompt injection | Keep supplier-authored content (email, text layer, metadata, OCR output, vendor notes) in a data role with provenance, and authorize each tool call against policy independently of the model's reading. Stages: Interpretation / Decision and Action. |
+| M4 | B6 | Information disclosure | Render notifications with an outbound link and image allowlist, or without automatic fetching. Stage: Consumption, in the chat client, outside the agent. |
+| M5 | B7 | Denial of service | Bound page count, resolution and decode time per attachment before rendering, and charge the bound against admission. Stage: Transformation. |
+| M6 | B8 | Repudiation | Bind the approval to a digest of the exact artifact and tool arguments approved; require re-approval on any change. Public test vectors exercise approval binding for tool calls: a payload changed after approval is denied, and so is an approval asserted inside the tool arguments ([agent-evidence-vectors v0.30.0, approval-binding](https://github.com/probityai/agent-evidence-vectors/tree/v0.30.0/vectors-approval-binding)). Stage: Action. |
+| M2, M7 | B2, B9 | "Content filter in place" | The filter reads the text layer only, one artifact at a time. Run it again on OCR output and rendered-page text, after Perception / Decoding, and on the joined context after aggregation (P5). The data-flow diagram does not show these gaps because the filter and the model appear to read the same document. |
+
+The Pair column lists the pairs each control addresses.
+
+Two things the mechanism pass did not add, and should not. A genuine invoice with changed bank details is business fraud with no adversarial representation; it stays with the conventional threat model and its payment-verification controls. Spoofing of the supplier's identity is provenance, which this taxonomy leaves to other frameworks (Anti-Scope).
+
+**Output of the procedure.** The result is a set of mechanism records (M1–M8), each tied to the evaluation pairs it names, a tuple and a stage. Those records, not the attack names, are what the threat-model and controls deliverables in Section 4.3 consume.
+
+### 4.3 Program Roadmap
 
 ```mermaid
 %%{init: {"flowchart": {"wrappingWidth": 260}}}%%
@@ -536,7 +660,16 @@ After the taxonomy is ratified, the next deliverable should be a system threat m
 \[4\] OpenCRE. Common Requirements Enumeration. https\://opencre.org/  
 \[5\] OWASP MOSAIC. https\://github.com/OWASP/MOSAIC  
 \[6\] Coalition for Secure AI (CoSAI). https\://www\.coalitionforsecureai.org/  
-\[7\] Hall et al. (2025). Cryptographers Show That AI Protections Will Always Have Holes. Quanta Magazine.
+\[7\] Hall et al. (2025). Cryptographers Show That AI Protections Will Always Have Holes. Quanta Magazine.  
+\[8\] OWASP GenAI Security Project. OWASP Top 10 for LLM Applications 2025. https\://genai.owasp.org/llm-top-10/  
+\[9\] OWASP GenAI Security Project (2025). OWASP Top 10 for Agentic Applications 2026 (December 2025). https\://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/  
+\[10\] OWASP GenAI Security Project (2025). Agentic AI – Threats and Mitigations (February 2025). https\://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/  
+\[11\] Coalition for Secure AI. CoSAI Risk Map (CoSAI-RM), risk-map/yaml/risks.yaml. https\://github.com/cosai-oasis/secure-ai-tooling  
+\[12\] Huang, K. (2025). Agentic AI Threat Modeling Framework: MAESTRO. Cloud Security Alliance. https\://cloudsecurityalliance.org/blog/2025/02/06/agentic-ai-threat-modeling-framework-maestro  
+\[13\] Trail of Bits (2025). Weaponizing image scaling against production AI systems. https\://blog.trailofbits.com/2025/08/21/weaponizing-image-scaling-against-production-ai-systems/  
+\[14\] Greshake, K., et al. (2023). Not what you've signed up for: Compromising Real-World LLM-Integrated Applications with Indirect Prompt Injection. https\://arxiv.org/abs/2302.12173  
+\[15\] Invariant Labs (2025). GitHub MCP Exploited: Accessing private repositories via MCP (May 26, 2025). https\://invariantlabs.ai/blog/mcp-github-vulnerability  
+\[16\] NVD. CVE-2025-54132 (Cursor, Mermaid image rendering; fixed in 1.3; published Aug 1, 2025). https\://nvd.nist.gov/vuln/detail/CVE-2025-54132  
 
 ## 7\. Acknowledgements
 
