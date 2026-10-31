@@ -237,342 +237,91 @@ By explicitly representing how adversarial content becomes effective within an A
 Its incremental value over existing frameworks remains to be validated through broader attack coverage and reproducible classification studies.
 
 
-## 4. Proposed Modality-Independent Taxonomy
+## 3. Defining a Mechanism
 
 Traditional threat modeling identifies trust boundaries between users, processes, services, and networks. Multimodal AI introduces additional semantic and representational boundaries where the same artifact can acquire a different meaning, authority, or computational effect across humans, guards, models, transformations, and downstream consumers. The mechanism taxonomy is intended to make these AI-specific perimeter gaps explicit.
 
-| Dimension | Question Answered | Specificity |
-| :---- | :---- | :---- |
-| Boundary | What security-relevant discontinuity, trust assumption, or semantic interface makes the attack possible? | Most general |
-| Representation | How is adversarial influence or computational burden embodied in the artifact or signal? | More specific |
-| System Processing Stage | Where does attacker-controlled information enter the target system or become security-relevant? | Most operational |
+To capture these failures across modalities, each security mechanism is defined as a three-part tuple:
 
+**`M = ⟨Invariant, Divergence, Representation⟩`**
 
-```mermaid
-%%{init: {"flowchart": {"wrappingWidth": 260}}}%%
-flowchart LR
-    B("<b>BOUNDARY</b><br/><br/>What security-relevant<br/>discontinuity is crossed?")
-    R("<b>REPRESENTATION</b><br/><br/>How is adversarial<br/>influence embodied?")
-    S("<b>SYSTEM PROCESSING STAGE</b><br/><br/>Where does it enter or<br/>become effective?")
-    B --> R --> S
-```
+* **`Invariant × Divergence`** identifies the security boundary: *what security property the sink constraint relies upon* (**Invariant**) crossed with *what differs between the two evaluations assumed to agree* (**Divergence**).
+* **`Representation`** identifies *how adversarial influence or computational burden is embodied in the artifact or signal* at that crossing, and whether it survives the representational fidelity (`Full`, `Normalized`, or `Typed`) of the incoming data flow.
 
-*Figure 1\. Core mechanism taxonomy tuple M \= \<Boundary, Representation, System Processing Stage\>.*
+Two operational attributes are recorded on the DFD itself: **System Processing Stage** (*where attacker-controlled information enters the target system or becomes security-relevant*) is derived directly from where a crossing occurs on the annotated DFD (**Section 4.2** and **Appendix B.2**), and **Modality** stays on the data flow as the implementation surface across which mechanisms generalize.
 
+### 3.1 Invariants and Divergences
 
-### 4.1 Naming Conventions & Resolving Collisions
+A security boundary is an assumption or constraint that must hold as information is evaluated, transformed, transferred, or acted upon within an AI system; a boundary violation occurs when an adversarial artifact breaks an applicable sink constraint (**Appendix A.1**).
 
-Because the three dimensions describe the same attack from different angles, a single root word (such as "Transformation") could appear in all three slots. To eliminate ambiguity, each slot strictly follows its generating question:
+Building on established cybersecurity concepts such as interpretation consistency (`CWE-436`), information-flow control and authorization enforcement (`Denning, 1976`; `NIST SP 800-53 AC-3`), and resource bounding (`CWE-400`), security boundaries cross three **Invariant** families (with Flow split into symmetric integrity and confidentiality rows) against four **Divergences**:
 
-* **Boundary names** denote the invariant assumed: *Transform Consistency*, *Check-Use Consistency*, *Authorization Stability*, *Grant Persistence*, *Data-Control*.  
-* **Representation names** denote how influence is embodied: *Transform-Activated*, *Sequence-Dependent*, *Fragmented / Distributed*, *Resource-Amplifying*.  
-* **Construction names** denote how the payload was produced: *Manual*, *Black-box Search*, *White-box Optimization*, *Surrogate Transfer*.  
-* **System Processing Stage names** denote a pipeline location: *Ingestion*, *Transformation*, *Perception / Decoding*, *Interpretation / Decision*, *Generation*, *Action*, *Consumption*, *Feedback*.
+1. **Invariants (the security property protected, in any modality):**
+   * **Meaning (*Semantic Integrity*):** Security-relevant interpretations must remain consistent across evaluators, representations, or transformations wherever a sink's *Reference specification* relies on that consistency.
+   * **Flow (*Integrity* and *Confidentiality*):** Labeled data arriving at a sink must satisfy the sink's *Flow clearance* (`label(data) ⊑ clearance(sink)`). Following classical information-flow lattices (Biba integrity and Bell-LaPadula confidentiality; Denning, 1976), **Flow (integrity)** keeps lower-trust (`Untrusted`) information in a data role and keeps system actions within granted permissions, and **Flow (confidentiality)** requires that higher-sensitivity (`Secret`) context remain confined to approved recipients and safe output consumers.
+   * **Cost (*Resource Bounding*):** Processing, inference, and tool execution must remain within the established *Resource budget* implied at admission.
+2. **Divergences (what differs between the two sides assumed to agree):**
+   * **Evaluator:** Two evaluators inspect the *same artifact state* and produce inconsistent security-relevant interpretations. The reference evaluator may be **deployed** in the architecture (a human reviewer, guard model, or parser) or **idealized** (human perception or policy intent stated in a sink's *Reference specification*).
+   * **Artifact State:** A processing transformation or multi-input aggregation changes or exposes security-relevant content between check and use.
+   * **Time:** A validated artifact, store, or permission grant changes state between validation (`t`) and use (`t + Δ`).
+   * **Position:** Labeled information reaches a sink whose *Flow clearance* prohibits that trust or sensitivity label.
 
-*Deliberate exception:* **Parser / Interpreter Differential** retains "Differential" because parser differential is established security terminology that maps one-to-one onto existing usage.
+Crossing these axes yields the twelve boundary subclasses in **Table 1**, along with whether each boundary is deterministically **Closable** or **Reducible-only**:
 
-### 4.2 Taxonomy Diagram
+| Invariant \ Divergence | **Evaluator**<br/>*(same artifact state, two evaluators)* | **Artifact State**<br/>*(transform or aggregation between check & use)* | **Time**<br/>*(same store or grant at `t` vs. `t + Δ`)* | **Position**<br/>*(flow label violates sink's Flow clearance)* |
+| :---- | :---- | :---- | :---- | :---- |
+| **Meaning**<br/>*(violates Reference specification)* | • **Human-Machine Perception:** Difference between human and machine interpretation of the same artifact invalidating a human-based security assumption *(Reducible-only; Closable with normalized input)*.<br/>• **Guard-Model Capability:** Protective evaluator fails to identify security-relevant content that the target model recognizes from equivalent input *(**Reducible-only**)*.<br/>• **Parser / Interpreter Differential:** Different parsers or interpreters produce inconsistent security-relevant interpretations of the same input (`CWE-436`; **Closable**).<br/>• **Semantic Stability:** Equivalent security-relevant meaning receives inconsistent decisions against idealized policy intent, including authorization and conflict arbitration *(**Reducible-only**)*. | • **Transform Consistency:** A transformation or multi-input aggregation changes or exposes security-relevant content, invalidating an earlier assessment (`CWE-180`; **Closable**). | • **Check-Use Consistency:** A property established during validation is invalid at the point of use because the artifact or validated state changed (`CWE-367`; **Closable**). | — |
+| **Flow (integrity)**<br/>*(violates authority Flow clearance)* | — | — | • **Grant Persistence:** A permission or delegated grant remains usable after its authorized expiration, revocation, or task window *(**Closable**)*. | • **Data-Control:** Lower-trust (`Untrusted`) content is promoted into authoritative instructions or control flow (`OWASP LLM01`; **Closable** via isolation/typing).<br/>• **Decision-Action:** A `«follower» → «executor»` operation executes and skips required authorization (`SP 800-53 AC-3`; **Closable**).<br/>• **Delegation Authority:** A delegated agent or deputy exercises authority beyond permissions granted by the caller (`SP 800-53 AC-6`; **Closable**). |
+| **Flow (confidentiality)**<br/>*(violates egress Flow clearance)* | — | — | — | • **Context Confinement:** Protected (`Secret`) context or memorized data reaches an unauthorized `«receiver»` across responses, tool calls, or logs *(**Closable**)*.<br/>• **Output-Consumer:** Generated output crosses into a downstream `«renderer»` and produces effects (such as external URL fetches) prohibited by policy (`OWASP LLM05`; **Closable**). |
+| **Cost**<br/>*(violates Resource budget)* | • **Resource Accounting:** An artifact or induced operation causes compute, memory, storage, inference, or tool-execution cost to exceed limits (`CWE-400`; **Closable** via hard caps). | — | — | — |
 
+*Table 1. The `Invariant × Divergence` boundary matrix, named subclasses, and deterministic closability.*
 
-![Taxonomy Diagram](./images/taxonomy_diagram.svg)
+**Classification distinctions:**
+* **Human-Machine Perception vs. Guard-Model Capability:** The former concerns a security assumption based on human perception; the latter concerns a capability mismatch between a protective evaluator and the target model.
+* **Guard-Model Capability and Parser / Interpreter Differential vs. Transform Consistency:** The first two concern inconsistent interpretation of equivalent input in the same artifact state; *Transform Consistency* concerns changes introduced or exposed across transformations or aggregation of an artifact, while *Check-Use Consistency* concerns reliance on an earlier validation after state has mutated over time.
+* **Semantic Stability (covers instance and authorization variance):** Asserting that two input variants share equivalent meaning presupposes an idealized reference evaluator `h` (human perception or policy intent) with which the model `f` disagrees (**Appendix A.1**). When a model-based policy or authorization check changes its decision under equivalent rephrasing or cross-modal conflict arbitration, the failure is `Meaning × Evaluator` (*Semantic Stability*); deterministic routing bypasses around an authorization gate belong to `Flow (integrity) × Position`.
+* **Data-Control vs. Decision-Action vs. Delegation Authority vs. Output-Consumer:** *Data-Control* concerns improper promotion of untrusted content into instruction authority at a `«follower»`. *Decision-Action* applies strictly when an `«executor»` runs a `«follower»`-requested operation and skips required authorization or approval. Neighboring cases have their own subclasses: a human approver reviewing a summary card that diverged from raw tool arguments is *Parser / Interpreter Differential*, a store that changed after approval is *Check-Use Consistency*, and an authorized tool executing on a misextracted value violates the sink's *Meaning* reference specification. *Delegation Authority* concerns the scope of authority passed to another component, while *Output-Consumer* concerns unauthorized effects triggered when generated artifacts are processed by a downstream `«renderer»`.
+* **Permitted task influence and memorized secrets:** A manipulated model decision, tool invocation, or navigation step that stays within the sink's stated *Flow clearance* (such as a browsing agent clicking visible links on a visited page) is recorded as an architecture-*granted leg* (**Section 4.3**). Training-data extraction maps directly to *Context Confinement* (`Flow (confidentiality) × Position`) by modeling memorized weights as a `Secret` data store and the querying user as the external `«receiver»`.
+* **Resource Accounting as a single Cost subclass:** *Resource Accounting* stays a single subclass because `Representation` and DFD position already capture whether exhaustion stems from media decoding or recursive tool execution; a resource-intensive operation becomes a violation when it breaches a stated *Resource budget*.
 
+**Closable vs. Reducible-only boundaries and role-dependent sanitization.** Labeling each subclass as **Closable** or **Reducible-only** (**Table 1**) marks which boundaries admit deterministic architectural fixes (Closable) and which admit probabilistic defenses that lower attack success rates (Reducible-only). Formal impossibility results show that a `«guard»` with weaker reasoning or fewer computational resources than the target `«follower»` leaves a capability gap that external filtering can at best reduce (Ball et al., 2025; Glukhov et al., 2023), and adaptive optimization routinely bypasses probabilistic guardrails (Nasr et al., 2025). Whether an `Untrusted` flow can be deterministically sanitized therefore depends on the receiving component's role:
+* **`«executor»` and `«renderer»` inputs are deterministically sanitizable (`Closable`):** Formal grammars strictly separate passive data from executable syntax or network fetches (via parameterized APIs, schemas, output encoding, and URL allowlists).
+* **`«follower»` inputs are `Reducible-only` at the model:** In natural-language and multimodal inputs, instructions and data share one grammar (Zverev et al., 2025). Deterministic containment across a `«follower»` relies on **context separation** (routing `Untrusted` data to a separate model context from the one that selects actions or holds `Secret` data) and **type narrowing** (constraining `«follower»` outputs to `Typed` flows, which closes `Flow (integrity)` while bounding `Meaning` selection to the allowed type).
 
-## 5. Taxonomy Dimensions and Classification Rules
+### 3.2 Representation and Flow Fidelity
 
-### 5.1 Boundary Classes
+**Representation** describes how adversarial information or influence is embodied in an artifact and becomes interpretable at a specified processing boundary. It records properties of the artifact at the specific state being examined; how the attacker built it is recorded separately (**Section 3.3** and **Appendix B.1**).
 
-A security boundary represents a security-relevant assumption or constraint that must remain valid as information is evaluated, transformed, transferred, or acted upon within an AI system.
+Building on established concepts of encoding, obfuscation, steganography, and adversarial evasion, the four primary representation forms are ordered by **what an upstream guard or ordinary human observer perceives** (**Table 2**). Because **normalization keeps only the channels an ordinary reader of the modality perceives**, intersecting the four forms with a flow's representational fidelity (`Full`, `Normalized`, or `Typed`) determines which forms survive to reach a crossing:
 
-Building on established cybersecurity concepts such as interpretation consistency (CWE-436), authorization enforcement (NIST SP 800-53 AC-3), and resource bounding (CWE-400), the proposed taxonomy organizes security boundaries into three families: **Meaning, Authority, and Cost**.
+| Representation Form | What an Upstream Guard or Ordinary Reader Perceives | Cross-Modal Examples | **`Full` Flow** | **`Normalized` Flow** | **`Typed` Flow** |
+| :---- | :---- | :---- | :----: | :----: | :----: |
+| **Overt Semantic** | Adversarial content is readable through ordinary interpretation at the observation point. | Plaintext prompt; legible typographic text in an image; clear spoken command. | ✓ | ✓ | Value choice only |
+| **Encoded / Obfuscated** | Perceives the symbol stream, which is concealed through encoding, symbolic substitution, or obfuscation recoverable using known conventions. | Base64, hex, or URL-encoded text; HTML entities; substitution cipher; QR code; DTMF tones. | ✓ | ✓ | — |
+| **Steganographic** | Perceives an ordinary carrier; adversarial information sits in a sub-channel that ordinary reading skips. | Zero-width or Unicode tag characters; white-on-white or off-page PDF text; sparse pixels sampled by an aliasing downscaler; near-ultrasonic audio. | ✓ | — | — |
+| **Adversarial Perturbation** | Perceives benign content; the effect triggers through internal features of a specific target model. | Gradient-optimized token suffixes (GCG); adversarial visual patches; reverberation-blended audio perturbations (AudioHijack). | ✓ | ✓ *(assumed)* | — |
 
-These families describe the security property being protected, independently of the modality carrying the adversarial artifact.
+*Table 2. Primary representation forms, cross-modal examples, and survival across flow fidelities.*
 
-#### 5.1.1 Security Boundary Invariants
+**Representation modifiers.** Modifiers attach to a primary representation form to record structural or temporal conditions required for an adversarial effect:
+* **Fragmented / Distributed:** A single effective payload is distributed across multiple incomplete pieces that require aggregation or reassembly to reconstruct its adversarial effect (for example, splitting a command across streaming chunks or structured fields).
+* **Composition-Dependent:** The adversarial effect emerges through joint interpretation of multiple complete, self-contained artifacts that contribute distinct information across flows or modalities (for example, pairing a benign text request with a screenshot supplying target parameters, or pairing conflicting text and visual claims).
+* **Sequence-Dependent:** The adversarial effect depends on the timing, ordering, duration, or synchronization of information across steps or frames.
+* **Classification distinctions:** Use *Fragmented / Distributed* when each piece is incomplete and reassembly rebuilds one payload, *Composition-Dependent* when each artifact is complete and pairing them produces the effect, and *Sequence-Dependent* when ordering or timing is essential. *Encoded / Obfuscated* payloads are recovered with decoding conventions; *Steganographic* payloads sit in a sub-channel behind an ordinary-looking carrier. Transformation-activated payloads are covered by two existing parts of the record: the `Meaning × Artifact State` crossing at the `«transform»`, and the representation recorded at each artifact state.
 
-A boundary violation occurs when an adversarial artifact causes the system to violate an applicable security assumption or constraint. A difference in interpretation, processing behavior, or resource usage is not enough on its own; there has to be a security-relevant failure.
+**Resource-amplification characteristics.** Some adversarial artifacts cause security failures mainly by consuming disproportionate resources (`Cost × Evaluator`, *Resource Accounting*). Two descriptive characteristics are recorded in the `Representation` slot of `Cost` records:
+* **Intrinsic Amplification:** The artifact's structure or encoding alone causes disproportionate resource consumption during processing (for example, decompression bombs and pathological media bitstreams, which require limits on decoding complexity).
+* **Semantic Amplification:** The interpreted content of an artifact induces disproportionate resource consumption through system behavior (for example, long output generation, recursive agent delegation, repeated tool invocation, and uncontrolled retry loops, which require execution and tool-call budgets).
 
-The taxonomy distinguishes three families of security invariants:
+**Representation classification principles:**
+1. **Artifact-state specificity and conservative survival:** Classify the representation at the specific processing point being examined; classification changes when a `«transform»` alters the artifact. In an image-scaling attack, the payload is `Steganographic` before resizing (`Full` flow) and becomes `Overt Semantic` after an aliasing downscale (`Full` output). An anti-aliased downscaler (`Normalized` output) strips the steganographic channel (Quiring et al., 2020). `Adversarial Perturbation` is conservatively assumed to survive generic normalization (`✓, assumed`) because adaptive optimization routinely defeats standard compression or resizing (Athalye, Carlini & Wagner, 2018).
+2. **Multiple applicable forms and complementary modifiers:** Where an artifact satisfies multiple definitions, record the form most relevant to the crossing, and assign a modifier when distribution, composition, or sequencing contributes to the effect.
+3. **Construction independence and evidence-based assignment:** A manually constructed payload and an adversarially optimized one may share the same representation classification; assign forms and modifiers from the system architecture or available evidence.
 
-- **Meaning (Semantic Integrity):** Security-relevant interpretations must remain consistent across evaluators, representations, or transformations wherever the system relies on that consistency.
-- **Authority (Authorization Scope):** Lower-trust information must not acquire unauthorized instruction authority, and system actions must remain within the permissions granted by the applicable authorization policy.
-- **Cost (Resource Bounding):** Processing, inference, and tool execution must remain within established resource limits.
+### 3.3 Supporting Annotations Beyond the Core Tuple
 
-**Example: Image-Scaling Prompt Injection**
-
-In the Trail of Bits image-scaling attack, an adversarial image appears benign during initial inspection but reveals malicious instructions after resizing.
-
-- **Meaning:** The transformed image exposes security-relevant content that an earlier inspection did not identify, potentially invalidating that assessment.
-- **Authority:** If the agent treats the revealed instructions as authoritative, a Data-Control boundary is violated. If an unauthorized tool operation is subsequently executed, an additional authorization failure may occur.
-- **Cost:** The attack does not inherently violate a resource boundary, since excessive resource consumption is not part of the demonstrated mechanism.
-
-Not every difference in interpretation or transformation constitutes a security failure. A boundary violation requires an identifiable security assumption or constraint to be violated.
-
-**Example: Resource Exhaustion Through Media Decompression**
-
-An attacker submits a highly compressed image or media file that appears small at ingestion but expands into a disproportionately large amount of data during decoding.
-
-- **Cost:** Decoding the artifact consumes excessive memory or processing resources, exceeding the system's configured resource limits and potentially causing denial of service.
-- **Meaning:** No semantic inconsistency is required for the attack.
-- **Authority:** No unauthorized instruction or permission escalation is required.
-
-
-#### 5.1.2 Boundary Families and Subclasses
-
-Boundary subclasses identify specific security assumptions that may be violated during AI system processing. Each subclass describes a security-relevant failure, independent of attack technique or modality.
-
-Subclasses may overlap within an attack chain, so classify by the specific security assumption violated. A processing step is not a separate failure just because it is a separate step.
-
-##### Meaning (Semantic Integrity)
-
-Meaning boundaries concern security-relevant inconsistencies across evaluators, transformations, interpretations, or processing contexts. These boundaries build upon established security concepts such as interpretation consistency, canonicalization, and adversarial robustness.
-
-| Subclass | Definition | Example | Related Security Concept |
-|---|---|---|---|
-| **Human-Machine Perception** | A difference between human and machine interpretation of the same artifact that invalidates a security assumption based on human perception. | A human reviewer sees a benign image, while an AI model detects embedded malicious instructions that undermine the reviewer's security assessment. | Human-machine perception mismatch |
-| **Guard-Model Capability** | A protective evaluator fails to identify security-relevant content or behavior that the target model can recognize or act upon, despite evaluating equivalent security-relevant input. | A security guard and target multimodal model examine equivalent image content, but only the target model recognizes embedded malicious instructions. | Security evaluator and target-model capability mismatch |
-| **Parser / Interpreter Differential** | Different parsers or interpreters produce inconsistent security-relevant interpretations of the same input, undermining security validation or enforcement. | A validation parser accepts structured content that a downstream interpreter processes as an executable instruction. | CWE-436: Interpretation Conflict |
-| **Transform Consistency** | A transformation changes or exposes security-relevant content, invalidating an earlier security assessment on which the system relies. | An image passes initial security inspection, but subsequent downscaling reveals previously concealed malicious instructions. | CWE-180: Validate Before Canonicalize; CWE-436: Interpretation Conflict |
-| **Semantic Stability** | Different input instances with equivalent security-relevant meaning receive inconsistent security decisions under the same security policy. | Two images contain the same malicious instruction but use different fonts or backgrounds. The guard blocks one image but allows the other. | NIST AI 100-2: Adversarial Evasion and Robustness |
-| **Check-Use Consistency** | A security property established during validation no longer holds at the point of use because the artifact's security-relevant content, interpretation, or validated state has changed. | An agent validates a document, but the document is replaced with one containing malicious instructions before the agent processes it. The agent relies on the earlier assessment. | CWE-367: Time-of-check Time-of-use (related) |
-
-**Classification Distinctions**
-
-- **Human-Machine Perception vs. Guard-Model Capability:** The former concerns a security assumption based on human perception; the latter concerns a capability mismatch between a protective evaluator and the target model.
-- **Guard-Model Capability vs. Transform Consistency:** Guard-Model Capability concerns differences in what evaluators can recognize from equivalent security-relevant input. Transform Consistency concerns changes introduced or exposed by processing transformations.
-- **Parser / Interpreter Differential vs. Transform Consistency:** The former concerns inconsistent interpretation by different parsers or interpreters; the latter concerns security-relevant changes across transformations of an artifact.
-- **Transform Consistency vs. Semantic Stability:** The former concerns the same artifact across processing states; the latter concerns different input instances with equivalent security-relevant meaning that receive inconsistent security decisions.
-- **Transform Consistency vs. Check-Use Consistency:** The former identifies a transformation-related inconsistency; the latter identifies reliance on a security assessment that is no longer valid when the artifact is used.
-
-**Relationship to Existing Standards**
-
-These subclasses reuse established security concepts. CWE-180 covers validation before canonicalization, CWE-436 covers interpretation conflicts, and CWE-367 covers time-of-check/time-of-use weaknesses. NIST AI 100-2 has related concepts for adversarial evasion and robustness. The mappings are conceptual (not exact equivalences); what the taxonomy adds is organizing these concerns around how multimodal and agentic AI systems evaluate and process inputs.
-
-**Meaning Classification Principle**
-
-A Meaning boundary violation requires a security-relevant inconsistency that invalidates an identifiable security assumption. Differences in perception, model outputs, or representations alone do not constitute security violations.
-
-Each subclass should be assigned only when its specific failure condition is supported by the system architecture and available evidence. When multiple labels appear applicable, independently identifiable failures should be distinguished from different descriptions of the same failure.
-
-##### Authority (Authorization Scope)
-
-Authority boundaries govern how instructions, permissions, decisions, and outputs acquire, transfer, retain, or exercise authority within AI systems. These boundaries build upon established security principles including least privilege, access control, delegation, and secure execution.
-
-| Subclass | Definition | Example | Related Security Concept |
-|---|---|---|---|
-| **Delegation Authority** | A delegated agent or component exercises authority beyond the permissions or constraints explicitly granted by the delegating principal. | A subagent authorized only to retrieve financial records initiates a financial transaction. | Least Privilege; NIST SP 800-53 AC-6 |
-| **Authorization Stability** | An unchanged authorization policy is enforced inconsistently across equivalent execution contexts or input instances. | An agent correctly denies a restricted API operation in one context but permits the same operation in another despite identical permissions and applicable policy. | CWE-863: Incorrect Authorization |
-| **Grant Persistence** | A permission or delegated grant remains usable after its authorized expiration, revocation, or termination. | An agent continues invoking a tool using a revoked access grant. | Authorization lifecycle; revocation enforcement |
-| **Data-Control** | Lower-trust content is improperly promoted into authoritative instructions or control flow, contrary to the system's instruction hierarchy or trust policy. | An agent treats malicious instructions embedded in an attacker-controlled image as if they were commands from the authenticated user. | OWASP LLM01: Prompt Injection |
-| **Decision-Action** | A model-generated decision is executed without satisfying the authorization requirements applicable to the resulting operation. | An agent issues a tool call to transfer funds, and the executor performs the transfer without enforcing the required transaction authorization. | NIST SP 800-53 AC-3; OWASP LLM06: Excessive Agency |
-| **Output-Consumer** | A generated output crosses into a downstream execution or consumption context and produces effects prohibited by that consumer's security policy. | A generated diagram includes an external image reference that causes confidential data to be transmitted when the diagram is rendered. | OWASP LLM05: Improper Output Handling |
-
-**Classification Distinctions**
-
-- **Delegation Authority vs. Authorization Stability:** Delegation Authority concerns exceeding the permissions granted to a delegated component, whereas Authorization Stability concerns inconsistent enforcement of the same applicable authorization policy across equivalent contexts.
-- **Authorization Stability vs. Grant Persistence:** Authorization Stability concerns inconsistent authorization decisions across contexts; Grant Persistence concerns authority remaining usable after its permitted lifetime.
-- **Data-Control vs. Decision-Action:** Data-Control concerns improper promotion of untrusted content into instruction authority. Decision-Action concerns failure to enforce authorization when executing a resulting operation.
-- **Data-Control vs. Output-Consumer:** Data-Control concerns untrusted information influencing model instructions or decisions. Output-Consumer concerns unauthorized effects arising when generated artifacts are processed downstream.
-- **Delegation Authority vs. Decision-Action:** Delegation Authority concerns the scope of authority passed to another component. Decision-Action concerns enforcement of authorization for a particular executed operation.
-
-**Relationship to Existing Standards**
-
-These subclasses extend established access-control and secure-processing concepts to agentic AI systems. NIST SP 800-53 provides access-enforcement and least-privilege principles, CWE-863 covers incorrect authorization, and OWASP lists related risks for prompt injection, excessive agency, and improper output handling. As above, the mappings are conceptual. The taxonomy separates where authority is acquired, delegated, retained, or exercised, so unauthorized agent behavior can be split into distinct failures.
-
-**Authority Classification Principle**
-
-An Authority boundary violation requires an identifiable breach of instruction trust, permission scope, authorization policy, or downstream execution constraints.
-
-A manipulated model decision, tool invocation, or generated output does not automatically constitute an independent Authority violation. Each subclass should be assigned only when its corresponding security assumption is violated or explicitly identified as a potential failure under a stated threat model.
-
-In particular, Authorization Stability requires evidence of inconsistent enforcement under equivalent authorization conditions. A legitimate change in policy, permissions, or execution context does not by itself constitute a violation.
-
-##### Cost (Resource Bounding)
-
-Cost boundaries concern whether adversarial inputs or induced operations cause system resource consumption to violate established operational constraints.
-
-| Subclass | Definition | Example | Related Security Concept |
-|---|---|---|---|
-| **Resource Accounting** | An adversarial artifact or induced operation causes resource consumption to exceed applicable processing or execution limits or violate an availability requirement. | A compressed media file triggers excessive memory consumption during decoding, or an agent enters uncontrolled recursive tool execution. | CWE-400: Uncontrolled Resource Consumption |
-
-Resource Accounting covers computational resources, memory, storage, inference budgets, and tool-execution costs.
-
-Resource Accounting stays a single subclass because the other two dimensions already capture how a resource violation arises. Specific mechanisms such as media decompression or recursive tool execution are recorded through Representation and Processing Stage, so they do not need their own Cost boundaries.
-
-A resource-intensive operation does not automatically constitute a security violation. A Cost boundary violation requires an applicable resource constraint or availability requirement to be breached.
-
-##### Boundary Classification Principle
-
-A boundary subclass should be assigned only when its corresponding security assumption is violated or when a potential violation is explicitly identified under a stated threat model.
-
-A single attack may involve multiple boundary failures, but each classification should be a distinct security-relevant failure. Another processing step or downstream consequence does not count as one.
-
-For example, image-scaling prompt injection may involve:
-
-- **Transform Consistency:** Resizing exposes instructions missed by an earlier security assessment on which the system relies.
-- **Data-Control:** The agent treats untrusted image instructions as authoritative.
-- **Decision-Action (conditional):** A resulting tool operation is executed without satisfying an applicable authorization requirement.
-
-Additional subclasses, such as Guard-Model Capability or Check-Use Consistency, should be assigned only when supported by the system architecture and available evidence.
-
-### 5.2 Representation
-
-Representation describes how adversarial information or influence is embodied in an artifact and becomes interpretable at a specified processing boundary. It describes properties of the artifact; how the attacker built it is recorded separately (Section 5.4.1).
-
-Representation is classified according to the information or processing capabilities required to recover the adversarial content or effect. Because an artifact may change during processing, classifications are specific to the artifact state being examined.
-
-The proposed categories build upon established security concepts, including encoding, obfuscation, steganography, and adversarial evasion. This dimension provides a common vocabulary for characterizing adversarial representations across modalities and AI processing architectures.
-
-#### 5.2.1 Representation Forms
-
-| Form | Definition | Documented Example | Related Security Concept |
-|---|---|---|---|
-| **Overt Semantic** | Adversarial content is accessible through ordinary interpretation of the artifact at the specified observation point, without specialized decoding or target-specific processing. | Palo Alto Networks Unit 42 documented plaintext prompt-injection attempts embedded in webpages targeting AI agents [1]. | MITRE ATLAS: Prompt Injection (related) |
-| **Encoded / Obfuscated** | Adversarial content is concealed or made less recognizable through encoding, symbolic substitution, or obfuscation recoverable using known or discoverable conventions. | Unit 42 documented webpage prompt-injection attempts using Base64, URL encoding, HTML entities, and nested encoding [1]. | MITRE ATT&CK T1027: Obfuscated Files or Information |
-| **Steganographic** | Adversarial information is concealed within a carrier whose apparent content does not reveal the embedded information through ordinary interpretation. | *Invisible Injections* (2025) reported experiments embedding malicious instructions within images using steganographic techniques to influence vision-language models [2]. | MITRE ATT&CK T1027.003: Steganography |
-| **Processing-Dependent** | The adversarial content or effect depends on a specific target model, transformation, or processing pathway and cannot be reliably recovered through ordinary interpretation or general-purpose decoding alone. | Trail of Bits demonstrated image-scaling attacks in which instructions became readable after targeted downscaling, including a proof of concept involving Gemini CLI and connected tools [3]. | NIST AI 100-2: Adversarial Examples and Evasion (related) |
-
-A manually constructed payload and an adversarially optimized one may share the same representation classification.
-
-Representation forms are not necessarily mutually exclusive. For example, a concealed image payload may be both Steganographic and Processing-Dependent when the embedded information requires a specific processing pathway to become effective.
-
-#### 5.2.2 Representation Modifiers
-
-Representation modifiers describe additional conditions required for adversarial information or effects to become effective. A modifier is added on top of a representation form.
-
-| Modifier | Definition | Documented Example | Related Security Concept |
-|---|---|---|---|
-| **Transformation-Activated** | Adversarial information or influence becomes effective only after a particular transformation, normalization, or decoding operation. | Trail of Bits demonstrated that targeted image downscaling can reveal concealed malicious instructions [3]. | CWE-180: Validate Before Canonicalize (related) |
-| **Fragmented / Distributed** | A single effective payload is distributed across multiple fragments that require aggregation or reconstruction to recover its adversarial effect. | *Hiding in Plain Floats* (2026) investigated prompt-injection payloads concealed in structured floating-point data and reconstructed through downstream processing [4]. | Payload fragmentation and obfuscation (related) |
-| **Sequence-Dependent** | The adversarial effect depends on the timing, ordering, duration, or synchronization of information. | A 2026 study of prompt injection in surgical decision-support systems examined how the temporal placement and duration of visual instructions affected vision-language model behavior [5]. | Temporal adversarial attacks and sequence manipulation |
-| **Composition-Dependent** | The adversarial effect emerges through joint interpretation of multiple artifacts that contribute distinct information rather than fragments of a single payload. | NVIDIA's *When Modalities Combine* (2026) reported a three-modal prompt-injection attack requiring the joint processing of text, image, and audio [6]. | Multimodal adversarial interaction and input fusion |
-
-**Classification Distinctions**
-
-- **Processing-Dependent vs. Transformation-Activated:** Processing-Dependent describes reliance on a target-specific processing pathway, whereas Transformation-Activated identifies a transformation required to activate the adversarial effect.
-- **Fragmented / Distributed vs. Composition-Dependent:** Fragmented / Distributed concerns reconstructing a payload from multiple pieces. Composition-Dependent concerns distinct artifacts whose joint interpretation produces the effect.
-- **Fragmented / Distributed vs. Sequence-Dependent:** Fragmentation concerns distribution across pieces, while sequence dependence concerns whether ordering or timing is essential.
-- **Encoded / Obfuscated vs. Steganographic:** Encoded / Obfuscated content relies on encoding or obfuscation conventions, whereas Steganographic content is concealed within a carrier whose apparent purpose does not disclose the embedded information.
-
-#### 5.2.3 Resource-Amplification Characteristics
-
-Some adversarial artifacts cause security failures mainly by consuming disproportionate resources, with no instruction manipulation or semantic inconsistency involved. There are two ways this happens:
-
-- **Intrinsic Amplification:** The artifact's structure or encoding causes disproportionate resource consumption during processing, independently of its semantic content. Examples include decompression bombs and pathological media bitstreams.
-- **Semantic Amplification:** The interpreted content of an artifact induces disproportionate resource consumption through system behavior. Examples include recursive agent delegation, repeated tool invocation, and uncontrolled retry loops.
-
-These characteristics are descriptive; they are not additional Representation Forms or Modifiers. When resource consumption violates an applicable operational constraint or availability requirement, the security failure is classified under the **Resource Accounting** boundary within Cost (Section 5.1.2).
-
-The split matters for controls. Intrinsic Amplification may need limits on decoding, decompression, or processing complexity, while Semantic Amplification may need execution budgets, bounded delegation, or tool-call limits.
-
-#### 5.2.4 Representation Classification Principles
-
-Representation classification follows five principles:
-
-1. **Artifact-State Specificity:** Classify the representation at a specified observation or processing point. Classification may change when the artifact is transformed.
-2. **Multiple Applicable Forms:** More than one representation form may apply when an artifact satisfies multiple definitions. The primary form should reflect the characteristic most relevant to the security mechanism.
-3. **Complementary Modifiers:** Assign modifiers only when their corresponding transformation, distribution, sequencing, or composition condition contributes to the adversarial effect.
-4. **Construction Independence:** Representation classification does not depend on whether the payload was manually created, discovered through black-box search, or generated through white-box optimization. Construction method is recorded separately in Section 5.4.1.
-5. **Evidence-Based Classification:** Assign forms and modifiers only when supported by the attack description, system architecture, or available evidence.
-
-The examples presented in this section are drawn from publicly reported attacks and security research. Their inclusion does not imply that all were observed in production environments.
-
-**Example: Image-Scaling Prompt Injection**
-
-In the Trail of Bits image-scaling attack, an adversarial image appears benign at its original resolution but reveals malicious instructions after targeted resizing [3].
-
-| Artifact State | Representation | Modifier |
-|---|---|---|
-| Original image before resizing | Processing-Dependent; potentially Steganographic if the concealment criteria are met | Transformation-Activated |
-| Image after targeted resizing | Overt Semantic, when instructions become readable | Transformation-Activated describes the preceding activation condition |
-| Extracted instructions interpreted by the model | Overt Semantic | No additional modifier required unless another activation condition applies |
-
-The representation classification changes twice here, even though it is the same artifact in the same attack chain. Note also that Processing-Dependent and Transformation-Activated describe how the adversarial payload becomes effective, whereas Transform Consistency and Data-Control describe the security assumptions potentially violated.
-
-#### 5.2.5 Relationship to Existing Security Standards
-
-MITRE ATT&CK provides terminology for obfuscation and steganography, and NIST AI 100-2 discusses adversarial examples and evasion. CWE-180 (validation before canonicalization) is the closest existing concept to transformation-dependent activation.
-
-Those frameworks mostly describe adversary techniques, weaknesses, or threat characteristics. The Representation dimension instead describes how adversarial information is embodied, recovered, or activated inside an AI processing pipeline, using the same terms for text, images, audio, video, structured data, and agentic architectures. The mappings are conceptual.
-
-
-### 5.4 Supporting Annotations
-
-Supporting annotations capture additional information about payload construction, attacker knowledge, and transferability alongside the core mechanism tuple.
-
-These annotations are optional and should be recorded only when supported by the available evidence. They improve threat characterization and deployment-specific analysis without changing the underlying mechanism classification.
-
-#### 5.4.1 Construction Method
-
-Construction Method describes how an adversarial artifact was created or refined, what knowledge or access was available during its development, and whether it was developed against the intended deployment target.
-
-It is recorded independently of Representation because an artifact's observable characteristics do not uniquely determine how it was constructed. Although certain representations may favor particular construction techniques or attacker capabilities, construction history does not define the Representation category.
-
-Three complementary fields are used.
-
-**A. Construction Technique**
-
-| Technique | Definition | Documented Example | Related Security Concept |
-|---|---|---|---|
-| **Manual Construction** | An attacker directly creates or modifies a payload without automated optimization or systematic algorithmic search. | Greshake et al. (2023) demonstrated indirect prompt injections using attacker-crafted instructions placed in external content retrieved by LLM-integrated applications [1]. | MITRE ATLAS AML.T0043.003: Manual Modification (related) |
-| **Adaptive Search** | Candidate payloads are iteratively generated, evaluated, and refined using observed responses or feedback from a target or evaluation system. | Chao et al. (2023) introduced Prompt Automatic Iterative Refinement (PAIR), which uses an attacker LLM to iteratively generate jailbreak candidates based on responses from a black-box target model [2]. | MITRE ATLAS AML.T0043.001: Black-Box Optimization (related) |
-| **Optimization** | An explicit mathematical or algorithmic optimization procedure constructs or refines a payload using a defined objective and available model or pipeline information. | Zou et al. (2023) introduced Greedy Coordinate Gradient (GCG) for adversarial suffix optimization [3]. Trail of Bits (2025) also demonstrated least-squares pixel optimization against image-resizing algorithms [4]. | MITRE ATLAS AML.T0043.000: White-Box Optimization (related) |
-
-These techniques are not mutually exclusive. A payload may be manually initialized, optimized, and subsequently refined through adaptive testing.
-
-In this taxonomy, Adaptive Search emphasizes iterative evaluation and feedback, while Optimization emphasizes an explicit objective and optimization procedure. An attack may satisfy both descriptions.
-
-**B. Attacker Knowledge / Access**
-
-Attacker Knowledge / Access records what information or interaction capabilities were available during payload development.
-
-| Knowledge / Access | Definition | Documented Example |
-|---|---|---|
-| **Black-box** | The attacker can submit inputs and observe outputs but does not have access to the target's relevant internal parameters or implementation. | PAIR demonstrated iterative jailbreak generation using black-box access to target language models [2]. |
-| **Partial Knowledge** | The attacker knows or can infer some implementation details, such as processing algorithms or component configurations, without complete access to the target system. | Trail of Bits demonstrated fingerprinting of image-resizing algorithms and implementations to construct compatible payloads without requiring access to downstream model weights [4]. |
-| **White-box** | The attacker has access to internal information relevant to the attack, such as model parameters, gradients, processing algorithms, or implementations. | GCG used gradient information from accessible language models to construct adversarial suffixes [3]. |
-| **Unknown** | Available evidence does not establish the attacker's knowledge or access. | Recorded when a published attack description does not disclose the relevant information. |
-
-Knowledge and access should be evaluated relative to the specific target component. Full knowledge of an image transformation algorithm does not imply white-box access to the downstream multimodal model.
-
-The Black-box, Partial Knowledge, and White-box categories correspond conceptually to attacker-knowledge distinctions in NIST AI 100-2. They are not intended to exhaustively represent every attacker capability, such as control over training data, retrieved resources, or tools.
-
-**C. Transfer Context**
-
-Transfer Context records whether the payload was developed against the intended deployment target or another model or processing pipeline.
-
-| Context | Definition | Documented Example | Related Security Concept |
-|---|---|---|---|
-| **Direct-Target Development** | Payload development or refinement uses the intended deployment target. | PAIR demonstrated iterative attacks that query and refine candidates against a target language model [2]. | Direct target querying and attack verification (related) |
-| **Surrogate Transfer** | A payload is developed against a surrogate model or processing pipeline and subsequently applied to a different target. | Zou et al. (2023) optimized adversarial suffixes using accessible Vicuna models and demonstrated transfer to other language models, including closed-source systems [3]. | MITRE ATLAS AML.T0043.002: Black-Box Transfer (related) |
-| **Unknown** | Available evidence does not establish whether development and deployment targets differed. | Used when the development environment is not disclosed. | Not applicable |
-
-Transfer Context is distinct from Construction Technique. A payload may be optimized with white-box access to a surrogate model and subsequently transferred to a black-box deployment target.
-
-The three construction fields may therefore be combined without changing the core mechanism classification.
-
-**Example: GCG Adversarial Suffixes**
-
-The attack introduced by Zou et al. [3] can be characterized as follows:
-
-| Annotation Field | Classification |
-|---|---|
-| Construction Technique | Optimization; Adaptive Search |
-| Attacker Knowledge / Access | White-box for the source models; black-box for the tested closed-source targets |
-| Transfer Context | Surrogate Transfer |
-
-The distinction between source-model access and deployment-target access is important: an attack can use white-box optimization during development while requiring only black-box interaction with the eventual target.
-
-#### 5.4.3 Relationship to Existing Security Standards
-
-Supporting annotations complement established adversarial machine-learning and cybersecurity frameworks, particularly those addressing attacker capabilities and attack construction.
-
-| Framework | Relevant Concepts | Relationship to Supporting Annotations |
-|---|---|---|
-| **NIST AI 100-2e2025** | Attacker knowledge, capabilities, objectives, and attack lifecycle. | Provides established concepts for describing attacker access and threat conditions. Construction Method records narrower information about payload development, access, and transfer. |
-| **MITRE ATLAS** | Adversarial tactics and techniques, including crafting adversarial data through manual modification, black-box optimization, white-box optimization, and black-box transfer. | Provides directly related technique terminology for Construction Method. The taxonomy splits these characteristics into separate, combinable descriptive fields. |
-| **OWASP Top 10 for LLM Applications (2025)** | Risks such as Prompt Injection (LLM01) and Excessive Agency (LLM06). | Provides application-security context for architectural interfaces where untrusted content may influence model decisions or connected tools. |
-
-The mappings are conceptual. When evidence is incomplete, mark fields Unknown or leave them unassigned, and record construction history, attacker access, and internal architecture from direct evidence about each.
+Supporting annotations record payload construction, attacker knowledge, transferability, and pipeline stage alongside the core `M = ⟨Invariant, Divergence, Representation⟩` tuple when supported by direct evidence. **Construction Method** describes how an adversarial artifact was created or refined (*Manual Construction*, *Adaptive Search*, or mathematical *Optimization*, including transformation-invariant optimization such as expectation-over-transformations), what *Attacker Knowledge / Access* was available per target component (*Black-box*, *Partial Knowledge*, *White-box*, or *Unknown*), and its *Transfer Context* (*Direct-Target Development*, *Surrogate Transfer*, or *Unknown*; **Appendix B.1, Table B.1**). Knowledge is recorded per component: an attacker can know a preprocessing algorithm (such as an image resizer) fully and still have black-box access to the downstream model, and an attack can use white-box optimization on a surrogate model and black-box interaction with the deployment target. **System Processing Stage** (*Ingestion*, *Transformation*, *Perception / Extraction*, *Interpretation / Decision*, *Generation*, *Action*, *Consumption*, *Feedback*) and location tags (*Entry*, *Activation*, *Effect*) are derived deterministically from DFD roles and crossing positions (**Appendix B.2, Table B.2**).
 
 
 ## 4. Architectural Analysis Method
@@ -645,7 +394,7 @@ Starting from the system's DFD, the analyst assigns a functional role to each pr
 Once the diagram is annotated, findings follow from seven traversal rules (lookup tables and formal rules appear in **Appendix A**):
 
 1. **Enumerate and group paths.** Trace every directed path from an external `source` to a constrained sink and from a `Secret` store or input to an external `receiver`, grouping parallel edges that share the same `(source, guards crossed, sink)`.
-2. **Identify boundary crossings (`Invariant × Divergence`).** Along each grouped path, node-and-edge patterns determine candidate crossings mechanically (**Appendix A, Table A.1**). A sink's *Reference specification* serves as the evaluation baseline and generates crossings only for `Meaning` reference constraints (**Appendix A.1**).
+2. **Identify boundary crossings (`Invariant × Divergence`).** Along each grouped path, node-and-edge patterns determine candidate crossings mechanically (**Appendix A, Table A.1**). A sink's *Reference specification* is the evaluation baseline and generates crossings for `Meaning` reference constraints (**Appendix A.2**).
 3. **Look up surviving representations.** At each crossing, intersect the incoming flow fidelity (`Full`, `Normalized`, or `Typed`) with the representation survival table (**Section 3.2, Table 2**) to determine which forms (*Overt Semantic*, *Encoded / Obfuscated*, *Steganographic*, or *Adversarial Perturbation*) arrive intact.
 4. **Emit mechanism records (one crossing per record).** Emit one record `M = ⟨Invariant, Divergence, Representation⟩` per crossing judged *realizable* by an attacker, noting its evidence maturity (`Observed`, `Demonstrated`, or `Feasible`). Keeping records 1-to-1 with crossings (so evading an input `«guard»` and steering a `«follower»` emit two distinct records even from a single payload) keeps chain lengths comparable across architectures.
 5. **Assemble attack chains (supplied vs. granted legs).** Each required step toward violating a sink constraint is a **leg**: **granted** when the architecture permits passage unconditionally (unguarded channels, `auto-approve` tools, or task-permitted navigation) and **supplied** when a deployed `«guard»` forces an active bypass:
@@ -858,9 +607,26 @@ The attacker can tailor the pair to exploit whichever arbitration bias the model
 
 ## Appendix A: Formal Derivation Specification
 
-This appendix specifies the formal graph-traversal lookup rules and propagation properties used in Step 3 of the architectural analysis method (**Section 4.3**).
+This appendix specifies the formal invariant relations (**Section 3.1**) and the graph-traversal lookup and propagation rules used in Step 3 of the architectural analysis method (**Section 4.3**).
 
-### A.1 Step 3 Crossing-Derivation Lookup Table
+### A.1 Formal Invariant and Sink-Constraint Relations
+
+A boundary violation occurs when an artifact or induced operation breaks an explicit constraint attached to a system sink (**Section 4.1**), and the broken constraint determines the classification. A decompression bomb, for example, differs between its compressed and uncompressed representations and between benign and resource-exhausting processing; its security-relevant failure is the broken resource bound (`Cost`).
+
+Each invariant family corresponds to a formal relation over sink constraints:
+
+1. **Meaning (*Semantic Integrity*):** For an artifact `a` and a security-relevant property `P` specified by a sink's *Reference specification*, two evaluations `f` and `g` assumed by the architecture to agree must satisfy:
+   `P(f(a)) = P(g(a))`
+   A `Meaning` crossing occurs when `P(f(a)) ≠ P(g(a))` across two evaluators on the same artifact state (**Evaluator** divergence), before and after a pipeline `«transform»` or multi-input aggregation (**Artifact State** divergence), or between validation at `t` and use at `t + Δ` (**Time** divergence).
+   * *Why adversarial stability reduces to `Meaning × Evaluator` against an idealized reference:* Claiming that a perturbed or rephrased input `x′ = x + δ` preserves the meaning of a baseline input `x` presupposes a reference evaluator `h` (human perception or policy intent) such that (1) `h(x′) = h(x)`. Baseline correctness on `x` requires (2) `f(x) = h(x)`, and successful evasion means (3) `f(x′) ≠ f(x)`. Combining (1)–(3) yields `f(x′) ≠ h(x′)`: two evaluators (`f` and the idealized reference `h`) disagree on the *single* artifact `x′`.
+2. **Flow (*Integrity* and *Confidentiality*):** For data arriving at a sink `U` with a stated *Flow clearance*, provenance and sensitivity labels must satisfy the lattice ordering relation (Denning, 1976):
+   `label(data arriving at U) ⊑ clearance(U)`
+   Under **Flow (integrity)**, choices reserved for `Trusted` principals take only `Trusted` inputs (`Data-Control`), every `«executor»` trigger carries its required authorization (`Decision-Action`), a deputy acts within its caller's granted permissions (`Delegation Authority`), and a grant ends at its revocation or expiry, before `t + Δ` (`Grant Persistence`). Under **Flow (confidentiality)**, `Secret` context reaches authorized `«receiver»`s only, both directly (`Context Confinement`) and through active markup evaluated by a client `«renderer»` (`Output-Consumer`).
+3. **Cost (*Resource Bounding*):** For an admitted unit `a` reaching a susceptible sink `U` with a stated *Resource budget*:
+   `cost_incurred(a, U) ≤ budget(U)`
+   A `Cost × Evaluator` (*Resource Accounting*) crossing occurs when the upstream admission check estimates cost within budget while actual decoding, reasoning, or tool-loop execution exceeds `budget(U)`.
+
+### A.2 Step 3 Crossing-Derivation Lookup Table
 
 Along each grouped directed path from an external `«source»` to a constrained sink (or from a `Secret` store/input to an external `«receiver»`), structural node-and-edge patterns determine candidate boundary crossings (`Invariant × Divergence`) mechanically:
 
@@ -880,7 +646,7 @@ Along each grouped directed path from an external `«source»` to a constrained 
 
 **Evaluation-baseline rule for reference specifications.** A sink's *Reference specification* (for example, *"the invoice total as read by a human reviewer"*) serves as an evaluation baseline rather than a runtime gate. Comparing a process against an idealized reference generates crossings only for `Meaning` reference specifications, where extracting or acting on an incorrect value is itself the hazard; for a *Flow clearance*, concealment matters only when a deployed human or automated `«guard»` stands on the path.
 
-### A.2 Path-Grouping, Flow-Fidelity Propagation, and Chain-Length Rules
+### A.3 Path-Grouping, Flow-Fidelity Propagation, and Chain-Length Rules
 
 1. **Label propagation across multi-input nodes:** Any process receiving `k ≥ 2` incoming flows propagates the *least-trusted* provenance label (`Untrusted < Trusted`) and the *most-sensitive* confidentiality label (`Secret > Public`) to its outbound flows unless a deterministic rule on a `«guard»` or `«executor»` strips or rejects that label.
 2. **Flow-fidelity transitions:**
@@ -893,6 +659,25 @@ Along each grouped directed path from an external `«source»` to a constrained 
 ---
 
 ## Appendix B: Supporting Annotation Schema and Machine-Readable Format
+
+### B.1 Construction Method Reference Schema
+
+**Construction Method** records how an adversarial artifact was created or refined, what knowledge or access was available during development, and whether it was developed directly against the deployment target or transferred from a surrogate (**Table B.1**). The same observable artifact can come from several construction methods, so these three combinable fields are recorded from direct evidence and sit alongside the core `M = ⟨Invariant, Divergence, Representation⟩` classification:
+
+| Field | Value | Operational Definition | Representative Examples & ATLAS Mapping |
+| :---- | :---- | :---- | :---- |
+| **A. Construction Technique**<br/>*(combinable)* | **Manual Construction** | Attacker creates or modifies a payload by hand. | Hand-crafted indirect prompt injections in external content (Greshake et al., 2023); `AML.T0043.003` (*Manual Modification*). |
+| | **Adaptive Search** | Candidate payloads are iteratively generated, evaluated, and refined using feedback from a target or evaluation system. | Automated LLM-driven jailbreak refinement such as PAIR (Chao et al., 2023); `AML.T0043.001` (*Black-Box Optimization*). |
+| | **Optimization** | Explicit mathematical or algorithmic optimization against a defined objective, including *transformation-invariant* optimization (such as expectation-over-transformations across camera angles or resizers). | Gradient suffix optimization (GCG, Zou et al., 2023); least-squares pixel optimization against downscalers (Trail of Bits, 2025); physical stop-sign patches (Eykholt et al., 2018); `AML.T0043.000` (*White-Box Optimization*). |
+| **B. Attacker Knowledge / Access**<br/>*(evaluated per component)* | **Black-box** | Attacker can submit inputs and observe outputs only. | Query-only access to a closed-source model API (Chao et al., 2023). |
+| | **Partial Knowledge** | Attacker knows or fingerprints specific pipeline algorithms or configurations; downstream model weights stay opaque. | Fingerprinting the image-resizing library (`OpenCV` / `Pillow` bicubic kernel) while treating the downstream VLM as black-box (Trail of Bits, 2025). |
+| | **White-box** | Attacker has access to internal parameters, gradients, or exact component implementations used during payload synthesis. | Open-weight gradient access used to compute adversarial token suffixes (Zou et al., 2023). |
+| | **Unknown** | Disclosed evidence does not establish the attacker's knowledge or access level. | Default value when an incident report omits development details. |
+| **C. Transfer Context** | **Direct-Target Development** | Payload development or iterative refinement queries the intended deployment target directly. | Online iterative probing against the target deployment (Chao et al., 2023). |
+| | **Surrogate Transfer** | Payload is optimized against a surrogate model or local preprocessing pipeline and transferred to a different deployment target. | Optimizing suffixes on open-weight Vicuna models and transferring them to closed-source targets (Zou et al., 2023); `AML.T0043.002` (*Black-Box Transfer*). |
+| | **Unknown** | Disclosed evidence does not establish whether development and deployment targets differed. | Recorded when transfer history is undisclosed. |
+
+*Table B.1. Optional Construction Method annotation schema (consolidated from Technique, Knowledge/Access, and Transfer Context).*
 
 ### B.2 System Processing Stage Reference Mapping
 
