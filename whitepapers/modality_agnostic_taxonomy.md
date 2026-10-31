@@ -495,94 +495,9 @@ MITRE ATT&CK provides terminology for obfuscation and steganography, and NIST AI
 Those frameworks mostly describe adversary techniques, weaknesses, or threat characteristics. The Representation dimension instead describes how adversarial information is embodied, recovered, or activated inside an AI processing pipeline, using the same terms for text, images, audio, video, structured data, and agentic architectures. The mappings are conceptual.
 
 
-### 5.3 System Processing Stages
-
-The System Processing Stage dimension locates an adversarial mechanism within the target system's processing flow. It identifies where attacker-controlled information enters the system, becomes effective, and produces security-relevant consequences.
-
-The stages are processing functions, not a mandatory linear pipeline. Depending on the architecture, they may be combined, skipped, repeated, or executed in parallel. A single component may perform multiple functions, while a modular or multi-agent system may distribute them across several components.
-
-Attacker-side payload construction is excluded from this dimension and recorded separately under Construction Method (Section 5.4.1).
-
-A representative processing sequence is:
-
-**Ingestion → Transformation → Perception / Extraction → Interpretation / Decision → Generation → Action / Consumption → Feedback**
-
-Action and Consumption are distinct functions that may occur sequentially, in parallel, or through separate paths. Feedback can initiate additional processing cycles.
-
-#### 5.3.1 Processing Stage Definitions
-
-| Stage | Operational Definition | Documented Example | Related Security Concept |
-|---|---|---|---|
-| **Ingestion** | An artifact enters the system through an input channel, sensor, tool response, or external data source. | Trail of Bits demonstrated an image-scaling attack initiated when a user supplied an attacker-crafted image to Gemini CLI [1]. | MITRE ATLAS: Prompt Injection; NIST AI 100-2: Inference-time attacks (related) |
-| **Transformation** | An artifact undergoes processing that changes its encoding, structure, resolution, format, segmentation, or ordering. | Trail of Bits demonstrated image downscaling that revealed malicious instructions concealed at the original resolution [1]. | CWE-180: Validate Before Canonicalize (related) |
-| **Perception / Extraction** | A model or subsystem extracts or recognizes content, features, symbols, objects, speech, or other meaningful information from an artifact. | In the image-scaling demonstration, the model processed the downscaled image containing the newly visible malicious instructions [1]. | NIST AI 100-2: Adversarial evasion (related) |
-| **Interpretation / Decision** | The system assigns meaning, assesses relevance or authority, and determines an appropriate response or operation. | In the Trail of Bits demonstration, the agent followed attacker-controlled instructions originating from image content [1]. | OWASP LLM01: Prompt Injection; MITRE ATLAS: Prompt Injection |
-| **Generation** | The system produces a response, output artifact, tool request, or action parameters. | In the Gemini CLI exploitation demonstration, the compromised agent produced requests for connected Zapier tools that enabled data exfiltration [1]. | OWASP LLM05: Improper Output Handling (related, where generated content is passed downstream) |
-| **Action** | A generated request or decision is executed through a tool, API, application, or external system, potentially changing state or transferring information. | Trail of Bits demonstrated connected Zapier tool invocation that transmitted Google Calendar information to an attacker-controlled email address [1]. | OWASP LLM06: Excessive Agency; MITRE ATLAS AML.T0086: Exfiltration via AI Agent Tool Invocation |
-| **Consumption** | Generated output is rendered, displayed, transmitted, decoded, fetched, or otherwise processed by a downstream component or recipient. | In the Trail of Bits demonstration, the exfiltration workflow delivered Google Calendar information through an external email channel [1]. | OWASP LLM05: Improper Output Handling (related, where downstream processing is unsafe) |
-| **Feedback** | Outputs, tool results, or environmental observations return to an ongoing execution loop and influence subsequent processing. | Palo Alto Networks Unit 42 documented web-based indirect prompt-injection attempts in which attacker-controlled webpage content targeted AI agents performing content-processing tasks [2]. Such retrieved content can enter an agent's subsequent decision cycle. | Indirect prompt injection and iterative agent execution (related) |
-
-A stage alone does not establish a security violation; the failure itself is identified through the Boundary dimension.
-
-#### 5.3.2 Processing Stage Distinctions
-
-The following distinctions support consistent classification:
-
-- **Transformation vs. Perception / Extraction:** Transformation changes the structure, format, or representation of an artifact. Perception / Extraction identifies meaningful information from that representation. For example, resizing an image belongs to Transformation, while recognizing text in the resized image belongs to Perception / Extraction.
-- **Perception / Extraction vs. Interpretation / Decision:** Perception identifies information present in an artifact. Interpretation determines how that information is understood, trusted, or used to select behavior.
-- **Generation vs. Action:** Generation creates an output artifact or tool request. Action executes the request. Constructing tool-call arguments does not itself constitute tool execution.
-- **Action vs. Consumption:** Action executes an operation, while Consumption processes an output. These functions may occur in either order, in parallel, or through separate paths. Downstream consumption may itself trigger an action.
-- **Feedback vs. Ingestion:** Feedback describes information returning to an ongoing execution loop. Ingestion describes its entry into a processing pass. A tool result can therefore constitute Feedback from an earlier operation and Ingestion into a subsequent processing cycle.
-
-The stages are functions, not physical components: a unified multimodal model may combine perception and interpretation, whereas a modular architecture may implement them through separate services.
-
-#### 5.3.3 Entry, Activation, and Effect Locations
-
-A single adversarial mechanism may span multiple processing stages. To capture its operational path, the taxonomy supports three location annotations:
-
-- **Entry:** The stage at which attacker-controlled information first enters the relevant system or execution cycle.
-- **Activation:** The stage or stages at which the adversarial mechanism becomes operative or satisfies the conditions required for its effect.
-- **Effect:** The stage or stages at which a security boundary violation occurs or becomes observable, including downstream consequences where relevant.
-
-Entry, Activation, and Effect are **location annotations, not additional processing stages or independent taxonomy dimensions**.
-
-A mechanism may have multiple activation or effect locations, and the same processing stage may serve more than one role. Assign annotations from the available evidence, not from what the architecture is presumed to look like.
-
-**Example: Image-Scaling Prompt Injection**
-
-Trail of Bits demonstrated an image-scaling prompt-injection attack against production AI systems, including a Gemini CLI proof of concept involving connected Zapier tools [1].
-
-| Location | Processing Stage | Documented Event |
-|---|---|---|
-| **Entry** | Ingestion | An attacker-crafted image is supplied to the agent. |
-| **Activation** | Transformation → Perception / Extraction | Downscaling reveals concealed instructions that become available to the model. |
-| **Authority-related effect** | Interpretation / Decision | The model treats instructions originating from untrusted image content as commands to follow. |
-| **Downstream consequence** | Generation → Action | The agent generates and executes connected tool requests that transmit Google Calendar information to an attacker-controlled email address. |
-
-Each of the three primary dimensions answers a different question about this attack:
-
-- **Boundary:** Identifies the violated security assumption, such as Transform Consistency or Data-Control.
-- **Representation:** Describes how the malicious content is embodied and activated, such as Processing-Dependent representation with a Transformation-Activated modifier.
-- **System Processing Stage:** Identifies where the mechanism enters, activates, and produces security-relevant effects.
-
-A single attack chain may contain multiple boundary violations at different processing stages. Where appropriate, record these as linked mechanism records instead of collapsing them into one classification.
-
-#### 5.3.4 Relationship to Existing Security Standards
-
-The System Processing Stage dimension adds one thing to established taxonomies and frameworks: where in the target system an adversarial mechanism occurs. It leaves their definitions of attack techniques, weaknesses, and risks as they are.
-
-| Framework | Existing Focus | Relationship to System Processing Stages |
-|---|---|---|
-| **NIST AI 100-2e2025** | Adversarial machine-learning terminology, attack lifecycle concepts, attacker objectives, capabilities, and knowledge. | Provides a broader threat taxonomy. System Processing Stages instead identify operational locations within a target system's execution flow. |
-| **MITRE ATLAS** | Adversarial tactics and techniques targeting AI-enabled systems. | Identifies techniques such as prompt injection and exfiltration through agent tools. The proposed stages locate the manifestations and effects of these techniques within system processing. |
-| **OWASP Top 10 for LLM Applications (2025)** | Application-level security risks, including Prompt Injection (LLM01), Improper Output Handling (LLM05), and Excessive Agency (LLM06). | These risks may involve multiple stages. Prompt injection may affect Interpretation / Decision, while excessive agency may become consequential during Action. Improper output handling may arise during downstream Consumption. |
-| **MITRE CWE** | Software weaknesses and their underlying conditions. | Weaknesses such as CWE-180 (Validate Before Canonicalize) relate to security-sensitive transformations. The proposed stages locate where relevant processing and validation operations occur. |
-
-These relationships are conceptual, not one-to-one mappings, and none of the cited frameworks defines the same eight-stage model. In particular, NIST AI 100-2's attack lifecycle is not the same thing as the internal execution stages proposed here. A processing stage is also not inherently vulnerable just because a documented attack technique or weakness is associated with it.
-
 ### 5.4 Supporting Annotations
 
-The core mechanism classification is defined by **Boundary × Representation × System Processing Stage**. Supporting annotations capture additional information about payload construction, attacker knowledge, transferability, and system architecture without introducing further dimensions into the core mechanism tuple.
+Supporting annotations capture additional information about payload construction, attacker knowledge, and transferability alongside the core mechanism tuple.
 
 These annotations are optional and should be recorded only when supported by the available evidence. They improve threat characterization and deployment-specific analysis without changing the underlying mechanism classification.
 
@@ -647,60 +562,113 @@ The attack introduced by Zou et al. [3] can be characterized as follows:
 
 The distinction between source-model access and deployment-target access is important: an attack can use white-box optimization during development while requiring only black-box interaction with the eventual target.
 
-#### 5.4.2 Architectural Context (Optional Annotation)
-
-Architectural Context describes how the relevant models, components, agents, and interfaces are organized in a deployed system.
-
-It captures implementation-specific information without changing the mechanism's **Boundary × Representation × System Processing Stage** classification.
-
-| Field | Definition | Values or Examples |
-|---|---|---|
-| **Architecture Type** | The organization of models, processing components, and agents relevant to the mechanism. | Unified; modular; hybrid; multi-agent |
-| **Affected Component** | The component or subsystem in which the mechanism manifests or becomes security-relevant. | Multimodal model; OCR service; reasoning model; agent orchestrator; tool executor |
-| **Affected Interface** | The information or control transfer through which the mechanism propagates, including concrete inter-component boundaries or logical processing transitions. | Retrieved webpage → model context; model → tool executor; image preprocessing → multimodal model |
-
-Architecture types are descriptive and can overlap. A multi-agent system may itself contain unified or modular multimodal components.
-
-The Affected Interface field should distinguish a **concrete component interface** from a **logical transition** within a model or processing pipeline. The existence of separate internal components should not be inferred solely from the observable behavior of a system.
-
-**Documented Architectural Examples**
-
-| Published Attack | Architectural Context | Security-Relevant Interface | Related Security Concept |
-|---|---|---|---|
-| **Indirect Prompt Injection in LLM-Integrated Applications (Greshake et al., 2023)** [1] | Applications integrating language models with retrieval and external content sources | Retrieved external content → model context | OWASP LLM01: Prompt Injection; MITRE ATLAS: Indirect Prompt Injection |
-| **Image-Scaling Prompt Injection (Trail of Bits, 2025)** [4] | Gemini CLI processing attacker-crafted images and invoking connected Zapier tools | Image preprocessing → multimodal model; agent → connected tools | OWASP LLM01: Prompt Injection; OWASP LLM06: Excessive Agency |
-
-In the Greshake et al. research, untrusted external content entered an LLM-integrated application's processing context and influenced model behavior [1]. In the Trail of Bits demonstration, image preprocessing revealed malicious instructions, and the resulting agent behavior involved connected tools [4]. Both may involve a **Data-Control** boundary violation, but the processing locations, component interfaces, and mitigation opportunities differ. Architectural Context records those differences without needing a separate core subclass for each architecture or deployment technology.
-
 #### 5.4.3 Relationship to Existing Security Standards
 
-Supporting annotations complement established adversarial machine-learning and cybersecurity frameworks, particularly those addressing attacker capabilities, attack construction, and system architecture.
+Supporting annotations complement established adversarial machine-learning and cybersecurity frameworks, particularly those addressing attacker capabilities and attack construction.
 
 | Framework | Relevant Concepts | Relationship to Supporting Annotations |
 |---|---|---|
 | **NIST AI 100-2e2025** | Attacker knowledge, capabilities, objectives, and attack lifecycle. | Provides established concepts for describing attacker access and threat conditions. Construction Method records narrower information about payload development, access, and transfer. |
-| **MITRE ATLAS** | Adversarial tactics and techniques, including crafting adversarial data through manual modification, black-box optimization, white-box optimization, and black-box transfer. | Provides directly related technique terminology for Construction Method. The taxonomy splits these characteristics into separate descriptive fields that can be combined, instead of one mutually exclusive technique label. |
+| **MITRE ATLAS** | Adversarial tactics and techniques, including crafting adversarial data through manual modification, black-box optimization, white-box optimization, and black-box transfer. | Provides directly related technique terminology for Construction Method. The taxonomy splits these characteristics into separate, combinable descriptive fields. |
 | **OWASP Top 10 for LLM Applications (2025)** | Risks such as Prompt Injection (LLM01) and Excessive Agency (LLM06). | Provides application-security context for architectural interfaces where untrusted content may influence model decisions or connected tools. |
 
-The mappings are conceptual and do not imply equivalence between the proposed annotations and the terminology or classification structures of the cited frameworks.
-
-The relationship between these annotations and the core taxonomy can be summarized as follows:
-
-| Element | Primary Question |
-|---|---|
-| **Boundary** | What security assumption is violated? |
-| **Representation** | How is the adversarial information embodied or activated? |
-| **System Processing Stage** | Where does the mechanism enter, activate, or produce effects? |
-| **Construction Method** | How was the payload created or refined, what knowledge or access was available, and was it transferred from another target? |
-| **Architectural Context** | Which system organization, components, and interfaces are relevant to the mechanism? |
-
-Construction Method and Architectural Context remain **optional supporting annotations**, not additional dimensions of the core mechanism tuple.
-
-When evidence is incomplete, fields should be marked Unknown or left unassigned. Construction history, attacker access, and internal architecture should not be inferred from the payload's representation or apparent success alone.
+The mappings are conceptual. When evidence is incomplete, mark fields Unknown or leave them unassigned, and record construction history, attacker access, and internal architecture from direct evidence about each.
 
 
+## 4. Architectural Analysis Method
 
+Application-security architects already model systems with standard data-flow diagrams (DFDs) composed of external entities, processes, data stores, and data flows (Shostack, 2014). This method keeps the standard DFD and adds three lightweight annotations: per-sink security constraints, component functional roles, and flow trust labels and representational fidelities (**Table 3**). Once a diagram is annotated, candidate boundary crossings, mechanism records (`M = ⟨Invariant, Divergence, Representation⟩`), multi-step attack chains, minimal structural cut points, and falsifiable security tests follow from graph traversal rules. That leaves one documented judgment per crossing: can an attacker realize it in practice?
 
+The method combines three established foundations: top-down loss-to-constraint analysis from STPA-Sec (Young & Leveson, 2013; `arXiv:2006.02930`), source-to-sink taint and information-flow lattices (Denning, 1976; FIDES, `arXiv:2505.23643`; CaMeL, Debenedetti et al., 2025) paired with attack-graph minimum cuts (Phillips & Swiler, 1998; Sheyner et al., 2002; Ou et al., 2005), and the distinction between safety (*nothing unauthorized happens*) and liveness (*a required intervention occurs within its operational bound*) (Lamport, 1977; Alpern & Schneider, 1985).
+
+| Layer & Attached Element | Annotation Values & DFD Notation | Operational Meaning | Multimodal & Agentic Examples |
+| :---- | :---- | :---- | :---- |
+| **Step 1: Sink Constraints**<br/>*(attached to authority, egress, susceptible, and safeguard sinks)* | **Flow clearance** | Allowed trust/sensitivity labels (`label ⊑ clearance`) and permitted data types at an authority or egress sink; violations break **Flow (integrity)** or **Flow (confidentiality)**. | Supplier content may populate typed invoice fields only; internal records may reach only the ERP system and finance channel. |
+| | **Reference specification** | Ground-truth reference that acted-on values at an authority sink must match; violations break **Meaning**. | Executed payee and amount must match the invoice as read by a human reviewer; a text claim must agree with an independent visual or ledger observation. |
+| | **Resource budget** | Maximum operational expenditure per admitted unit at a susceptible process; violations break **Cost**. | At most 50 pages, 60 seconds, `\$0.50` in model spend, and 5 tool calls per invoice; at most 4,000 characters and 5 seconds per support ticket. |
+| | **Safeguard obligation** | Mandatory intervention and explicit timing or scope bound (a liveness requirement) on a `guard` or alert sink; omissions breach **Meaning**, **Flow (integrity)**, or **Cost**. | Every payable over `\$10,000` must reach human review before settlement; every abuse or threat ticket must page on-call responders within 1 hour. |
+| **Step 2: Node Shapes & Functional Roles**<br/>*(attached to external entities, stores, and processes)* | **`source`** · Rectangle `[ ]` | External entity supplying potentially attacker-controlled inputs. | Email sender, fetched web page, uploaded screenshot, telephony caller, physical camera scene. |
+| | **`receiver`** · Rectangle `[ ]` | External entity receiving outbound messages, network fetches, or physical side effects. | Customer email recipient, external webhook host, physical brake or steering actuator. |
+| | **Data store** · Cylinder `[( )]` | Persists state read or mutated across execution steps. | CRM database, vendor reference record, calendar store, internal ticket header. |
+| | **`guard`** · Hexagon `{{ }}` | Process that evaluates content and gates downstream flow or triggers a required alert. | Text prompt filter, human approver, deterministic threshold gate, on-call abuse pager. |
+| | **`transform`** · Rounded `([ ])` | Process that deterministically or algorithmically converts an input artifact into a new form. | Image resizer, HTML/Unicode normalizer, audio resampler, container splitter, OCR or ASR extractor. |
+| | **`follower`** · Rounded `([ ])` | Instruction-following or model-driven process whose output selection can be steered by input semantics. | Agent orchestrator, triage classifier, field extractor, summarizer, VLM planner. |
+| | **`executor`** · Rounded `([ ])` | Process that deterministically executes structured arguments, commands, or queries under system authority. | Queue router, payment API connector, MCP tool runner, SQL or shell executor. |
+| | **`renderer`** · Rounded `([ ])` | Process that evaluates active output markup or fetches external references in a client or UI. | Staff HTML previewer, Markdown/Mermaid renderer, link unfurler, browser client. |
+| | **`relay`** · Rounded `([ ])` | Process that stores or passes raw bytes or typed values through unchanged. | Audit log archive, encrypted transport passthrough. |
+| **Step 2: Flow Labels & Fidelities**<br/>*(attached to directed data flows)* | **Trust labels:**<br/>`Untrusted` · `Trusted` · `Secret` | Provenance and sensitivity of a flow. A process with multiple inputs propagates the *least-trusted* (`Untrusted`) and *most-secret* (`Secret`) labels among its inputs. | Customer ticket (`Untrusted`), verified system configuration (`Trusted`), internal fraud header or private calendar (`Secret`). |
+| | **`Full` fidelity** | Preserves the raw carrier, including covert or sub-perceptual channels ignored by ordinary reading, as well as outputs of model-based extractors (`OCR`, `ASR`). | *Text:* raw Unicode (zero-width/tag chars intact). *Image/doc:* raw pixels, EXIF, hidden PDF layers, aliasing downscale. *Audio:* full spectrum, near-ultrasonic or reverberant perturbations. *Video:* unsampled frames, auxiliary tracks. |
+| | **`Normalized` fidelity** | Retains only features an ordinary human reader perceives after a deterministic transform strips residual channels. | *Text:* canonicalized Unicode with control/tag chars stripped. *Image/doc:* re-encoded pixels, metadata stripped, anti-aliased resampling. *Audio:* band-limited anti-aliased resampling. *Video:* fixed frame grid with auxiliary tracks stripped. |
+| | **`Typed` fidelity** | Constrained to values of a narrow, schema-enforced primitive type across any modality. | Fixed enum (`L = {billing, technical, ...}`), bounded numeric value, or allowlisted identifier. |
+
+*Table 3. Data-flow diagram shape and annotation reference across Steps 1 and 2.*
+
+### 4.1 Step 1: Sink Constraints
+
+Security is defined relative to an explicit policy that partitions system states into authorized and unauthorized ones (Bishop, 2002). Two evaluators always differ in minor details, so violations are measured against explicit constraints on the system's sinks: untrusted content steering execution presupposes rules on what untrusted data may legitimately influence, a confidentiality breach presupposes approved recipients, and resource exhaustion presupposes a budget.
+
+Following STPA-Sec's top-down sequence (Young & Leveson, 2013), the analyst derives sink constraints in three substeps:
+
+1. **Stakeholder losses:** Unacceptable business, operational, or physical outcomes (for example, *unauthorized wire transfers, leaked confidential records, unreviewed fraud or abuse reports, or physical collision with a pedestrian*).
+2. **System hazards:** System-level states or outputs that precipitate a loss (for example, *a payment executes with terms differing from an approved invoice, sensitive context reaches an unapproved recipient, or a high-risk item bypasses human review*).
+3. **Per-sink constraints:** Enforceable conditions attached to each authority (`executor`/`renderer`), egress (`receiver`), susceptible (resource-consuming), and safeguard (`guard`) sink on the DFD (**Table 3**, Step 1). Because agents often exist specifically to process untrusted inputs (such as supplier invoices or support tickets), an authority sink's **Flow clearance** states *which choices* untrusted data cannot steer (such as tool selection or bank routing overrides) and *through which narrowed types* it may legitimately act, while its **Reference specification** defines the ground-truth source that acted-on values must match.
+
+Three rules govern Step 1:
+
+* **State an explicit safeguard obligation for every safeguard whose job is to intervene.** Attacks that suppress a fraud flag, omit a malicious message from an executive summary, or make a video quality-control sampler skip non-compliant frames execute no unauthorized tool call. A liveness bound on the safeguard sink (for example, *"before settlement"* or *"within 1 hour"*) is what makes a suppressed alert a violation.
+* **Record an unconstrained sink as an architectural finding.** If policy lets a client previewer fetch images from any external host, exfiltration via rendered Markdown breaks no stated rule; the finding is the missing security requirement.
+* **Attach STRIDE impact categories to sink constraints.** Because STRIDE names the downstream consequence, the same `Meaning` divergence can cause Elevation of Privilege, Information Disclosure, or Tampering depending on which sink its path reaches.
+
+### 4.2 Step 2: Annotated Data-Flow Diagram
+
+Starting from the system's DFD, the analyst assigns a functional role to each process and external entity and annotates each directed flow with a trust label and representational fidelity (**Table 3**, Step 2).
+
+**Assigning functional roles.** Roles describe pipeline behavior rather than underlying vendor technology:
+* An LLM that only blocks unsafe inputs carries the `«guard»` role (its susceptibility to evasion is a `Guard-Model Capability` crossing); an LLM whose output drives downstream data, routing, or tool selection carries the `«follower»` role.
+* **Draw `«executor»` and `«renderer»` nodes as separate processes from the `«follower»` node that invokes them.** The `«follower» → «executor»` or `«follower» → «renderer»` edge is the decision interface, and its *fidelity* is often the most consequential annotation on the diagram: if a model emits only a schema-validated enum (`Typed` fidelity), an attacker who steers the model is limited to selecting an incorrect enum value (a `Meaning` violation), which closes `Flow (integrity)`.
+* **Aggregation is structural.** Any process with two or more incoming flows is an aggregation point.
+
+**Unpacking multimodal and agentic pipelines (Step 2 checklist).** High-level diagrams often collapse preprocessing, extraction, and rendering into a single "AI service" box (**Appendix B.2** maps these locations to traditional processing stage names). Before Step 3, verify that the DFD unpacks six commonly hidden elements:
+1. **Hidden transforms (`«transform»`):** Image downscalers, audio resamplers, video frame samplers, Unicode/HTML normalizers, decoders, and archive or document container splitters.
+2. **Perceptual extractors (`«transform»` or `«follower»`):** OCR, ASR, captioning, or object-detection components that convert one carrier into another before reasoning.
+3. **Guard placement (`«guard»`):** Whether human review, content filtering, or schema validation inspects the artifact *before* or *after* a `«transform»`.
+4. **Decision-to-action interfaces (`«follower» → «executor»`):** Every tool connector, query runner, router, or physical actuator, separated from the model that invokes it.
+5. **Active output consumers (`«follower» → «renderer»`):** Any chat UI, preview console, Markdown/Mermaid renderer, or link unfurler that interprets markup or fetches remote URLs.
+6. **Single-session feedback loops (`«executor» / «renderer» → «follower»`):** Any path where tool outputs, retrieved records, or captured browser screenshots re-enter the ongoing execution cycle.
+
+**Why only deterministic transforms grant `Normalized` fidelity.** Marking a flow `Normalized` asserts that covert channels absent from ordinary human perception have been removed deterministically, such as stripping PDF metadata, canonicalizing Unicode, or applying an anti-aliased low-pass filter before downsampling (an aliasing downscaler's output stays `Full`). Output flows from model-based extractors (`OCR`, `ASR`, captioners) stay at `Full` relative to a human reference because machine and human perception differ: OCR can transcribe low-contrast or micro-printed instructions a human reviewer overlooks and emit them downstream as plain `Overt Semantic` text.
+
+**Deriving trust boundaries.** A trust boundary falls automatically across every flow whose propagated label changes or violates the receiving sink's flow clearance; any mismatch with an architect's intuition highlights an unexamined trust assumption.
+
+### 4.3 Step 3: Deriving Crossings, Attack Chains, and Cut Points
+
+Once the diagram is annotated, findings follow from seven traversal rules (lookup tables and formal rules appear in **Appendix A**):
+
+1. **Enumerate and group paths.** Trace every directed path from an external `source` to a constrained sink and from a `Secret` store or input to an external `receiver`, grouping parallel edges that share the same `(source, guards crossed, sink)`.
+2. **Identify boundary crossings (`Invariant × Divergence`).** Along each grouped path, node-and-edge patterns determine candidate crossings mechanically (**Appendix A, Table A.1**). A sink's *Reference specification* serves as the evaluation baseline and generates crossings only for `Meaning` reference constraints (**Appendix A.1**).
+3. **Look up surviving representations.** At each crossing, intersect the incoming flow fidelity (`Full`, `Normalized`, or `Typed`) with the representation survival table (**Section 3.2, Table 2**) to determine which forms (*Overt Semantic*, *Encoded / Obfuscated*, *Steganographic*, or *Adversarial Perturbation*) arrive intact.
+4. **Emit mechanism records (one crossing per record).** Emit one record `M = ⟨Invariant, Divergence, Representation⟩` per crossing judged *realizable* by an attacker, noting its evidence maturity (`Observed`, `Demonstrated`, or `Feasible`). Keeping records 1-to-1 with crossings (so evading an input `«guard»` and steering a `«follower»` emit two distinct records even from a single payload) keeps chain lengths comparable across architectures.
+5. **Assemble attack chains (supplied vs. granted legs).** Each required step toward violating a sink constraint is a **leg**: **granted** when the architecture permits passage unconditionally (unguarded channels, `auto-approve` tools, or task-permitted navigation) and **supplied** when a deployed `«guard»` forces an active bypass:
+   * Harm requires *every leg* of a sink violation; the attacker supplies whichever legs the architecture did not already grant (yielding single-record exploits when remaining legs are granted, or in standalone `Time` and `Cost` failures).
+   * Records link wherever one crossing's postcondition satisfies the next crossing's precondition. **Confidentiality exfiltration chains** join an integrity path (steering a `«follower»` that holds `Secret` state) with a confidentiality path (carrying that `Secret` output to an unauthorized `«receiver»`), capturing the "lethal trifecta" (Willison, 2025) as graph topology. *Fragmented / Distributed* payloads emit one `Meaning × Artifact State` aggregation record with a conjunctive precondition across the contributing flows.
+6. **Compute minimal structural cut points.** Identify the minimum set of flows or processes whose hardening or removal disconnects external sources from violated sinks (e.g. narrowing a `«follower» → «executor»` flow from `Full` to `Typed`, or gating an auto-fetching `«renderer»`).
+7. **Verify annotation coverage.** Confirm that every process, flow, and sink is annotated, flagging any unannotated element as a specification gap and recording the structural reason (*`relay` node, trusted and unreachable, within sink constraint, or out of scope*) whenever an element produces zero crossings.
+
+Completeness holds relative to the diagram: an omitted flow means an omitted chain. Structural reachability determines which representations *can arrive* at a crossing; whether a specific model is affected is an empirical question tracked via evidence maturity and verified in Step 4.
+
+### 4.4 Step 4: Deriving Security Tests and Reverse Triage Order
+
+Each derived attack chain maps to a falsifiable **security test scenario** whose pass/fail oracle is the target sink constraint:
+
+* **Test setup and input:** Construct an entry artifact at `«source»` using the surviving `Representation` form(s) required for each attacker-*supplied* leg while leaving *granted* legs in their default state.
+* **Pass/fail oracle:** The test *fails* (confirming the vulnerability) if and only if execution violates the terminal **Sink Constraint** (*Flow clearance*, *Reference specification*, *Resource budget*, or *Safeguard obligation* window).
+
+Design-time reports can present compact summary counts by crossing pattern, sink, and cut point in the main text while placing exhaustive derivation tables in an appendix (e.g. the 15-component Invoice-Processing Agent in **Appendix D.1** yields 17 crossings, 1 missing-safeguard gap, 13 realizable records, 9 chains, and 13 tests).
+
+**Reverse traversal for incident mechanism triage (Use Case C).** To triage a disclosed vulnerability or incident (**Section 5.2**), run the same method in reverse on a minimal diagram:
+1. Draw *only* the path traversed from entry `«source»` to harmed sink using vendor-neutral functional roles (`«guard»`, `«transform»`, `«follower»`, `«executor»`, `«renderer»`).
+2. Annotate roles, flow labels/fidelities, and the violated sink constraint along that path, then apply Step 3 to emit the chain's mechanism records, separate *supplied* bypasses from *granted* legs, and locate minimal cut points.
+3. Any architectural detail omitted from the incident report (such as whether a filter inspected the raw upload or the resized tensor) surfaces as an unannotated element, defining the exact triage question to ask the system owner; matching the resulting chain against the full DFD reveals sibling exposures across other tools and modalities.
 
 
 ## 7. Worked Examples and Case Studies
@@ -738,98 +706,6 @@ The modality-independent claim is not that every implementation is identical. It
 | Structured | Deserialization / formula / macro as control | CSV cell or JSON field looks like a SKU; spreadsheet formula or YAML tag coerces into a tool argument that deletes a bucket. | Parser / Interpreter Differential; Data-Control | Encoded / Obfuscated \+ Transformation-Triggered | Transformation to Interpretation to Action | Observed |
 
 Evidence maturity levels: **Observed** — documented in real-world production incidents. **Demonstrated** — proven in research with end-to-end exploitation. **Feasible** — plausible extrapolation from demonstrated mechanisms.
-
-
-## Practical Applicability and Industry Reuse
-
-The taxonomy is meant to be reused for threat modeling and security testing of multimodal and agentic AI systems. Classifying mechanisms by **Boundary × Representation × System Processing Stage** keeps the analysis consistent across systems, while the modality-specific details needed for testing are still recorded.
-
-### Practitioner Workflow
-
-Organizations can apply the taxonomy through six steps:
-
-1. **Map the AI Architecture:** Identify input modalities, preprocessing components, models, tools, permissions, and trust boundaries.
-2. **Identify Potential Boundary Violations:** Examine possible failures across Meaning, Authority, and Cost boundaries.
-3. **Characterize Attack Representations:** Identify how adversarial content may be carried through text, images, audio, video, or structured artifacts, including relevant transformations.
-4. **Locate Processing Stages:** Determine where the adversarial content enters, becomes effective, and produces security-relevant effects.
-5. **Develop and Execute Tests:** Construct modality-specific test scenarios and evaluate whether the identified security assumptions hold.
-6. **Document Findings:** Record evidence, confirmed violations, relevant controls, and mappings to existing security frameworks.
-
-### Illustrative Example: AI Invoice-Processing Agent
-
-Consider an AI agent that processes supplier invoices and interacts with a payment API. An attacker submits an invoice containing instructions intended to redirect a payment.
-
-| Boundary | Representation | Processing Stage | Security Test |
-|---|---|---|---|
-| **Transform Consistency** | Processing-Dependent + Transformation-Activated | Transformation | Test whether image resizing reveals instructions missed by an earlier security assessment |
-| **Data-Control** | Overt Semantic | Interpretation / Decision | Test whether the agent follows instructions embedded in untrusted invoice content |
-| **Decision-Action** | Overt Semantic | Action | Test whether the payment executor rejects transactions lacking required authorization |
-
-These represent distinct threat hypotheses. Boundary violations are confirmed only when testing establishes the corresponding security failure.
-
-### Machine-Readable and Reusable Industry Assets
-
-To support adoption, the taxonomy can be published as a **versioned, machine-readable reference in JSON or YAML**, accompanied by:
-
-- **Taxonomy Catalog:** Standardized identifiers, definitions, and classification rules.
-- **Modality Context:** Input modality, payload carrier, transformations, and affected interfaces.
-- **Security Test Catalog:** Reusable tests with prerequisites, procedures, and expected secure behavior.
-- **Assessment Schema:** Structured records of threat hypotheses, test results, evidence, and candidate controls.
-- **Framework Mappings:** References to relevant NIST, MITRE ATLAS, MITRE D3FEND, and other security concepts.
-
-Organizations could then reuse the same mechanism classifications and test templates across different AI systems, changing only the modality-specific payloads, system configurations, and authorization requirements. Schema validation would catch structural errors in a record, but confirming that a security failure actually happened is still the practitioner's job.
-
-
-
-### Practical Value: Mechanism-Based Security Test Derivation Across Modalities
-
-Besides classifying known attacks, the taxonomy can be used to derive security tests for other modalities and architectures. Once the mechanism behind an attack is written down, practitioners can look for the same mechanism in systems the original attack never touched.
-
-MITRE ATLAS, NIST AI 100-2, and OWASP classify adversarial techniques, security risks, and attacker behaviors. The three dimensions here record something those classifications leave out: which security assumption is violated (Boundary), how adversarial influence is represented or activated (Representation), and where in the pipeline the mechanism takes effect (System Processing Stage).
-
-For example, consider an image-scaling prompt-injection attack in which malicious instructions become visible only after an image is resized. The taxonomy characterizes this mechanism as follows:
-
-- **Boundary:** Transform Consistency. An earlier security assessment becomes invalid when a transformation exposes previously undetected security-relevant content.
-- **Representation:** Processing-Dependent, with a Transformation-Activated modifier. The adversarial instructions become effective through a specific processing operation.
-- **System Processing Stage:** Transformation → Perception / Extraction → Interpretation / Decision.
-
-Once this underlying mechanism is identified, practitioners can investigate whether similar security failures could arise in other modalities. For example:
-
-- **Text:** Could Unicode normalization or decoding expose malicious instructions that bypassed earlier validation?
-- **Audio:** Could resampling or transcription reveal adversarial instructions missed by an upstream security check?
-- **Video:** Could frame sampling or preprocessing cause security-relevant information to be overlooked or interpreted differently?
-- **Structured data:** Could parsing or deserialization produce security-relevant interpretations that differ from those used during initial validation?
-
-These are testable hypotheses, not confirmed vulnerabilities. Each one asks whether the same security invariant fails through a different modality's processing.
-
-A catalog of documented attacks only covers attacks someone has already found. Abstracting an attack into a mechanism lets practitioners derive new test scenarios, find the processing stages involved, and check whether controls still hold across transformations and architectural boundaries. Whether this improves on existing frameworks still has to be shown through comparative evaluations (e.g. better test coverage, more consistent classification, or weaknesses found that were previously missed).
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 ### 7.2 Example: Sequence-Dependent Injection Across Streaming Artifacts
@@ -978,6 +854,90 @@ The attacker can tailor the pair to exploit whichever arbitration bias the model
 **Composition operator: Contradiction** (from the Section 6.3 table). In Completion (Section 7.5), both modalities cooperate to produce an emergent meaning. In Contradiction, the modalities deliberately conflict, and the attack exploits whichever one the model treats as authoritative.
 
 **Comparison with A17 (Audio Contradiction / Speech Exploit):** The A17 entry in the control-coverage matrix (Section 9.2.1) also uses Contradiction as the composition operator, but with Processing-Dependent representation (an adversarially optimized audio waveform). In these scenarios both modalities are Overt Semantic, so the contradiction is between two plainly readable/viewable inputs. The boundary (Semantic Stability) and composition operator are the same, and only the representation form differs, which is enough for the taxonomy to tell them apart: A17 requires detecting a processing-dependent perturbation, while these scenarios require detecting a logical inconsistency between two overt inputs.
+
+
+## Appendix A: Formal Derivation Specification
+
+This appendix specifies the formal graph-traversal lookup rules and propagation properties used in Step 3 of the architectural analysis method (**Section 4.3**).
+
+### A.1 Step 3 Crossing-Derivation Lookup Table
+
+Along each grouped directed path from an external `«source»` to a constrained sink (or from a `Secret` store/input to an external `«receiver»`), structural node-and-edge patterns determine candidate boundary crossings (`Invariant × Divergence`) mechanically:
+
+| Structural Pattern Along the Directed Path | Derived `Invariant × Divergence` | Named Boundary Subclass(es) |
+| :---- | :---- | :---- |
+| A downstream process acts on content in the same artifact state that a deployed `«guard»` (or the sink's stated *Reference specification*) evaluated | **Meaning × Evaluator** | *Human-Machine Perception*; *Guard-Model Capability* (deployed reference); *Semantic Stability* (idealized reference) |
+| A `«transform»` modifies the artifact between an upstream `«guard»` (or the sink's *Reference specification*) and downstream consumption | **Meaning × Artifact State** | *Transform Consistency* |
+| A `«guard»` and a downstream consumer inspect *different* parallel transforms or parses of the same upstream artifact (for example, two parsers, or a human approval card vs. raw tool arguments) | **Meaning × Evaluator** | *Parser / Interpreter Differential* |
+| Guards inspect individual flows separately before a downstream process aggregates them, or a *Safeguard obligation* bounds a cumulative total that guards check only per item | **Meaning × Artifact State** | *Transform Consistency* (aggregation) |
+| An upstream `«guard»` validates a data store at time `t`, and a downstream consumer re-reads that store at `t + Δ` | **Meaning × Time** | *Check-Use Consistency* |
+| A permission or capability grant remains active at a sink after its authorized task window or revocation | **Flow (integrity) × Time** | *Grant Persistence* |
+| A flow reaches an authority or egress sink carrying a trust/sensitivity label or fidelity prohibited by that sink's *Flow clearance* (or triggers an `«executor»` that skips a required authorization check) | **Flow × Position** | *Data-Control*, *Decision-Action*, or *Delegation Authority* (integrity); *Context Confinement* or *Output-Consumer* (confidentiality) |
+| An instruction-following (`«follower»`) process controls whether or what a safeguard sink records or escalates | **Flow (integrity) × Position** | Culminates in a *Safeguard obligation* breach |
+| A susceptible sink's resource expenditure is unbounded by its upstream admission check against its *Resource budget* | **Cost × Evaluator** | *Resource Accounting* |
+
+*Table A.1. Step 3 structural crossing-derivation lookup table.*
+
+**Evaluation-baseline rule for reference specifications.** A sink's *Reference specification* (for example, *"the invoice total as read by a human reviewer"*) serves as an evaluation baseline rather than a runtime gate. Comparing a process against an idealized reference generates crossings only for `Meaning` reference specifications, where extracting or acting on an incorrect value is itself the hazard; for a *Flow clearance*, concealment matters only when a deployed human or automated `«guard»` stands on the path.
+
+### A.2 Path-Grouping, Flow-Fidelity Propagation, and Chain-Length Rules
+
+1. **Label propagation across multi-input nodes:** Any process receiving `k ≥ 2` incoming flows propagates the *least-trusted* provenance label (`Untrusted < Trusted`) and the *most-sensitive* confidentiality label (`Secret > Public`) to its outbound flows unless a deterministic rule on a `«guard»` or `«executor»` strips or rejects that label.
+2. **Flow-fidelity transitions:**
+   * A flow leaves an external `«source»` at `Full` fidelity unless constrained by physical or protocol framing.
+   * Only a deterministic `«transform»` that strips sub-perceptual and metadata channels relative to ordinary human perception transitions a flow from `Full` to `Normalized`; model-based extractors (`OCR`, `ASR`, captioners) leave outbound fidelity at `Full` relative to a human reference.
+   * Only deterministic schema validation to a narrow primitive (enum, bounded number, allowlisted ID) transitions a flow to `Typed`.
+3. **Path grouping:** Parallel edges sharing the same `(source, guards crossed, sink)` form a single equivalence class before crossing enumeration, preventing combinatorial path explosion on multi-tool agents.
+4. **Chain-length accounting:** A complete attack chain contains one record per *supplied* guard-bypass leg, one record per flow-clearance-violating edge into a sink, and (for `Meaning` reference specifications) one record per reference divergence, so chain length counts how many independent barriers the architecture forces an attacker to overcome.
+
+---
+
+## Appendix B: Supporting Annotation Schema and Machine-Readable Format
+
+### B.2 System Processing Stage Reference Mapping
+
+*System Processing Stage* is derived from where a crossing occurs on the annotated DFD (**Section 4.2**). To support crosswalks with stage-oriented reports and benchmarks, **Table B.2** maps traditional functional stage definitions and location tags (*Entry*, *Activation*, *Effect*) deterministically to DFD roles and path positions:
+
+| Processing Stage | Operational Definition | Deterministic DFD Role & Path Mapping |
+| :---- | :---- | :---- |
+| **Ingestion** | An artifact enters the system through an input channel, sensor, tool response, or external data source. | Outbound flow from an external `«source»` (or initial read from an untrusted data store) into the first system node (**Entry** location). |
+| **Transformation** | An artifact undergoes processing that changes its encoding, structure, resolution, format, segmentation, or ordering. | Deterministic or algorithmic `«transform»` node (resizer, decoder, normalizer, resampler, frame sampler, chunker) where a `Meaning × Artifact State` crossing activates (**Activation** location). |
+| **Perception / Extraction** | A model or subsystem extracts or recognizes content, features, symbols, objects, speech, or other information from an artifact. | Perceptual extractor (`OCR`, `ASR`, object detector) or multimodal encoder interface (`«transform»` or `«follower»`) where `Human-Machine Perception` or `Guard-Model Capability` crossings activate. |
+| **Interpretation / Decision** | The system assigns meaning, assesses relevance or authority, and determines an appropriate response or operation. | Instruction-following or decision-making `«follower»` node (or policy `«guard»`) where `Data-Control` or `Semantic Stability` crossings take effect (**Effect** location). |
+| **Generation** | The system produces a response, output artifact, tool request, or action parameters. | Outbound decision/output flow emitted by a `«follower»` toward an `«executor»`, `«renderer»`, or external `«receiver»` (carrying `Full`, `Normalized`, or `Typed` fidelity). |
+| **Action** | A generated request or decision is executed through a tool, API, application, or actuator, changing state or transferring information. | `«executor»` sink (or physical actuator `«receiver»`) governed by a *Flow clearance* and *Reference specification* where `Decision-Action` or `Delegation Authority` takes effect. |
+| **Consumption** | Generated output is rendered, displayed, transmitted, decoded, or fetched by a downstream component or recipient. | `«renderer»` node or outbound flow to an external `«receiver»` governed by an egress *Flow clearance* where `Output-Consumer` or `Context Confinement` takes effect. |
+| **Feedback** | Outputs, tool results, or environmental observations return to an ongoing execution loop and influence subsequent processing. | Directed cycle edge from an `«executor»`, `«renderer»`, or mutated data store back into an upstream `«transform»` or `«follower»` within the same execution session. |
+
+*Table B.2. Mapping functional processing stages and Entry/Activation/Effect locations to annotated DFD elements.*
+
+The DFD mapping keeps these stage distinctions:
+* **Transformation vs. Perception / Extraction:** Deterministic media/encoding transforms (`«transform»`) alter artifact state (`Meaning × Artifact State`). Perceptual extraction (`OCR`, `ASR`, model encoders) evaluates content (`Meaning × Evaluator`, leaving output flow fidelity at `Full` relative to a human reference).
+* **Generation vs. Action vs. Consumption:** Emitting a tool request or markup draft (`«follower»` outbound edge), executing the tool (`«executor»`), and rendering active markup in a client (`«renderer»`) are three separate steps.
+* **Feedback vs. Ingestion:** A tool response or browser screenshot returning along a cycle edge constitutes *Feedback* from the prior action and *Ingestion* into the next pass of the `«follower»`.
+
+### B.3 Machine-Readable Schema and Reusable Assessment Assets
+
+To support automated traversal and cross-team reuse (**Section 7**), annotated DFDs, derived mechanism records, and security test plans can be serialized in a versioned JSON or YAML reference format containing five linked components:
+
+* **Taxonomy Catalog:** Standardized identifiers and lookup rules for `Invariant × Divergence` cells, `Representation` forms and modifiers, and flow fidelities.
+* **Annotated DFD Specification:** Nodes (`id`, `role`, `sink_constraints`), directed flows (`source`, `target`, `trust_label`, `fidelity`, `modality_context`), and path-grouping equivalences.
+* **Derived Mechanism & Chain Inventory:** Realizable crossings (`M = ⟨Invariant, Divergence, Representation⟩`), assembled attack chains with explicit `granted` vs. `supplied` legs, evidence maturity (`Observed`, `Demonstrated`, `Feasible`), and minimal structural cut points.
+* **Security Test Catalog:** Reusable test templates generated per chain, specifying entry source, required representation payload, and the target sink constraint used as the pass/fail oracle.
+* **Framework Crosswalk Links:** Machine-readable pointers from each record and sink constraint to MITRE ATLAS, NIST AI 100-2, OWASP, CoSAI Risk Map / SAIF, CWE, and STRIDE (**Appendix C**).
+
+---
+
+## Appendix C: Framework and Standards Crosswalks (Staging)
+
+*(Note: Consolidated framework crosswalk tables across §3.2, §5.3.4, §5.4.3, and §7.3.3 will be merged here under Requirement 6.)*
+
+| Framework | Existing Focus | Relationship to DFD Pipeline Locations (from §5.3.4) |
+|---|---|---|
+| **NIST AI 100-2e2025** | Adversarial machine-learning terminology, attack lifecycle concepts, attacker objectives, capabilities, and knowledge. | Provides a broader threat taxonomy. DFD roles and path crossings identify operational locations within a target system's inference-time execution flow. |
+| **MITRE ATLAS** | Adversarial tactics and techniques targeting AI-enabled systems. | Identifies techniques such as prompt injection and exfiltration through agent tools. Annotated DFD paths locate where these techniques enter, activate, and take effect. |
+| **OWASP Top 10 for LLM Applications (2025)** | Application-level security risks, including Prompt Injection (LLM01), Improper Output Handling (LLM05), and Excessive Agency (LLM06). | Maps to sink constraints and crossings across `«follower»` (`LLM01`), `«executor»` (`LLM06`), and `«renderer»` (`LLM05`) nodes. |
+| **MITRE CWE** | Software weaknesses and their underlying conditions. | Weaknesses such as `CWE-180` (Validate Before Canonicalize) map directly to `«guard» → «transform» → «follower»` crossings (`Meaning × Artifact State`). |
 
 
 #### References
