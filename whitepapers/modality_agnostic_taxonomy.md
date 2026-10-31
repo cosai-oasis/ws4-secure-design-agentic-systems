@@ -634,60 +634,54 @@ Four operational benefits follow from path-based incident mechanism triage (whic
 3. **Proprietary implementation details stay confidential:** Because diagrams use functional roles and abstract flow fidelities, organizations can share CWE-like mechanism chains and keep internal product versions, exact resizing dimensions, and raw exploit payloads private.
 4. **Out-of-scope failures separate cleanly:** Failures originating inside the system are reliability bugs, prompt-persuasion phrasing sits inside a single `«follower»` node, and training-time poisoning predates the inference-time DFD.
 
-### 7.1 Image-Scaling Prompt Injection
+### 5.3 Cross-Modal Coverage Planning (Use Case B): Variant Prediction and Embodied Robotics
 
-#### 7.1.1 Worked Example 1: Image-Scaling Prompt Injection Across Modality Analogs
+A mechanism record names a structural crossing, so it predicts variants on any surface that reproduces that crossing. The procedure reuses Steps 2–4 unchanged: hold the sink constraints and flow fidelities fixed, swap the modality of the `«source»` flow, and re-derive. Crossings that stay realizable become concrete test hypotheses for the new surface. Crossings that a deployed `Normalized` or `Typed` flow removes show where existing preprocessing already blocks the mechanism. Red teams use the resulting matrix to plan coverage across modalities from one diagram, and the same exercise extends to physical sensors.
 
-An uploaded image appears benign at the representation reviewed by a human or upstream control, and resizing turns it into an effective instruction that the multimodal model interprets and an agent executes.
+**Physical-world delta.** **Figure 3B** shares the left-to-right perception-to-action layout of **Figure 3A** and replaces the uploaded image with a camera on a campus delivery robot traveling at 2 m/s. The attacker places Eykholt et al.'s (2018) Robust Physical Perturbation (RP2) stickers on a physical stop sign.
 
-| Dimension | Classification |
-| :---- | :---- |
-| Boundary – Meaning | Transform Consistency (pre-transform vs. post-transform evaluation) |
-| Boundary – Authority | Data-Control (data role vs. control role) |
-| Representation | Processing-Dependent (pre-transform) → Overt Semantic (post-transform) \+ Transformation-Activated modifier |
-| Construction | White-box optimization (pixel optimization against resizing algorithm) |
-| System Processing Stage | Transformation → Interpretation / Decision → Generation → Action |
-| Modality | Image |
-| STRIDE mapping | Elevation of Privilege when the attack exercises unauthorized agent authority; potentially Information Disclosure if data is exfiltrated. |
-| ATLAS mapping | Prompt Injection / Prompt Obfuscation-related adversary behavior. |
-| NIST context | Inference-time; attacker supplies image; white-box optional.  |
-| Adversary behavior | AML.T0051 Prompt Injection (or ATLAS Prompt Obfuscation if encoded) |
-| Attacker assumptions | Inference-time; attacker supplies image; white-box optional |
-| OpenCRE relation | Broader than named prompt-injection CRE; map Data-Control as related |
+* **Sink Constraints:** `C1` (*Reference specification* on `Brake Planner`): the acted-on sign class matches the physical signage as a human reads it. `C2` (*Safeguard obligation* on `Brake Planner`): the robot halts before every physical `STOP` crossing (hazard: pedestrian collision).
 
-The modality-independent claim is that the same abstract mechanism recurs through different preprocessing and representation paths, with implementation details that vary by modality.
+```mermaid
+%%{init: {"flowchart": {"nodeSpacing": 24, "rankSpacing": 35}}}%%
+flowchart LR
+    SGN["Stop Sign + Stickers<br/>«source»"]:::added -. "idealized reference" .-> REF["Human Reads STOP<br/>(C1 reference)"]:::muted
+    SGN -- "untrusted · free-space light<br/>[P1] viewpoint & lighting vary" --> CAM(["Camera & Crop<br/>«transform»"]):::added
+    CAM -- "untrusted · full" --> PER(["Sign CNN (EX-6A)<br/>or VLM Planner (EX-6B)<br/>«follower»"]):::exposed
+    PER -- "EX-6A: typed (sign class)<br/>EX-6B: full (robot API call)" --> BRK(["[P2] Brake Planner<br/>«executor» [C1, C2]"]):::exposed
+    BRK -- "trusted · typed" --> MOT["Wheel Motors<br/>«receiver»"]:::muted
 
-| Modality | Transformation | Concrete instance | Boundary | Representation | Stage | Evidence |
-| :---- | :---- | :---- | :---- | :---- | :---- | :---- |
-| Text | Unicode / entity / URL decode | Message contains \`%0AIgnore%20prior\` or homoglyphs that look benign in the review UI; after decoding, the model receives a new instruction. | Transform Consistency; Data-Control | Encoded / Obfuscated \+ Transformation-Triggered | Transformation to Interpretation to Action | Observed |
-| Image | Resize / crop / OCR reveals instruction | Uploaded image looks like a product photo at review size; after downscale or OCR the model reads \`authorize refund \$500\`. | Transform Consistency; Data-Control | Processing-Dependent → Overt Semantic \+ Transformation-Triggered | Transformation to Perception to Interpretation to Action | Demonstrated |
-| Audio | Resample / codec activates spoken command | Clip sounds like music at 48 kHz; after downsample to 16 kHz ASR emits \`transfer funds to account 9912\`. | Transform Consistency; Data-Control | Processing-Dependent \+ Transformation-Triggered | Transformation to Perception to Interpretation to Action | Demonstrated |
-| Video | Frame sampling omission (existing A3/A16) | Harmful or out-of-contract shot sits between sampled frames; QC model skips it and certifies the title. | Transformation Differential; Guard-Model Capability | Steganographic; Temporal; Fragmented | Transformation to Perception | Feasible |
-| Video | Transformation-triggered injection (new) | Slate text is unreadable at source resolution; after player letterbox/OCR the diligence agent treats burned-in text as task instructions. | Transformation Differential; Data-Control; Human-Machine Perception | Overt Semantic \+ Transformation-Triggered | Transformation to Perception to Interpretation to Action | Feasible |
-| Structured | Deserialization / formula / macro as control | CSV cell or JSON field looks like a SKU; spreadsheet formula or YAML tag coerces into a tool argument that deletes a bucket. | Parser / Interpreter Differential; Data-Control | Encoded / Obfuscated \+ Transformation-Triggered | Transformation to Interpretation to Action | Observed |
+    classDef muted fill:#f8fafc,stroke:#cbd5e1,stroke-width:1px,color:#64748b
+    classDef added fill:#dbeafe,stroke:#1d4ed8,stroke-width:2.5px,color:#0f172a
+    classDef exposed fill:#fee2e2,stroke:#dc2626,stroke-width:2.5px,color:#7f1d1d
+```
 
-Evidence maturity levels: **Observed** (documented in real-world production incidents), **Demonstrated** (proven in research with end-to-end exploitation), and **Feasible** (plausible extrapolation from demonstrated mechanisms).
+*Figure 3B. Sensor-to-actuator DFD for a delivery robot reading physical signage (`EX-5` / `EX-6`), aligned with Figure 3A. Blue marks the physical-world additions `[P1]` and `[P2]`; crimson marks exposed crossings. The human reading of the sign is the idealized reference for `C1`, and the path to the brake planner is unguarded.*
 
+Comparing Figure 3B with Figure 3A yields two derived findings:
 
-### 7.2 Example: Sequence-Dependent Injection Across Streaming Artifacts
+1. **`[P1]` Free-space capture changes which representations survive.** The attacker controls a physical surface, and the camera's viewpoint, distance, and lighting set the pixel grid the downscaler samples. A pixel-aligned `Steganographic` scaling payload (Figure 3A, Leg 1) needs a stable grid, so free-space capture defeats it. Two forms survive `[P1]`: `Adversarial Perturbation` optimized across sampled distances and angles, and `Overt Semantic` typography when the `«follower»` is a VLM that reads text. RP2 camouflage stickers caused a road-sign classifier to read `STOP` as `Speed Limit 45` in 84.8% of drive-by video frames (Eykholt et al., 2018), and Tencent Keen Lab (2019) steered a production driver-assistance system into the opposing lane with road-surface stickers.
+2. **`[P2]` Physical harm can occur with `Flow (integrity)` intact.** With a sign classifier (`EX-6A`) emitting a `Typed` class, the brake planner runs authorized logic on a corrupted percept: the record is `Meaning × Evaluator` (*Human-Machine Perception*), `Adversarial Perturbation`, violating `C1` and `C2`, and the `Typed` flow keeps the `Flow (integrity)` boundary closed. With a VLM planner (`EX-6B`) emitting `Full` robot API calls, a second record opens at `[P2]`: `Flow (integrity) × Position` (*Decision-Action*). RoboPAIR (Robey et al., 2024) demonstrated that LLM-controlled robots, including the Clearpath Jackal and Unitree Go2, execute harmful physical actions under adversarial prompting. The minimal cut point for both variants is the `PER → BRK` flow: an independent map or range-sensor interlock enforcing `C2` disconnects every path that reaches the motors through the perception model.
 
-**Scenario**  
-An attack first discovered in video frames predicts a non-obvious vulnerability in streaming text:
+**Evidence maturity.** Each cell in **Table 6** carries one of three labels, assigned by the strongest public evidence for that specific instance:
 
-* **Video:** Frames 40 (ignore), 95 (previous), 150 (instructions), 205 (and), 260 (forward), 315 (all), 370 (emails). Each frame holds one word, and the instruction exists across the frame sequence.  
-* **Streaming Text:** Chunk 1 (... ignore), Chunk 2 (... previous), Chunk 3 (... instructions), Chunk 4 (... and), Chunk 5 (... forward), Chunk 6 (... all), Chunk 7 (... emails). A per-chunk content filter approves every chunk in isolation, while the LLM context aggregates them into an active command.
+* **`Observed`:** Exploitation by real adversaries, documented in deployed systems.
+* **`Demonstrated`:** An end-to-end exploit executed by researchers. This tier includes disclosed CVEs and vendor advisories on released products as well as end-to-end research proofs of concept.
+* **`Feasible`:** Derived architecturally from demonstrated component mechanisms, with no published end-to-end demonstration yet.
 
-#### 7.2.1 Resulting Classification
+| Surface | Divergence on the Path | Mechanism Record | Security Test (fails if the sink constraint breaks) | Evidence Maturity |
+| :---- | :---- | :---- | :---- | :---- |
+| **Text** | Review UI and text `«guard»` see rendered characters; `«follower»` consumes raw code points | `Meaning × Evaluator` (*Human-Machine Perception*), `Steganographic` | Embed a directive in Unicode tag or zero-width characters inside benign text; fails if the `«follower»` acts on it | **`Demonstrated`** (ASCII smuggling against Microsoft 365 Copilot, Rehberger, 2024; Boucher et al., 2022). Text-borne indirect prompt injection in deployed agents: **`Observed`** (Unit 42, 2026) |
+| **Image** | User views full-resolution image; aliasing downscaler feeds `«follower»` | `Meaning × Artifact State` (*Transform Consistency*), `Steganographic → Overt Semantic` | Upload an image whose downscaled form carries a tool directive (Figure 3A); fails if the tool call executes | **`Demonstrated`** (Morozova & Hussain, 2025; Xiao et al., 2019; Quiring et al., 2020) |
+| **Audio** | Listener hears a 48 kHz clip; resampler decimates to 16 kHz for ASR | `Meaning × Artifact State` (*Transform Consistency*), `Steganographic → Overt Semantic` | Check whether the resampler low-pass filters before decimation; on an unfiltered resampler, place a command in the aliased band; fails if ASR transcribes it and the agent acts | **`Feasible`** (predicted by Chen et al., 2021; no published attack yet). Model-targeted audio perturbation is a separate record: `Meaning × Evaluator`, `Adversarial Perturbation`, **`Demonstrated`** (AudioHijack, Chen et al., 2026) |
+| **Video** | Moderation model checks sparsely sampled frames; viewers or downstream consumers receive every frame | `Meaning × Artifact State` (*Transform Consistency*), `Overt Semantic` + *Sequence-Dependent* | Insert a short out-of-policy clip between sampling points; fails if the video is certified compliant | **`Demonstrated`** (omission rates above 90% across five VideoLLMs, arXiv:2508.10974, AAAI 2026; poisoned frame selection, arXiv:2509.20851) |
+| **Streaming text** | Stateless `«guard»` scans each chunk; `«follower»` context aggregates the stream | `Meaning × Artifact State` (*Transform Consistency*, aggregation), `Overt Semantic` + *Fragmented / Distributed* | Split one directive into incomplete pieces across chunk boundaries; fails if every chunk passes and the aggregated directive executes | **`Feasible`** (design gap acknowledged in NVIDIA NeMo Guardrails and LiteLLM documentation and in SentGuard, arXiv:2606.02041; no published exploit yet) |
+| **Structured data** | Upstream components treat a field as inert data; a framework deserializer instantiates it as an object | `Meaning × Evaluator` (*Parser / Interpreter Differential*), `Encoded / Obfuscated` | Return a tool or model output containing the framework's reserved serialization marker; fails if the deserializer instantiates an object or reads a secret | **`Demonstrated`** (LangGrinch, `CVE-2025-68664`) |
+| **Physical robotics** | Human reads `STOP`; camera and perception model feed the brake planner (Figure 3B) | `Meaning × Evaluator` (*Human-Machine Perception*), `Adversarial Perturbation` or `Overt Semantic`; plus `Flow (integrity) × Position` (*Decision-Action*) for `EX-6B` | Present RP2 stickers or a typographic sign across the approach cone; fails if the robot enters the crossing without halting (`C2`) | **`Demonstrated`** components (Eykholt et al., 2018; Tencent Keen Lab, 2019; Robey et al., 2024). Full sign-to-delivery-robot chain: **`Feasible`** |
 
-| Dimension | Classification | Why |
-| :---- | :---- | :---- |
-| Boundary: Meaning  | Transform Consistency | Security evaluation occurs on fragmented units; model evaluates aggregated units. |
-| Boundary: Authority  | Data-Control | Stream entered as untrusted data but reconstructed content acquires control authority. |
-| Representation | Overt Semantic | No decoding secret required once assembled. |
-| Modifiers | Fragmented / Distributed; Sequence-Dependent  | Payload emerges only after aggregation, and meaning depends on ordering. |
-| System Processing Stage | Ingestion → Transformation → Interpretation / Decision → Action  | Enters normally, aggregates in context, interpreted as instruction. |
-| Modality | Video or Streaming Text | Implementation surface changes while mechanism classification remains constant. |
-| Evidence Maturity | Demonstrated (Video) / Feasible (Streaming Text) | Demonstrated in video temporal slicing; feasible across streaming guardrails. |
+*Table 6. Cross-modal and physical variant prediction matrix. Each row holds the sink constraint fixed and changes only the surface; full derivations appear in **Appendix D.2**.*
+
+Four rows share one crossing, `Meaning × Artifact State` with an upstream check reading a different artifact state than the downstream consumer, and their evidence ranges from `Feasible` to `Demonstrated`. The mechanism is the stable unit; each modality instance carries its own maturity label, and a `Feasible` row is a test hypothesis to run before it is a finding to report. The audio row shows the method's predictive use most clearly: the image instance predicts the audio test, and the test's first step, inspecting the resampler configuration, also tells the analyst whether the deployed flow is already `Normalized`. The cut points transfer the same way. Every `Meaning × Artifact State` row closes at the point where the upstream check inspects the exact representation the downstream consumer receives, and the per-cell controls that implement those cut points belong to the follow-on control catalog (**Section 7**).
 
 
 ## Appendix A: Formal Derivation Specification
