@@ -16,9 +16,9 @@ Today, application-security teams assess AI agents by combining two established 
 
 Recent disclosures and research demonstrations show the gaps between these separate catalogs and defenses:
 
-* **Image preprocessing.** Trail of Bits demonstrated an end-to-end attack against Google Gemini CLI in which an uploaded image looked benign at original resolution, revealed an injected prompt only after downscaling, and exfiltrated Google Calendar entries through auto-approved Zapier MCP tool calls.
-* **Audio perception.** AudioHijack (IEEE S&P 2026) demonstrated that reverberation-disguised audio perturbations imperceptible to human listeners can steer audio-language voice agents into unauthorized actions, while physical-world adversarial patches (Eykholt et al., CVPR 2018; Tencent Keen Lab, 2019) mislead vision-driven vehicles without any text prompt at all.
-* **Output rendering.** In Cursor (`CVE-2025-54132`) and M365 Copilot EchoLeak (`CVE-2025-32711`), prompt injection induced the model to emit active Markdown or Mermaid markup whose preview renderer automatically fetched attacker-controlled URLs, exfiltrating sensitive context before user action.
+* **Image preprocessing.** Trail of Bits (Morozova & Hussain, 2025) demonstrated an end-to-end attack against Google Gemini CLI in which an uploaded image looked benign at original resolution, revealed an injected prompt only after downscaling, and exfiltrated Google Calendar entries through auto-approved Zapier MCP tool calls.
+* **Audio perception.** AudioHijack (Chen et al., 2026) demonstrated that reverberation-disguised audio perturbations imperceptible to human listeners can steer audio-language voice agents into unauthorized actions, while physical-world adversarial patches (Eykholt et al., 2018; Tencent Keen Lab, 2019) mislead vision-driven vehicles through the patch alone.
+* **Output rendering.** In Cursor (`CVE-2025-54132`; GitHub, 2025) and M365 Copilot EchoLeak (`CVE-2025-32711`; National Vulnerability Database, 2025a), prompt injection induced the model to emit active Markdown or Mermaid markup whose preview renderer automatically fetched attacker-controlled URLs, exfiltrating sensitive context before user action.
 
 Treating these as separate "image attacks," "audio attacks," and "rendering bugs" does not scale. Every new input channel or output surface needs its own threat catalog and test suite, and cross-modal attacks that combine two individually benign inputs are not detected by single-modality checks. Organizations also cannot wait for extensive production incident data in every modality before standardizing architectural review. As of October 2026, public vulnerability disclosures and incident trackers (NVD/CVE, the AI Incident Database (AIID), and MITRE ATLAS case studies) record widespread text-borne indirect prompt injections in deployed agents. Non-text agentic compromises, by contrast, appear mostly as researcher demonstrations and disclosed CVEs against production tools, with no confirmed criminal campaigns observed outside research settings. Organizations deploying multimodal agents therefore need an architectural method that works before incident data is available.
 
@@ -85,15 +85,17 @@ Section 2 defines the multimodal system model and inference-time perimeter scope
 
 ### 2.1 Core Terminology
 
-A **modality** is a category of information represented or processed by an AI system, such as text, images, audio, or video [R1]. The following terms describe how AI systems handle information across modalities.
+A **modality** is a category of information represented or processed by an AI system, such as text, images, audio, or video (Baltrušaitis et al., 2019). The following terms describe how AI systems handle information across modalities.
 
 | Term | Definition |
 |---|---|
 | **Unimodal** | Involves a single modality at a specified input or processing boundary. |
 | **Multimodal** | Involves two or more modalities whose information is processed or related together. |
-| **Cross-modal** | Describes an operation or relationship between modalities, such as generating text from an image or retrieving images using text [R1]. |
+| **Cross-modal** | Describes an operation or relationship between modalities, such as generating text from an image or retrieving images using text (Baltrušaitis et al., 2019). |
 | **Omnimodal** | A term used for models designed to support a broad range of modalities, often within an integrated architecture. It does not imply support for every possible modality. |
 | **Modality-agnostic** | Describes an approach or framework designed to operate independently of any particular modality. |
+
+Security literature also uses *cross-modal* for attacks that combine inputs from two or more modalities, as in cross-modal prompt injection (Wang et al., 2025); this paper uses the operation sense defined above and records combined-modality attacks with the *Composition-Dependent* and *Fragmented / Distributed* modifiers (**Section 3.2**).
 
 These terms describe different characteristics of AI systems and are not necessarily mutually exclusive. Modality classification also depends on the system boundary being examined: a multimodal-capable model may receive only text in a particular invocation, while a single input artifact may contain multiple information streams.
 
@@ -114,7 +116,7 @@ Structured data is generally an information representation rather than a distinc
 
 For example, a screenshot containing written instructions constitutes **image input**, even though its contents include readable text. An image accompanied by a separately supplied text question constitutes **multimodal input** when both are processed together. A video containing synchronized visual and audio streams likewise provides multiple modalities when both streams are used.
 
-Input and output modalities should also be distinguished. Image captioning, for instance, is a cross-modal operation involving image input and text output, even when the initial input is unimodal [R1].
+Input and output modalities should also be distinguished. Image captioning, for instance, is a cross-modal operation involving image input and text output, even when the initial input is unimodal (Baltrušaitis et al., 2019).
 
 ### 2.3 Multimodal Processing Architectures
 
@@ -122,8 +124,8 @@ Multimodal capabilities can be implemented through different system architecture
 
 | Architecture | Description | Representative example |
 |---|---|---|
-| **Unified** | A single multimodal model integrates the processing of multiple supported modalities. | OpenAI GPT-4o, which integrates text, visual, and audio processing within an end-to-end model [R2]. |
-| **Fragmented** | Multiple specialized models or components process different modalities or stages, exchanging intermediate representations. | Earlier ChatGPT Voice Mode, which used separate speech recognition, language reasoning, and speech generation models [R2]. |
+| **Unified** | A single multimodal model integrates the processing of multiple supported modalities. | OpenAI GPT-4o, which integrates text, visual, and audio processing within an end-to-end model (OpenAI, 2024). |
+| **Fragmented** | Multiple specialized models or components process different modalities or stages, exchanging intermediate representations. | Earlier ChatGPT Voice Mode, which used separate speech recognition, language reasoning, and speech generation models (OpenAI, 2024). |
 
 Unified architectures integrate multimodal processing within a model, whereas fragmented architectures distribute processing across specialized components. These are architectural patterns, not rigid implementation categories (even unified models may use modality-specific encoders or preprocessing components). The distinction is about how information is processed, which two systems supporting the same modalities can do very differently.
 
@@ -131,7 +133,7 @@ Unified architectures integrate multimodal processing within a model, whereas fr
 
 An **AI agent** is a system that uses AI models to pursue goals and interact with an environment, potentially through tools, APIs, applications, or other agents. Agentic systems can perform multistep tasks involving reasoning, planning, tool invocation, and execution.
 
-Agentic orchestration is distinct from modality-processing architecture. An agent may use a unified multimodal model, coordinate multiple specialized models, or combine both approaches. Commercial platforms such as Microsoft Copilot Studio and Salesforce Agentforce demonstrate agentic orchestration involving models, tools, and enterprise workflows [R4, R5].
+Agentic orchestration is distinct from modality-processing architecture. An agent may use a unified multimodal model, coordinate multiple specialized models, or combine both approaches. Commercial platforms such as Microsoft Copilot Studio and Salesforce Agentforce demonstrate agentic orchestration involving models, tools, and enterprise workflows (Microsoft, 2026; Salesforce, 2026).
 
 Three representative configurations are:
 
@@ -490,7 +492,7 @@ flowchart LR
 
 * **Newly Exposed Mechanisms:**
   * **Asymmetric Guard Bypass (`Meaning × Evaluator`, *Guard-Model Capability*):** Plain visible instructions rendered inside the screenshot (`Overt Semantic`) bypass `Text Filter` entirely (`EX-3.1`).
-  * **Transform-Activated Pixels (`Meaning × Artifact State`, *Transform Consistency*):** A high-resolution screenshot looks benign to staff (`Steganographic`) and reveals injected credit or exfiltration text after `Aliasing Downscaler` (`Overt Semantic`, `EX-3.2`).
+  * **Downscaler-Revealed Pixels (`Meaning × Artifact State`, *Transform Consistency*):** A high-resolution screenshot looks benign to staff (`Steganographic`) and reveals injected credit or exfiltration text after `Aliasing Downscaler` (`Overt Semantic`, `EX-3.2`).
   * **Cross-Modal Composition (`Meaning × Artifact State` [aggregation], `Overt Semantic + Composition-Dependent`):** Benign ticket text (*"Please apply the goodwill credit we agreed on"*) paired with a benign-looking chat screenshot (*"Agent: agreed, \$25 credit to 48213"*). Each artifact is complete and benign alone; co-processed at `Triage LLM`, they supply action plus cross-account parameters (`EX-3.4`).
   * **Decompression Bomb (`Cost × Evaluator`, `Intrinsic Amplification`):** A sub-5 MB PNG decodes into gigapixel dimensions at `Downscaler`, breaching `C6` (`EX-3.3`).
 
@@ -627,7 +629,7 @@ Four rows share one crossing, `Meaning × Artifact State` with an upstream check
 
 We reviewed the frameworks, standards, and taxonomies most widely adopted in industry for agentic security, and assessed how well each captures the risks that arise when agents work across modalities.
 
-Those frameworks work mostly at the level of threat categories and security principles, and they treat modality-specific attack surfaces case by case. The gap is a unified, modality-agnostic way to reason about the underlying attack mechanisms and the trust assumptions agents violate when they perceive, reason over, and act on information across modalities.
+Those frameworks work mostly at the level of threat categories and security principles. MITRE ATLAS (`AML.T0129`, `AML.T0068`), OWASP `LLM01:2025`, and the CoSAI Risk Map already name multimodal prompt injection and payload obfuscation. The open gap is classification by the security assumption an attack violates, with the preprocessing and perception steps inside inference (resizing, decoding, OCR, speech recognition, frame sampling) modeled as the points where payloads activate.
 
 The taxonomy fills that gap and is used alongside existing frameworks. It gives practitioners one consistent, mechanism-level way to identify security risks in multimodal agentic systems, and the same records carry over to new modalities. Full crosswalk tables appear in **Appendix C**.
 
@@ -669,6 +671,158 @@ Against this background, the paper contributes three things:
 3. **Mechanical derivation on a standard DFD.** Structural patterns over functional roles, combined with a three-level fidelity lookup, let practitioners derive `Meaning` and `Flow` crossings by rule from a diagram they already maintain.
 
 By explicitly representing how adversarial content becomes effective within an AI processing pipeline, the taxonomy supports systematic attack analysis, identification of vulnerable processing stages, and location of the structural cut points where targeted defensive controls apply. **Section 7** lays out how to measure its value over existing frameworks through broader attack coverage and reproducible classification studies.
+
+## References
+
+Alpern, B., & Schneider, F. B. (1985). Defining liveness. *Information Processing Letters*, 21(4), 181–185. https://doi.org/10.1016/0020-0190(85)90056-0
+
+Athalye, A., Carlini, N., & Wagner, D. (2018). Obfuscated gradients give a false sense of security: Circumventing defenses to adversarial examples. *Proceedings of ICML 2018*. https://arxiv.org/abs/1802.00420
+
+Ball, S., Gluch, G., Goldwasser, S., Kreuter, F., Reingold, O., & Rothblum, G. N. (2025). On the impossibility of separating intelligence from judgment: The computational intractability of filtering for AI alignment. arXiv:2507.07341. https://arxiv.org/abs/2507.07341
+
+Baltrušaitis, T., Ahuja, C., & Morency, L.-P. (2019). Multimodal machine learning: A survey and taxonomy. *IEEE Transactions on Pattern Analysis and Machine Intelligence*, 41(2), 423–443. https://doi.org/10.1109/TPAMI.2018.2798607
+
+Bell, D. E., & LaPadula, L. J. (1976). *Secure computer system: Unified exposition and Multics interpretation* (MTR-2997). The MITRE Corporation.
+
+Biba, K. J. (1977). *Integrity considerations for secure computer systems* (MTR-3153). The MITRE Corporation.
+
+Bishop, M. (2002). *Computer security: Art and science*. Addison-Wesley.
+
+Boucher, N., Shumailov, I., Anderson, R., & Papernot, N. (2022). Bad characters: Imperceptible NLP attacks. *IEEE Symposium on Security and Privacy*. https://arxiv.org/abs/2106.09898
+
+Chao, P., Robey, A., Dobriban, E., Hassani, H., Pappas, G. J., & Wong, E. (2023). Jailbreaking black box large language models in twenty queries. arXiv:2310.08419. https://arxiv.org/abs/2310.08419
+
+Chen, Wang, Lu, Zhang, & Zhang. (2026). AudioHijack. *IEEE Symposium on Security and Privacy*. arXiv:2604.14604. https://arxiv.org/abs/2604.14604
+
+Chen, Y., Zhang, J., Yuan, X., Zhang, S., Chen, K., Wang, X., & Guo, S. (2021). SoK: A modularized approach to study the security of automatic speech recognition systems. arXiv:2103.10651. https://arxiv.org/abs/2103.10651
+
+Cloud Security Alliance. (2026, March 8). *CSA research note: Image-based prompt injection in multimodal LLMs*. https://labs.cloudsecurityalliance.org/research/csa-research-note-image-prompt-injection-multimodal-llm-2026/
+
+Coalition for Secure AI (CoSAI). (2026). *CoSAI Risk Map* (risks.yaml, revision of 2026-08-27). https://github.com/cosai-oasis/secure-ai-tooling/tree/main/risk-map
+
+Costa, M., et al. (2025). Securing AI agents with information-flow control (FIDES). arXiv:2505.23643. https://arxiv.org/abs/2505.23643
+
+Damianakis, & Psounis, K. (2026). PIAtlas. arXiv:2610.24999. https://arxiv.org/abs/2610.24999
+
+Debenedetti, E., et al. (2025). Defeating prompt injections by design (CaMeL). arXiv:2503.18813. https://arxiv.org/abs/2503.18813
+
+Denning, D. E. (1976). A lattice model of secure information flow. *Communications of the ACM*, 19(5), 236–243. https://doi.org/10.1145/360051.360056
+
+Eykholt, K., Evtimov, I., Fernandes, E., Li, B., Rahmati, A., Xiao, C., Prakash, A., Kohno, T., & Song, D. (2018). Robust physical-world attacks on deep learning visual classification. *Proceedings of CVPR 2018*. https://arxiv.org/abs/1707.08945
+
+Farhana, & Roy. (2026). Multimodal prompt injection: A formal 4D taxonomy. *IEEE QPAIN 2026*. https://doi.org/10.1109/QPAIN69676.2026.11545895
+
+GitHub. (2025). *Security advisory GHSA-43wj-mwcc-x93p: Cursor Mermaid remote image fetch* (`CVE-2025-54132`). https://github.com/advisories/GHSA-43wj-mwcc-x93p
+
+Glukhov, D., Shumailov, I., Gal, Y., Papernot, N., & Papyan, V. (2023). LLM censorship: A machine learning challenge or a computer security problem? arXiv:2307.10719. https://arxiv.org/abs/2307.10719
+
+Google. (n.d.). *Secure AI Framework (SAIF): Risks*. https://saif.google/secure-ai-framework/risks
+
+Greshake, K., Abdelnabi, S., Mishra, S., Endres, C., Holz, T., & Fritz, M. (2023). Not what you've signed up for: Compromising real-world LLM-integrated applications with indirect prompt injection. *Proceedings of AISec 2023*. https://arxiv.org/abs/2302.12173
+
+Hardy, N. (1988). The confused deputy (or why capabilities might have been invented). *ACM SIGOPS Operating Systems Review*, 22(4), 36–38. https://doi.org/10.1145/54289.871709
+
+Huang, K. (2025, February 6). *Agentic AI threat modeling framework: MAESTRO*. Cloud Security Alliance. https://cloudsecurityalliance.org/blog/2025/02/06/agentic-ai-threat-modeling-framework-maestro
+
+IBM. (n.d.). *AI Risk Atlas*. https://www.ibm.com/docs/en/watsonx/saas?topic=ai-risk-atlas
+
+Jain, Arık, & Thakur. (2026). Adversarial attacks on multimodal large language models. *Transactions on Machine Learning Research*. arXiv:2603.27918. https://arxiv.org/abs/2603.27918
+
+Lamport, L. (1977). Proving the correctness of multiprocess programs. *IEEE Transactions on Software Engineering*, SE-3(2), 125–143. https://doi.org/10.1109/TSE.1977.229904
+
+Leveson, N. G. (2019). *CAST handbook: How to learn more from incidents and accidents*. http://sunnyday.mit.edu/CAST-Handbook.pdf
+
+LiteLLM. (2026). *Custom guardrails*. https://docs.litellm.ai/docs/proxy/guardrails/custom_guardrail
+
+Maloyan, N., & Namiot, D. (2026). Prompt injection attacks on agentic coding assistants. arXiv:2601.17548. https://arxiv.org/abs/2601.17548
+
+Microsoft. (2026). *Microsoft Copilot Studio documentation*. https://learn.microsoft.com/microsoft-copilot-studio/
+
+Microsoft. (n.d.). *Microsoft Threat Modeling Tool threats (STRIDE)*. https://learn.microsoft.com/en-us/azure/security/develop/threat-modeling-tool-threats
+
+MITRE. (2026). *ATLAS: Adversarial Threat Landscape for Artificial-Intelligence Systems* (data release v2026.09). https://atlas.mitre.org/ ; https://github.com/mitre-atlas/atlas-data
+
+MITRE. (2026). *CAPEC: Common Attack Pattern Enumeration and Classification* (version 3.9; View 1000, Mechanisms of Attack). https://capec.mitre.org/data/definitions/1000.html
+
+MITRE. (2026). *CWE: Common Weakness Enumeration* (version 4.20). https://cwe.mitre.org/
+
+MITRE. (2026). *D3FEND* (ontology version 1.6.0). https://d3fend.mitre.org/
+
+Momot, F., Bratus, S., Hallberg, S. M., & Patterson, M. L. (2016). The seven turrets of Babel: A taxonomy of LangSec errors and how to expunge them. *IEEE Cybersecurity Development (SecDev)*.
+
+Morozova, K., & Hussain, S. (2025, August 21). *Weaponizing image scaling against production AI systems*. Trail of Bits. https://blog.trailofbits.com/2025/08/21/weaponizing-image-scaling-against-production-ai-systems/
+
+Nasr, M., et al. (2025). The attacker moves second: Stronger adaptive attacks bypass defenses against LLM jailbreaks and prompt injections. arXiv:2510.09023. https://arxiv.org/abs/2510.09023
+
+National Institute of Standards and Technology. (2023). *Artificial Intelligence Risk Management Framework (AI RMF 1.0)* (NIST AI 100-1). https://doi.org/10.6028/NIST.AI.100-1
+
+National Vulnerability Database. (2025a). *CVE-2025-32711: Microsoft 365 Copilot information disclosure (EchoLeak)*. https://nvd.nist.gov/vuln/detail/CVE-2025-32711
+
+National Vulnerability Database. (2025b). *CVE-2025-68664: LangChain serialization injection (LangGrinch)*. https://nvd.nist.gov/vuln/detail/CVE-2025-68664
+
+NVIDIA. (2025). *NeMo Guardrails: Streaming output*. https://docs.nvidia.com/nemo/microservices/25.12.0/guardrails/streaming-output.html
+
+OpenAI. (2024, May 13). *Hello GPT-4o*. https://openai.com/index/hello-gpt-4o/
+
+Ou, X., Govindavajhala, S., & Appel, A. W. (2005). MulVAL: A logic-based network security analyzer. *Proceedings of the 14th USENIX Security Symposium*.
+
+OWASP Foundation. (2025). *Agentic AI – Threats and Mitigations* (version 1.0). https://genai.owasp.org/
+
+OWASP Foundation. (2025). *OWASP Top 10 for LLM Applications 2025* (LLM01 Prompt Injection; LLM05 Improper Output Handling; LLM06 Excessive Agency). https://genai.owasp.org/llm-top-10/
+
+Phillips, C., & Swiler, L. P. (1998). A graph-based system for network-vulnerability analysis. *Proceedings of the New Security Paradigms Workshop*. https://doi.org/10.1145/310889.310919
+
+probityai. (2026). *agent-evidence-vectors* [Test fixture repository]. GitHub. https://github.com/probityai/agent-evidence-vectors
+
+Ptacek, T. H., & Newsham, T. N. (1998). *Insertion, evasion, and denial of service: Eluding network intrusion detection*. Secure Networks, Inc. https://insecure.org/stf/secnet_ids/secnet_ids.html
+
+Quiring, E., Klein, D., Arp, D., Johns, M., & Rieck, K. (2020). Adversarial preprocessing: Understanding and preventing image-scaling attacks in machine learning. *Proceedings of the 29th USENIX Security Symposium*. https://www.usenix.org/conference/usenixsecurity20/presentation/quiring
+
+Rawat, A., et al. (2024). Attack Atlas: A practitioner's perspective on challenges and pitfalls in red teaming GenAI. arXiv:2409.15398. https://arxiv.org/abs/2409.15398
+
+Rehberger, J. (2024, August 26). *Microsoft Copilot: From prompt injection to exfiltration of personal information* (ASCII smuggling). Embrace The Red. Reported in *The Register*, August 28, 2024: https://www.theregister.com/2024/08/28/microsoft_copilot_copirate
+
+Robey, A., Ravichandran, Z., Kumar, V., Hassani, H., & Pappas, G. J. (2024). Jailbreaking LLM-controlled robots (RoboPAIR). arXiv:2410.13691. https://arxiv.org/abs/2410.13691
+
+Salesforce. (2026). *Agentforce documentation*. https://www.salesforce.com/agentforce/
+
+Saltzer, J. H., & Schroeder, M. D. (1975). The protection of information in computer systems. *Proceedings of the IEEE*, 63(9), 1278–1308. https://doi.org/10.1109/PROC.1975.9939
+
+SentGuard. (2026). arXiv:2606.02041. https://arxiv.org/abs/2606.02041
+
+Sheyner, O., Haines, J., Jha, S., Lippmann, R., & Wing, J. M. (2002). Automated generation and analysis of attack graphs. *IEEE Symposium on Security and Privacy*. https://doi.org/10.1109/SECPRI.2002.1004377
+
+Shi, et al. (2025). SoK: Trust–authorization mismatch in LLM agents. arXiv:2512.06914. https://arxiv.org/abs/2512.06914
+
+Shostack, A. (2014). *Threat modeling: Designing for security*. Wiley.
+
+STPA-Sec data-flow extension. (2020). arXiv:2006.02930. https://arxiv.org/abs/2006.02930
+
+Tencent Keen Security Lab. (2019). *Experimental security research of Tesla Autopilot*. https://keenlab.tencent.com/en/whitepapers/Experimental_Security_Research_of_Tesla_Autopilot.pdf
+
+Unit 42. (2026). *Web-based indirect prompt injection observed in the wild*. Palo Alto Networks.
+
+Vassilev, A., Oprea, A., Fordyce, A., Anderson, H., Davies, X., & Hamin, M. (2025). *Adversarial machine learning: A taxonomy and terminology of attacks and mitigations* (NIST AI 100-2e2025). National Institute of Standards and Technology. https://doi.org/10.6028/NIST.AI.100-2e2025
+
+Video LLM frame-sampling omission. (2025). Failures to surface harmful contents in video LLMs. *Proceedings of AAAI 2026*. arXiv:2508.10974. https://arxiv.org/abs/2508.10974
+
+Video LLM frame-selection poisoning. (2025). Poisoning prompt-guided sampling in video LLMs. arXiv:2509.20851. https://arxiv.org/abs/2509.20851
+
+Wang, L., et al. (2025). Manipulating multimodal agents via cross-modal prompt injection (CrossInject). *Proceedings of ACM Multimedia 2025*. https://arxiv.org/abs/2504.14348
+
+Willison, S. (2025, June 16). *The lethal trifecta for AI agents: Private data, untrusted content, and external communication*. https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/
+
+Xiao, Q., Chen, Y., Shen, C., Chen, Y., & Li, K. (2019). Seeing is not believing: Camouflage attacks on image scaling algorithms. *Proceedings of the 28th USENIX Security Symposium*. https://www.usenix.org/conference/usenixsecurity19/presentation/xiao
+
+Young, W., & Leveson, N. G. (2013). Systems thinking for safety and security. *Proceedings of the 29th Annual Computer Security Applications Conference (ACSAC)*. https://dspace.mit.edu/handle/1721.1/96965
+
+Zhan, Q., Liang, Z., Ying, Z., & Kang, D. (2024). InjecAgent: Benchmarking indirect prompt injections in tool-integrated large language model agents. *Findings of ACL 2024*. https://arxiv.org/abs/2403.02691
+
+Zou, A., Wang, Z., Carlini, N., Nasr, M., Kolter, J. Z., & Fredrikson, M. (2023). Universal and transferable adversarial attacks on aligned language models (GCG). arXiv:2307.15043. https://arxiv.org/abs/2307.15043
+
+Zverev, E., Abdelnabi, S., Tabesh, S., Fritz, M., & Lampert, C. H. (2025). Can LLMs separate instructions from data? And what do we even mean by that? *Proceedings of ICLR 2025*. https://arxiv.org/abs/2403.06833
+
+---
 
 ## Appendix A: Formal Derivation Specification
 
@@ -733,9 +887,9 @@ Along each grouped directed path from an external `«source»` to a constrained 
 | :---- | :---- | :---- | :---- |
 | **A. Construction Technique**<br/>*(combinable)* | **Manual Construction** | Attacker creates or modifies a payload by hand. | Hand-crafted indirect prompt injections in external content (Greshake et al., 2023); `AML.T0043.003` (*Manual Modification*). |
 | | **Adaptive Search** | Candidate payloads are iteratively generated, evaluated, and refined using feedback from a target or evaluation system. | Automated LLM-driven jailbreak refinement such as PAIR (Chao et al., 2023); `AML.T0043.001` (*Black-Box Optimization*). |
-| | **Optimization** | Explicit mathematical or algorithmic optimization against a defined objective, including *transformation-invariant* optimization (such as expectation-over-transformations across camera angles or resizers). | Gradient suffix optimization (GCG, Zou et al., 2023); least-squares pixel optimization against downscalers (Trail of Bits, 2025); physical stop-sign patches (Eykholt et al., 2018); `AML.T0043.000` (*White-Box Optimization*). |
+| | **Optimization** | Explicit mathematical or algorithmic optimization against a defined objective, including *transformation-invariant* optimization (such as expectation-over-transformations across camera angles or resizers). | Gradient suffix optimization (GCG, Zou et al., 2023); least-squares pixel optimization against downscalers (Morozova & Hussain, 2025); physical stop-sign patches (Eykholt et al., 2018); `AML.T0043.000` (*White-Box Optimization*). |
 | **B. Attacker Knowledge / Access**<br/>*(evaluated per component)* | **Black-box** | Attacker can submit inputs and observe outputs only. | Query-only access to a closed-source model API (Chao et al., 2023). |
-| | **Partial Knowledge** | Attacker knows or fingerprints specific pipeline algorithms or configurations; downstream model weights stay opaque. | Fingerprinting the image-resizing library (`OpenCV` / `Pillow` bicubic kernel) while treating the downstream VLM as black-box (Trail of Bits, 2025). |
+| | **Partial Knowledge** | Attacker knows or fingerprints specific pipeline algorithms or configurations; downstream model weights stay opaque. | Fingerprinting the image-resizing library (`OpenCV` / `Pillow` bicubic kernel) while treating the downstream VLM as black-box (Morozova & Hussain, 2025). |
 | | **White-box** | Attacker has access to internal parameters, gradients, or exact component implementations used during payload synthesis. | Open-weight gradient access used to compute adversarial token suffixes (Zou et al., 2023). |
 | | **Unknown** | Disclosed evidence does not establish the attacker's knowledge or access level. | Default value when an incident report omits development details. |
 | **C. Transfer Context** | **Direct-Target Development** | Payload development or iterative refinement queries the intended deployment target directly. | Online iterative probing against the target deployment (Chao et al., 2023). |
@@ -785,12 +939,16 @@ To support automated traversal and cross-team reuse (**Section 7**), annotated D
 | Framework | Relevant Identifiers | What the Framework Captures Well | What the Framework Leaves Implicit | Additional Detail Provided by the Mechanism Record |
 | :---- | :---- | :---- | :---- | :---- |
 | **NIST AI 100-2e2025** | `NISTAML.015` (Indirect Prompt Injection); `NISTAML.039` (Compromising Connected Resources) | Classifies inference-time indirect prompt injection, attacker control over external resources, and potential integrity and confidentiality impacts. Also discusses injection hiding and obfuscation. | The image-resampling algorithm, how resizing changes payload visibility, and the processing stage where hidden content becomes actionable. | Separates transformation activation (Leg 1), instruction authority (Leg 2), and tool/egress authorization (Leg 3). |
-| **NIST AI RMF 1.0** | `MAP 4.1`; `MEASURE 2.7`; `MANAGE 1.3` | Supports risk identification, security evaluation, resilience assessment, and mitigation planning. | Attack-mechanism identifiers, image transformation, payload representation, and activation sequence. | Specifies the mechanism and pipeline point to evaluate. |
+| **NIST AI RMF 1.0** | `MEASURE 2.7`; `MANAGE 1.3` | Supports risk identification, security evaluation, resilience assessment, and mitigation planning. | Attack-mechanism identifiers, image transformation, payload representation, and activation sequence. | Specifies the mechanism and pipeline point to evaluate. |
 | **IBM AI Risk Atlas** | Prompt Injection Attack; Indirect Instructions Attack; Sharing IP/PI/Confidential Information with Tools | Identifies malicious instructions embedded in untrusted content, model manipulation, and confidentiality risks associated with connected tools. | Structured fields for interpolation, concealment, and transformation-dependent activation that would separate image-resizing injection from other indirect attacks. | Distinguishes pre-/post-transform content, authority takeover, and execution failure. |
-| **MITRE ATLAS** | `AML.T0051.001` (Indirect Prompt Injection); `AML.T0068` (LLM Prompt Obfuscation); `AML.T0129` (Triggers in Multimodal Inputs, related); `AML.T0086` (Exfiltration via AI Agent Tool Invocation) | Describes attacker techniques, untrusted multimodal content, payload concealment, and adversarial behavior. Recognizes hidden instructions in image pixels and multimodal triggers. | A structured description of the exact resampling primitive, the differences between original and transformed representations, and the activation stage. | Links representation-state changes to distinct violated security assumptions and effect locations. |
-| **MITRE D3FEND** | `D3-FCOA` (File Content Analysis); `D3-FCR` (File Content Rules); `D3-OTF` (Outbound Traffic Filtering) | Provides candidate defensive techniques for inspecting files, applying content-analysis rules, and restricting unauthorized data transmission. | The offensive image-scaling mechanism and detection of instructions revealed by resizing. The listed controls are candidate defenses pending an attack-specific mapping. | Locates where candidate controls should be evaluated, as candidates pending validation. |
-| **MAESTRO** | `L2` (Data Operations); `L1` (Foundation Model); `L3` (Agent Frameworks); `L7` (Agent Ecosystem); related ASI threats `T2`, `T6` | Identifies affected architectural layers, cross-layer attack propagation, trust boundaries, and potential misuse of connected tools. | Pixel-level manipulation, the exact resampling algorithm, pre-/post-transformation semantic differences, and the precise activation condition. | Adds representation and DFD position detail, with processing stages kept separate from architectural layers. |
+| **MITRE ATLAS (v2026.09)** | `AML.T0051.001` (Indirect Prompt Injection); `AML.T0068` (LLM Prompt Obfuscation); `AML.T0086` (Exfiltration via AI Agent Tool Invocation); related: `AML.T0129` (Triggers in Multimodal Inputs), `AML.T0123` (Obfuscated Files or Information), `AML.T0134` (AI Targeted Cloaking), `AML.T0034.002` (Agentic Resource Consumption); mitigations `AML.M0010` (Input Restoration, which lists resampling) and `AML.M0036` | Describes attacker techniques, untrusted multimodal content, payload concealment, and adversarial behavior. Recognizes hidden instructions in image pixels and multimodal triggers. | A structured description of the exact resampling primitive, the differences between original and transformed representations, and the activation stage. | Links representation-state changes to distinct violated security assumptions and effect locations. |
+| **MITRE D3FEND (1.6.0)** | `D3-FCOA` (File Content Analysis); `D3-FCR` (File Content Rules); `D3-OTF` (Outbound Traffic Filtering) | Provides candidate defensive techniques for inspecting files, applying content-analysis rules, and restricting unauthorized data transmission. | The offensive image-scaling mechanism and detection of instructions revealed by resizing. The listed controls are candidate defenses pending an attack-specific mapping. Version 1.6.0 imports 189 ATLAS technique classes as bare identifiers and definitions, and predates `AML.T0129`. | Locates where candidate controls should be evaluated, as candidates pending validation. |
+| **MAESTRO** | `L2` (Data Operations); `L1` (Foundation Model); `L3` (Agent Frameworks); `L7` (Agent Ecosystem); related OWASP *Agentic AI – Threats and Mitigations* threats `T2` (Tool Misuse) and `T6` (Intent Breaking & Goal Manipulation) | Identifies affected architectural layers, cross-layer attack propagation, trust boundaries, and potential misuse of connected tools. | Pixel-level manipulation, the exact resampling algorithm, pre-/post-transformation semantic differences, and the precise activation condition. | Adds representation and DFD position detail, with processing stages kept separate from architectural layers. |
 | **STRIDE** | `T` (Tampering); `I` (Information Disclosure); `E` (Elevation of Privilege, conditional) | Classifies security threats involving input manipulation, confidential data exposure, and potential authorization-boundary violations. | What separates image-scaling attacks from other attacks with the same security consequences, plus payload representation, transformation, and activation mechanisms. | Identifies the specific mechanisms producing those broader threat categories; each category attaches to the sink constraint it protects (**Section 6.1**). |
+| **OWASP `LLM01:2025`** | Prompt Injection, scenarios #6 (payload splitting), #7 (multimodal injection), #8 (adversarial suffix), #9 (multilingual or obfuscated input) | Enumerates representation variants, including instructions in images that accompany benign text, and flags cross-modal attacks as an open defense problem. | The pipeline step at which a hidden instruction becomes legible to the model. | Places each scenario on a `«follower»` crossing and records the representation that survives each upstream flow. |
+| **MITRE CWE (4.20)** | `CWE-1427` (Improper Neutralization of Input Used for LLM Prompting); `CWE-180` (Validate Before Canonicalize) | States the data/directive invariant for LLM prompts directly; `CWE-180` names the check-before-transform ordering. | Non-text carriers and model-based transforms such as resizing, OCR, and speech recognition. | Extends the same invariants across modalities through `Meaning × Artifact State` and `Flow (integrity) × Position` (**Table C.3**). |
+| **CoSAI Risk Map** | `riskPromptInjection` (covers multimodal injection); `riskCovertChannelsInModelOutputs` | Component axis (Input Handling, Reasoning Core, Output Handling, Tools) and risk entries that name multimodal injection and steganographic encoding in outputs. | Transformation and perception components between input handling and the reasoning core. | Adds `«guard»` and `«transform»` as DFD roles; the risk ID is attached to the mechanism record as a supporting annotation. |
+| **CSA research note on image-based prompt injection (March 2026)** | Embedding techniques: typographic text, steganographic, adversarial perturbation and patched injectors, physical/3D | Representation taxonomy for image payloads, with the observation that current defenses only partly neutralize image injection. | Scaling and resampling as activation steps; carriers in other modalities. | Generalizes the same representation ordering across modalities (**Section 3.2**) and locates the activating transform. |
 
 *Table C.1. Comparative coverage of existing AI security frameworks for the Trail of Bits image-scaling attack (**Section 5.2**).*
 
@@ -1045,7 +1203,7 @@ One record `M = ⟨Invariant, Divergence, Representation⟩` is emitted per cros
 
 | ID | Realizable attack mechanism | Crossing | Surviving representation | Modality | Evidence | Closable? |
 | :---- | :---- | :---- | :---- | :---- | :---- | :---- |
-| `M1` | Photographed invoice whose downscaled payee/amount diverges from full-resolution reading | `D1.2` | `Steganographic` *(hidden in pixels sampled by aliasing downscaler `U3`)* | Image | Demonstrated for hidden instructions (Xiao et al., 2019; Trail of Bits, 2025) | Closable |
+| `M1` | Photographed invoice whose downscaled payee/amount diverges from full-resolution reading | `D1.2` | `Steganographic` *(hidden in pixels sampled by aliasing downscaler `U3`)* | Image | Demonstrated for hidden instructions (Xiao et al., 2019; Morozova & Hussain, 2025) | Closable |
 | `M2` | Instructions hidden in unrendered PDF channels (white/off-page text or metadata) | `D1.3` | `Steganographic` *(extracted directly by `U2`)* | Composite (PDF) | Demonstrated (indirect document injection; Greshake et al., 2023) | Closable |
 | `M3` | Prompt injection stored in vendor `notes` and returned via vendor lookup | `D2.1` *(notes)* | `Overt Semantic` *(unguarded path)* | Structured data | Demonstrated for tool responses (*InjecAgent*) | Closable |
 | `M4` | Adversarial visual perturbation altering the payee or total extracted by `U5` | `D1.1` | `Adversarial Perturbation` | Image | Feasible (vision-model evasion is well established) | **Reducible-only** |
@@ -1313,14 +1471,3 @@ The attacker can tailor the pair to exploit whichever arbitration bias the model
 **Why the `Composition-Dependent` modifier applies:** Each artifact classifies as `Overt Semantic`, and the modifier records that the adversarial effect requires their co-processing. Two complete, independent artifacts produce the failure through combined interpretation, which is the `Composition-Dependent` case (one payload split into incomplete pieces is the `Fragmented / Distributed` case). In **Completion** (`EX-3.4` in **Section 5.1**), both modalities cooperate to supply complementary parts of an operation. In **Contradiction**, the modalities deliberately conflict, and the attack exploits whichever one the model treats as authoritative over the ground-truth observation (`C1`).
 
 **Comparison with adversarial audio contradiction:** An audio contradiction attack can also set two channels in conflict, but with an `Adversarial Perturbation` representation (an adversarially optimized audio waveform). In Scenarios A and B above, both modalities are `Overt Semantic`, so the contradiction is between two plainly readable or viewable inputs. The boundary (`Meaning × Evaluator`, *Semantic Stability*) and modifier (`Composition-Dependent`) are the same, and only the representation form differs, which is enough for the taxonomy to tell them apart: the audio perturbation requires mitigating a model-specific perturbation, while Scenarios A and B require enforcing cross-modal conflict rejection against `C1` (which Step 4 tests using paired claim-vs.-observation fixtures such as `probityai/agent-evidence-vectors`).
-
-
-#### References
-
-[1] NIST, *AI 100-2e2025*. https://doi.org/10.6028/NIST.AI.100-2e2025  
-[2] NIST, *AI RMF 1.0*. https://airc.nist.gov/airmf-resources/airmf/5-sec-core/  
-[3] IBM, *AI Risk Atlas*. https://www.ibm.com/docs/en/watsonx/w-and-w/2.4.x?topic=ai-risk-atlas  
-[4] MITRE, *ATLAS*. https://atlas.mitre.org/  
-[5] MITRE, *D3FEND*. https://d3fend.mitre.org/  
-[6] Cloud Security Alliance, *MAESTRO*. https://cloudsecurityalliance.org/blog/2025/02/06/agentic-ai-threat-modeling-framework-maestro  
-[7] Microsoft, *STRIDE threat modeling*. https://learn.microsoft.com/en-us/azure/security/develop/threat-modeling-tool-threats
