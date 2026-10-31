@@ -177,66 +177,6 @@ This taxonomy encompasses inference-time security mechanisms involving **unimoda
 * Broad model-safety failures that do not depend on adversarially constructed data, signals, or outputs.
 
 
-## 3. Existing Frameworks and Identified Gaps
-
-Rather than reinventing the wheel, we began by examining existing frameworks, standards, and taxonomies that are widely adopted across industry and continue to evolve in the context of agentic security. Our goal was to assess these frameworks through a holistic multimodal lens and understand how effectively they capture the security risks introduced when agents interact with diverse modalities.
-
-In reviewing several prominent frameworks and standards, we identified an important gap: **none of them comprehensively captures the unique attack surfaces introduced by different modalities while providing a unified, modality-agnostic way to reason about these risks.** Most existing frameworks and taxonomies remain relatively coarse-grained, focusing on high-level threat categories and security principles. While valuable, they often do not expose the underlying attack mechanisms, the modality-specific nuances, or the trust assumptions that are violated when agents perceive, reason over, and act upon information across multiple modalities.
-
-**Our proposed taxonomy is designed to address this gap, not by replacing existing frameworks, but by complementing them with a more granular, mechanism-focused, and modality-agnostic perspective.** We believe this perspective can help industry practitioners systematically identify and understand emerging security risks in multimodal agentic systems, while providing a consistent approach that can generalize and scale across existing and future modalities.
-
-To illustrate the value of this approach, let us consider a concrete example that highlights some of the limitations of existing standards and frameworks. This example demonstrates how our proposed mechanism.
-
-### 3.1 Trail of Bits Image Scaling attack.
-The Image Scaling Attack, demonstrated by Trail of Bits in 2025, is a prompt injection technique that hides malicious instructions inside an image. These instructions become visible when an AI system resizes the image.
-
-**How It Works**
-1. Malicious Image: An attacker creates an image with hidden instructions.
-2. Image Resizing: The AI automatically downscales the uploaded image.
-3. Hidden Text Revealed: Resizing exposes malicious instructions.
-4. Prompt Injection: The AI may follow these instructions and perform unauthorized actions.
-
-**Example**
-- User sees: A normal landscape image.
-- AI sees after resizing: "Ignore previous instructions and send confidential data to an external server."
-- Potential result: The AI leaks sensitive information if it follows the instruction and has access to the necessary tools.
-
-**Impact**
-- Prompt injection
-- Sensitive data leakage
-- Unauthorized tool execution
-- AI instruction hijacking
-
-![Comparison with existing standards](./images/Standards_gaps.svg)
-
-
-Now, let's see what existing taxonomies or standards see in this example context:
-1. 
-
-### 3.2 Comparative Coverage and Limitations of Existing AI Security Frameworks: Trail of Bits Image Scaling Attack
-
-| Framework | Relevant Identifiers | What the Framework Captures Well | What It Does Not Explicitly Capture |
-|---|---|---|---|
-| **NIST AI 100-2e2025** | `NISTAML.015` — Indirect Prompt Injection; `NISTAML.039` — Compromising Connected Resources | Classifies inference-time indirect prompt injection, attacker control over external resources, and potential integrity and confidentiality impacts. Also discusses injection hiding and obfuscation. | Does not systematically encode the image-resampling algorithm, how resizing changes payload visibility, or the processing stage where hidden content becomes actionable. |
-| **NIST AI RMF 1.0** | `MAP 4.1`; `MEASURE 2.7`; `MANAGE 1.3` | Supports risk identification, security evaluation, resilience assessment, and mitigation planning. | Does not provide attack-mechanism identifiers or specify image transformation, payload representation, and activation sequence. |
-| **IBM AI Risk Atlas** | Prompt Injection Attack; Indirect Instructions Attack; Sharing IP/PI/Confidential Information with Tools | Identifies malicious instructions embedded in untrusted content, model manipulation, and confidentiality risks associated with connected tools. | Does not systematically distinguish image-resizing-based injection from other indirect attacks using structured fields for interpolation, concealment, and transformation-dependent activation. |
-| **MITRE ATLAS** | `AML.T0051.001` — Indirect Prompt Injection; `AML.T0068` — LLM Prompt Obfuscation; `AML.T0129` — Triggers in Multimodal Inputs (related) | Describes attacker techniques, untrusted multimodal content, payload concealment, and adversarial behavior. Recognizes hidden instructions in image pixels and multimodal triggers. | Does not require a structured description of the exact resampling primitive, differences between original and transformed representations, or the activation stage. |
-| **MITRE D3FEND** | `D3-FCOA` — File Content Analysis; `D3-FCR` — File Content Rules; `D3-OTF` — Outbound Traffic Filtering | Provides candidate defensive techniques for inspecting files, applying content-analysis rules, and restricting unauthorized data transmission. | Does not classify the offensive image-scaling mechanism or explicitly describe detection of instructions revealed by resizing. The listed controls are candidate defenses, not a verified attack-specific mapping. |
-| **MAESTRO** | `L2` — Data Operations; `L1` — Foundation Model; `L3` — Agent Frameworks; `L7` — Agent Ecosystem; related ASI threats `T2`, `T6` | Identifies affected architectural layers, cross-layer attack propagation, trust boundaries, and potential misuse of connected tools. | Does not systematically represent pixel-level manipulation, the exact resampling algorithm, pre-/post-transformation semantic differences, or the precise activation condition. |
-| **STRIDE** | `T` — Tampering; `I` — Information Disclosure; `E` — Elevation of Privilege (conditional) | Classifies security threats involving input manipulation, confidential data exposure, and potential authorization-boundary violations. | Does not distinguish image-scaling attacks from other attacks with the same security consequences or specify payload representation, transformation, and activation mechanisms. |
-
-
-The comparative analysis demonstrates that existing AI security frameworks provide valuable but complementary perspectives on the Trail of Bits image-scaling attack. NIST and IBM AI Risk Atlas identify adversarial techniques and associated risks; MITRE ATLAS captures attacker behavior and prompt injection techniques; MITRE D3FEND provides defensive countermeasures; MAESTRO examines architectural exposure and trust boundaries; and STRIDE classifies potential security consequences.
-
-However, these frameworks do not consistently provide a structured, mechanism-level representation of **how an attack is constructed, transformed, activated, and propagated through an AI system**. In the Trail of Bits example, the critical mechanism involves pixel-level manipulation followed by image downscaling, which reveals previously concealed instructions that may subsequently influence model behavior and agent actions. Although existing frameworks recognize prompt injection, obfuscation, and multimodal threats, they do not uniformly capture the relationship between these processing transformations and the resulting security boundary violations.
-
-This gap motivates the proposed taxonomy, which introduces complementary dimensions for **payload representation, transformation mechanisms, security boundaries, and system processing stages**. Rather than replacing established frameworks, the proposed approach aims to extend their descriptive capabilities by enabling more precise characterization and comparison of attack mechanisms across different modalities.
-
-By explicitly representing how adversarial content becomes effective within an AI processing pipeline, the taxonomy has the potential to support more systematic attack analysis, identification of vulnerable processing stages, and selection of targeted defensive controls. 
-
-Its incremental value over existing frameworks remains to be validated through broader attack coverage and reproducible classification studies.
-
-
 ## 3. Defining a Mechanism
 
 Traditional threat modeling identifies trust boundaries between users, processes, services, and networks. Multimodal AI introduces additional semantic and representational boundaries where the same artifact can acquire a different meaning, authority, or computational effect across humans, guards, models, transformations, and downstream consumers. The mechanism taxonomy is intended to make these AI-specific perimeter gaps explicit.
@@ -683,6 +623,52 @@ Comparing Figure 3B with Figure 3A yields two derived findings:
 
 Four rows share one crossing, `Meaning × Artifact State` with an upstream check reading a different artifact state than the downstream consumer, and their evidence ranges from `Feasible` to `Demonstrated`. The mechanism is the stable unit; each modality instance carries its own maturity label, and a `Feasible` row is a test hypothesis to run before it is a finding to report. The audio row shows the method's predictive use most clearly: the image instance predicts the audio test, and the test's first step, inspecting the resampler configuration, also tells the analyst whether the deployed flow is already `Normalized`. The cut points transfer the same way. Every `Meaning × Artifact State` row closes at the point where the upstream check inspects the exact representation the downstream consumer receives, and the per-cell controls that implement those cut points belong to the follow-on control catalog (**Section 7**).
 
+## 6. Ecosystem Positioning
+
+We reviewed the frameworks, standards, and taxonomies most widely adopted in industry for agentic security, and assessed how well each captures the risks that arise when agents work across modalities.
+
+Those frameworks work mostly at the level of threat categories and security principles, and they treat modality-specific attack surfaces case by case. The gap is a unified, modality-agnostic way to reason about the underlying attack mechanisms and the trust assumptions agents violate when they perceive, reason over, and act on information across modalities.
+
+The taxonomy fills that gap and is used alongside existing frameworks. It gives practitioners one consistent, mechanism-level way to identify security risks in multimodal agentic systems, and the same records carry over to new modalities. Full crosswalk tables appear in **Appendix C**.
+
+### 6.1 Threat, Risk, and Governance Frameworks
+
+Applied to the Trail of Bits image-scaling attack (**Section 5.2**; **Appendix C, Table C.1**), existing AI security frameworks each cover part of the attack. NIST and IBM AI Risk Atlas identify adversarial techniques and associated risks; MITRE ATLAS captures attacker behavior and prompt injection techniques; MITRE D3FEND provides defensive countermeasures; MAESTRO examines architectural exposure and trust boundaries; and STRIDE classifies potential security consequences.
+
+The mechanism-level account of **how an attack is constructed, transformed, activated, and propagated through an AI system** is spread across them. In the Trail of Bits example, the critical mechanism is pixel-level manipulation followed by image downscaling, which reveals concealed instructions that then steer model behavior and agent actions. The frameworks name prompt injection, obfuscation, and multimodal threats; the link between a processing transformation and the boundary violation it causes is the piece this taxonomy adds.
+
+The taxonomy records that link in three dimensions (**the violated invariant, the divergence between evaluations, and the payload representation**), each located on an annotated data-flow diagram, so attack mechanisms can be characterized and compared precisely across modalities.
+
+**Adversary catalogs (MITRE ATLAS, NIST AI 100-2e2025).** ATLAS's 2026 releases describe multimodal behavior in detail: triggers placed in "a modality that is not inspected, or is inspected differently from text" (`AML.T0129`), obfuscation across images, audio, and video frames (`AML.T0068`), and content served differently to AI systems than to humans (`AML.T0134`). For the Trail of Bits disclosure, ATLAS records indirect prompt injection (`AML.T0051.001`) and exfiltration through agent tool invocation (`AML.T0086`); the chain record places those techniques on Legs 1–3 and names the downscaler as the activation point. ATLAS mitigation `AML.M0010` lists resampling as an input-restoration defense and warns that adaptive adversaries account for preprocessing, which the method expresses structurally as a `Normalized` flow and the conservative survival of `Adversarial Perturbation` (**Table 2**). NIST AI 100-2e2025 provides a broader threat taxonomy organized by learning method, lifecycle phase, attacker objective, capability, and knowledge. Its *resource control* capability corresponds to an `Untrusted` flow from an external `«source»`, and its knowledge dimension aligns with the per-component *Attacker Knowledge / Access* annotation (**Section 3.3**).
+
+**Hazard and risk frameworks (STRIDE, OWASP, CoSAI Risk Map, MAESTRO).** A STRIDE category attaches to each sink constraint by the hazard it prevents: a *Flow clearance* on an egress sink guards against Information Disclosure, a *Flow clearance* on an authority sink against Elevation of Privilege, a *Resource budget* against Denial of Service, and a *Reference specification* against Tampering. A STRIDE-per-element review therefore keeps its vocabulary and gains derived crossings inside the trust zone that a coarse diagram treats as one process (**Figure 1**). OWASP `LLM01` (Prompt Injection), `LLM05` (Improper Output Handling), and `LLM06` (Excessive Agency) map to sink constraints and crossings at `«follower»`, `«renderer»`, and `«executor»` nodes. The CoSAI Risk Map's component axis (Input Handling, Reasoning Core, Output Handling, Tools) is the most stage-like construct among the reviewed frameworks; the DFD roles refine it by adding `«guard»` and `«transform»` as first-class components, and a mechanism record can carry the corresponding Risk Map risk identifier as a supporting annotation. MAESTRO's seven architectural layers locate the affected subsystem, and the DFD path locates the crossing within it.
+
+**Defensive ontologies (MITRE D3FEND).** D3FEND links offensive and defensive techniques through shared digital artifacts and already defines media artifact classes (`DigitalImage`, `DigitalAudio`, `DigitalVideo`). Those classes correspond to annotated flows, which makes D3FEND a strong candidate vocabulary for the per-cell control catalog planned as follow-on work (**Section 7**).
+
+### 6.2 Comparable AI Taxonomies
+
+The mechanism record combines the violated invariant, the payload representation, and the position on the pipeline in one modality-independent derivation method, a combination unique among the taxonomies reviewed as of October 2026. Several recent schemes cover one or two of these axes, and the mechanism record composes with each (**Appendix C, Table C.4**):
+
+* **PIAtlas** (Damianakis & Psounis, 2026) classifies prompt injections into six subversion mechanisms by how the payload's wording sways the model, and it assigns modality, rendering tricks, and perturbations to delivery. That delivery layer is the content of this paper's `Divergence` and `Representation` slots, so the two schemes are orthogonal: a PIAtlas class describes the persuasion inside one `«follower»` node, and a mechanism record describes the path the payload took to reach it. A record can carry the PIAtlas class as a supporting annotation.
+* **Representation ladders within one modality.** Attack Atlas (Rawat et al., 2024) orders single-turn text prompts by form, including encoded interactions, and the Cloud Security Alliance's 2026 research note on image prompt injection orders image payloads as typographic, steganographic, adversarial perturbation, and physical. The four forms in **Section 3.2** generalize the same ordering across modalities and tie each form's survival to flow fidelity.
+* **Farhana & Roy** (2026) cross carrier type, pipeline location, attacker objective, and stealth level for image and document pipelines. Their pipeline-location axis is the closest structural neighbor to this method; this paper leaves attacker objective to ATLAS and STRIDE and keys records on the violated invariant in place of the carrier.
+* **Jain, Arık & Thakur** (2026) organize multimodal attacks by attacker objective across modalities and name modality-specific input processing as a root cause, which the `Meaning × Artifact State` cell formalizes.
+* **Shi et al.** (2025) trace agent vulnerabilities to a mismatch between dynamic trust and static authorization, the direct academic precedent for the `Flow (integrity)` row.
+* **Maloyan & Namiot** (2026) catalog attacks on agentic coding assistants with modality as a primary axis.
+
+The added capability is **cross-modal variant prediction**. Schemes that assign modality to delivery fold preprocessing divergence into delivery, and schemes keyed on modality or carrier grow a new branch for each new surface. Keying records on `Invariant × Divergence` and carrying modality on the data flow lets an existing record predict its analog on a new surface, as **Table 6** shows for audio, video, streaming text, and physical sensors.
+
+### 6.3 Classical Security and Safety Precedents
+
+Most cells in **Table 1** have direct classical ancestors, and naming them lets practitioners reuse established reasoning (**Appendix C, Table C.3**). *Check-Use Consistency* is time-of-check to time-of-use (`CWE-367`). *Parser / Interpreter Differential* is the parser differential of language-theoretic security (Momot et al., 2016; `CWE-436`). *Transform Consistency* extends validate-before-canonicalize (`CWE-180`), which maps directly to `«guard» → «transform» → «follower»` crossings, and network intrusion-detection insertion and evasion (Ptacek & Newsham, 1998), in which a monitor and an end host reassemble the same packets differently; the streaming-text row of **Table 6** is that structure at chunk boundaries. *Delegation Authority* is the confused deputy (Hardy, 1988), *Decision-Action* is a failure of complete mediation (Saltzer & Schroeder, 1975), and both `Flow` rows instantiate the information-flow lattice (Denning, 1976). The method itself builds on STPA-Sec, taint analysis, and attack-graph minimum cuts (**Section 4**). CAPEC View 1000 (*Mechanisms of Attack*) is the closest existing modality-agnostic mechanism hierarchy; its categories are organized by attacker action, and the machine-perception cells of **Table 1** are additions to it.
+
+Against this background, the paper contributes three things:
+
+1. **A generative boundary matrix.** Boundary classes come from crossing the invariant a sink relies on with what differs between two evaluations assumed to agree, so every cell, including empty ones, is a stated hypothesis.
+2. **Perception models, guard models, and human reviewers as evaluators.** Treating them alongside parsers brings *Human-Machine Perception*, *Guard-Model Capability*, and *Semantic Stability* into the same matrix as the classical differentials.
+3. **Mechanical derivation on a standard DFD.** Structural patterns over functional roles, combined with a three-level fidelity lookup, let practitioners derive `Meaning` and `Flow` crossings by rule from a diagram they already maintain.
+
+By explicitly representing how adversarial content becomes effective within an AI processing pipeline, the taxonomy supports systematic attack analysis, identification of vulnerable processing stages, and location of the structural cut points where targeted defensive controls apply. **Section 7** lays out how to measure its value over existing frameworks through broader attack coverage and reproducible classification studies.
 
 ## Appendix A: Formal Derivation Specification
 
@@ -792,26 +778,72 @@ To support automated traversal and cross-team reuse (**Section 7**), annotated D
 
 ---
 
-## Appendix C: Framework and Standards Crosswalks (Staging)
+## Appendix C: Framework and Standards Crosswalks
 
-*(Note: Consolidated framework crosswalk tables across §3.2, §5.3.4, §5.4.3, and §7.3.3 will be merged here under Requirement 6.)*
+### C.1 Comparative Coverage of Existing AI Security Frameworks: Trail of Bits Image-Scaling Attack
 
-| Framework | Existing Focus | Relationship to DFD Pipeline Locations (from §5.3.4) |
-|---|---|---|
+| Framework | Relevant Identifiers | What the Framework Captures Well | What the Framework Leaves Implicit | Additional Detail Provided by the Mechanism Record |
+| :---- | :---- | :---- | :---- | :---- |
+| **NIST AI 100-2e2025** | `NISTAML.015` (Indirect Prompt Injection); `NISTAML.039` (Compromising Connected Resources) | Classifies inference-time indirect prompt injection, attacker control over external resources, and potential integrity and confidentiality impacts. Also discusses injection hiding and obfuscation. | The image-resampling algorithm, how resizing changes payload visibility, and the processing stage where hidden content becomes actionable. | Separates transformation activation (Leg 1), instruction authority (Leg 2), and tool/egress authorization (Leg 3). |
+| **NIST AI RMF 1.0** | `MAP 4.1`; `MEASURE 2.7`; `MANAGE 1.3` | Supports risk identification, security evaluation, resilience assessment, and mitigation planning. | Attack-mechanism identifiers, image transformation, payload representation, and activation sequence. | Specifies the mechanism and pipeline point to evaluate. |
+| **IBM AI Risk Atlas** | Prompt Injection Attack; Indirect Instructions Attack; Sharing IP/PI/Confidential Information with Tools | Identifies malicious instructions embedded in untrusted content, model manipulation, and confidentiality risks associated with connected tools. | Structured fields for interpolation, concealment, and transformation-dependent activation that would separate image-resizing injection from other indirect attacks. | Distinguishes pre-/post-transform content, authority takeover, and execution failure. |
+| **MITRE ATLAS** | `AML.T0051.001` (Indirect Prompt Injection); `AML.T0068` (LLM Prompt Obfuscation); `AML.T0129` (Triggers in Multimodal Inputs, related); `AML.T0086` (Exfiltration via AI Agent Tool Invocation) | Describes attacker techniques, untrusted multimodal content, payload concealment, and adversarial behavior. Recognizes hidden instructions in image pixels and multimodal triggers. | A structured description of the exact resampling primitive, the differences between original and transformed representations, and the activation stage. | Links representation-state changes to distinct violated security assumptions and effect locations. |
+| **MITRE D3FEND** | `D3-FCOA` (File Content Analysis); `D3-FCR` (File Content Rules); `D3-OTF` (Outbound Traffic Filtering) | Provides candidate defensive techniques for inspecting files, applying content-analysis rules, and restricting unauthorized data transmission. | The offensive image-scaling mechanism and detection of instructions revealed by resizing. The listed controls are candidate defenses pending an attack-specific mapping. | Locates where candidate controls should be evaluated, as candidates pending validation. |
+| **MAESTRO** | `L2` (Data Operations); `L1` (Foundation Model); `L3` (Agent Frameworks); `L7` (Agent Ecosystem); related ASI threats `T2`, `T6` | Identifies affected architectural layers, cross-layer attack propagation, trust boundaries, and potential misuse of connected tools. | Pixel-level manipulation, the exact resampling algorithm, pre-/post-transformation semantic differences, and the precise activation condition. | Adds representation and DFD position detail, with processing stages kept separate from architectural layers. |
+| **STRIDE** | `T` (Tampering); `I` (Information Disclosure); `E` (Elevation of Privilege, conditional) | Classifies security threats involving input manipulation, confidential data exposure, and potential authorization-boundary violations. | What separates image-scaling attacks from other attacks with the same security consequences, plus payload representation, transformation, and activation mechanisms. | Identifies the specific mechanisms producing those broader threat categories; each category attaches to the sink constraint it protects (**Section 6.1**). |
+
+*Table C.1. Comparative coverage of existing AI security frameworks for the Trail of Bits image-scaling attack (**Section 5.2**).*
+
+### C.2 Relationship to DFD Pipeline Locations
+
+| Framework | Existing Focus | Relationship to DFD Pipeline Locations |
+| :---- | :---- | :---- |
 | **NIST AI 100-2e2025** | Adversarial machine-learning terminology, attack lifecycle concepts, attacker objectives, capabilities, and knowledge. | Provides a broader threat taxonomy. DFD roles and path crossings identify operational locations within a target system's inference-time execution flow. |
 | **MITRE ATLAS** | Adversarial tactics and techniques targeting AI-enabled systems. | Identifies techniques such as prompt injection and exfiltration through agent tools. Annotated DFD paths locate where these techniques enter, activate, and take effect. |
 | **OWASP Top 10 for LLM Applications (2025)** | Application-level security risks, including Prompt Injection (LLM01), Improper Output Handling (LLM05), and Excessive Agency (LLM06). | Maps to sink constraints and crossings across `«follower»` (`LLM01`), `«executor»` (`LLM06`), and `«renderer»` (`LLM05`) nodes. |
-| **MITRE CWE** | Software weaknesses and their underlying conditions. | Weaknesses such as `CWE-180` (Validate Before Canonicalize) map directly to `«guard» → «transform» → «follower»` crossings (`Meaning × Artifact State`). |
+| **CoSAI Risk Map / Google SAIF** | Component × risk × control × lifecycle, including `riskPromptInjection` (covers multimodal injection). | Component axis (Input Handling, Reasoning Core, Output Handling, Tools) refined by DFD roles, with `«guard»` and `«transform»` added; risk ID carried as a supporting annotation. |
+| **MITRE CWE** | Software weaknesses and their underlying conditions. | Weaknesses such as `CWE-180` (Validate Before Canonicalize) map directly to `«guard» → «transform» → «follower»` crossings (`Meaning × Artifact State`); full per-subclass mapping in **Table C.3**. |
 
-| Framework | What it highlights (from §7.3.3) | Additional detail provided by this taxonomy |
-|---|---|---|
-| **NIST AI 100-2e2025** [1] | Indirect prompt injection (`NISTAML.015`) and compromised connected resources (`NISTAML.039`). | Separates transformation activation (Leg 1), instruction authority (Leg 2), and tool/egress authorization (Leg 3). |
-| **NIST AI RMF 1.0** [2] | Risk identification, security assessment, and risk treatment (`MAP`, `MEASURE`, `MANAGE`). | Specifies the mechanism and pipeline point to evaluate. |
-| **IBM AI Risk Atlas** [3] | Indirect instructions, prompt injection, and confidential-data sharing through tools. | Distinguishes pre-/post-transform content, authority takeover, and execution failure. |
-| **MITRE ATLAS** [4] | Indirect prompt injection (`AML.T0051.001`), relevant obfuscation (`AML.T0068`), and exfiltration via agent tools (`AML.T0086`). | Links representation-state changes to distinct violated security assumptions and effect locations. |
-| **MITRE D3FEND** [5] | Candidate defenses, including File Content Analysis (`D3-FCOA`) and Outbound Traffic Filtering (`D3-OTF`). | Locates where candidate controls should be evaluated, as candidates pending validation. |
-| **MAESTRO** [6] | Exposure across data, foundation-model, agent-framework, and connected-service layers. | Adds representation and processing-stage detail, with stages kept separate from architectural layers. |
-| **STRIDE** [7] | Information Disclosure; potentially Tampering and Elevation of Privilege, depending on the threat model. | Identifies the specific mechanisms producing those broader threat categories. |
+*Table C.2. Framework focus and relationship to annotated DFD pipeline locations.*
+
+### C.3 Classical Security Precedents by Boundary Subclass
+
+Relationship tags: **Exact** means the classical concept names the same invariant and divergence; **Broader** means this paper's cell generalizes the classical concept to machine-learning transforms, perception, or aggregation; **Related** means the two share structure with different scope; **New** means the cell originates in this paper among the reviewed classical literature.
+
+| Boundary Subclass or Method Element | Classical Precedent | Relationship |
+| :---- | :---- | :---- |
+| *Check-Use Consistency* | Time-of-check to time-of-use (`CWE-367`; `CAPEC-29`) | Exact |
+| *Parser / Interpreter Differential* | Language-theoretic security parser differentials (Momot et al., 2016); Interpretation Conflict (`CWE-436`); HTTP request smuggling (`CWE-444`; `CAPEC-33`) | Exact |
+| *Transform Consistency* | Validate before canonicalize (`CWE-180`); Alternate Encoding (`CAPEC-267`); NIDS insertion and evasion (Ptacek & Newsham, 1998) | Broader (extends to media transforms and multi-input aggregation) |
+| *Human-Machine Perception* | User-interface misrepresentation (`CWE-451`); homograph attacks (`CAPEC-632`) | Broader (extends to images, audio, and physical signals) |
+| *Guard-Model Capability* | Formal limits on filtering by a weaker evaluator (Glukhov et al., 2023; Ball et al., 2025) | New |
+| *Semantic Stability* | — | New |
+| *Grant Persistence* | Insufficient session expiration (`CWE-613`) | Related |
+| *Data-Control* | Command injection and in-band signaling (`CWE-77`); LLM prompt neutralization (`CWE-1427`) | Exact for text; Broader across non-text modalities |
+| *Decision-Action* | Complete mediation (Saltzer & Schroeder, 1975); Missing Authorization (`CWE-862`) | Related |
+| *Delegation Authority* | The confused deputy (Hardy, 1988; `CWE-441`) | Exact |
+| *Context Confinement* | Bell-LaPadula confidentiality; lattice model of secure information flow (Denning, 1976) | Exact |
+| *Output-Consumer* | Improper output encoding and second-order injection (`CWE-116`; `CWE-79`); generative AI output validation (`CWE-1426`) | Related |
+| *Resource Accounting* | Uncontrolled and asymmetric resource consumption (`CWE-400`; `CWE-405`; `CWE-409`) | Exact |
+| `Flow (integrity)` row | Biba integrity; lattice model of secure information flow (Denning, 1976) | Exact |
+| Annotated DFD derivation (**Section 4**) | STPA-Sec (Young & Leveson, 2013); source-to-sink taint analysis; attack-graph minimum cuts (Sheyner et al., 2002) | Broader (adds perceptual guard crossings and three-level fidelity) |
+| Mechanism hierarchy as a whole | CAPEC View 1000 (*Mechanisms of Attack*) | Related (organized by attacker action; machine-perception cells added here) |
+
+*Table C.3. Classical security and safety precedents for each boundary subclass and method element.*
+
+### C.4 Comparable AI Taxonomies
+
+| Taxonomy | Organizing Axes | Treatment of Modality | Relationship to the Mechanism Record |
+| :---- | :---- | :---- | :---- |
+| **PIAtlas** (Damianakis & Psounis, 2026) | Six subversion mechanisms (instruction manipulation, structural spoofing, obfuscation, social engineering, scenario framing, output coercion) | Assigned to the delivery layer | Orthogonal and composable; PIAtlas class describes persuasion inside one `«follower»` and can be carried as a supporting annotation |
+| **Attack Atlas** (Rawat et al., 2024) | Prompt syntax, form, and semantics | Text only, single turn | Representation ladder within text; generalized by the four forms in **Section 3.2** |
+| **CSA research note on image prompt injection** (2026) | Typographic, steganographic, adversarial perturbation, physical | Image only | Representation ladder within images; same ordering as **Section 3.2** |
+| **Farhana & Roy** (2026) | Carrier type × pipeline location × attacker objective × stealth level | Carrier as a primary axis (image and document pipelines) | Closest neighbor on pipeline location; objective delegated to ATLAS and STRIDE; invariant replaces carrier as key |
+| **Jain, Arık & Thakur** (2026) | Attacker objective × knowledge | Across modalities; modality-specific input processing named as a root cause | Objective-first; root cause formalized as `Meaning × Artifact State` |
+| **Shi et al.** (2025) | Belief → intention → permission; trust–authorization mismatch | Modality-agnostic | Direct precedent for the `Flow (integrity)` row |
+| **Maloyan & Namiot** (2026) | Delivery vector × attack modality × propagation | Modality as a primary axis | Catalog of instances; records derive cross-modal analogs from existing entries |
+
+*Table C.4. Comparable AI taxonomies and their relationship to the mechanism record.*
 
 ---
 
