@@ -227,7 +227,7 @@ Each scenario records how harm could happen, what access it needs, the assets, t
 
 *Repairs assumptions 1 and 2.*
 
-While not typically considered a lifecycle phase, we include Supply Chain as a phase here due to its importance in maintaining a secure development lifecycle. Supply chain attacks remain a primary attack surface for traditional as well as AI and agentic development. 
+While not typically considered a lifecycle phase, we include Supply Chain as a phase here due to its importance in maintaining a secure development lifecycle. Supply chain attacks remain a primary attack surface for traditional as well as AI and agentic development [^21]. 
 
 The focus in the Supply Chain phase is to establish provenance and trust for each external component the agent incorporates, including: 
 - models
@@ -454,6 +454,7 @@ A reader who disagrees with a phase is invited to attack the assumption it deriv
 [^18]: CoSAI WS4. *Agent Containment: From Sandboxing to Bounded Authority.* Working draft, tracks issue #172. https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/172
 [^19]: CoSAI. *Control: Fail-Closed Agent Authorization.* Proposed Risk Map control, secure-ai-tooling issue #603, 19 October 2026. https://github.com/cosai-oasis/secure-ai-tooling/issues/603
 [^20]: CoSAI WS4. *ODIS: Open Delegation and Identity Standard*, contributor draft, section 3, the three layers. https://github.com/cosai-oasis/ws4-odis/blob/main/RFCs/ODIS.md#3-architectural-model--the-three-layers
+[^21]: Dan Lisichkin. *My Agentic Trust Issues: From Prompt Injection to Supply-Chain Compromise on gemini-cli*, 5 May 2026. https://www.pillar.security/blog/my-agentic-trust-issues-from-prompt-injection-to-supply-chain-compromise-on-gemini-cli
 
 ---
 
@@ -501,7 +502,7 @@ Participants in the lifecycle work from which this paper is drawn, listed alphab
 - Victor Lu
 - Mike McPhee
 - Alan Messer
-- Nicolai Nielsen
+- Nicolai Nielsen, Thomson Reuters
 - Karttik Panda
 - Swapnil Pawar, Apex Fintech Solutions
 - David Pierce
