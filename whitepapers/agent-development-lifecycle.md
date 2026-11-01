@@ -227,7 +227,9 @@ Each scenario records how harm could happen, what access it needs, the assets, t
 
 *Repairs assumptions 1 and 2.*
 
-Establish provenance and trust for external component the agent incorporates: 
+While not typically considered a lifecycle phase, we include Supply Chain as a phase here due to its importance in maintaining a secure development lifecycle. Supply chain attacks remain a primary attack surface for traditional as well as AI and agentic development. 
+
+The focus in the Supply Chain phase is to establish provenance and trust for each external component the agent incorporates, including: 
 - models
 - tools
 - prompt templates
@@ -235,17 +237,18 @@ Establish provenance and trust for external component the agent incorporates:
 - retrieval sources
 - any other agents it may consume
 
-Most of these components can carry or emit content the agent could treat as instructions, e.g., tool descriptions, retrieved content, and the outputs of other agents. What matters about such a component is therefore not only whether it is authentic, but how much authority its content is permitted to influence the behaviour of the agent.
+Most of these components can carry or emit content the agent could treat as instructions, e.g., tool descriptions, retrieved content, and the outputs of other agents. What matters about such a component is therefore not only whether the component is authentic, but how much authority its content is permitted to exert over the behaviour of the agent being development.
 
-Every such component MUST be inventoried with, at a minimum, an accountable owner, its source, and its version identity. Record whether each version is pinned or floating, e.g., as a model behind a provider-managed alias or generic API endpoint. For any floating component, record who controls changes to the component and what notice the supplier commits to prior to such changes. This is important as it is that  notice that triggers re-baselining during [the maintenance phase](#37-maintenance).
+Every such external component MUST be inventoried with, at a minimum, an accountable owner, its source, and its version identity. Record whether each version is pinned or floating, e.g., as a model behind a provider-managed alias or generic API endpoint. For any floating component, record who controls changes to the component and what notice the supplier commits to prior to such changes. This is important as it is that notice that triggers re-baselining during [the maintenance phase](#37-maintenance).
 
-Verify each component's origin and integrity to the extent its supplier makes verification possible and record the evidence. If a component can't be inspected, obtain and record supplier-provided evidence and [platform verification](#23-the-agent-entity-is-the-unit-of-scope). Record this gap for the exit gate documentation.
+Specifically:
+- Verify each component's origin and integrity to the extent its supplier makes verification possible and record the evidence. If a component can't be inspected, obtain and record supplier-provided evidence and [platform verification](#23-the-agent-entity-is-the-unit-of-scope). Record this gap for the exit gate documentation.
 
-Assign each component a trust tier. The tier is assigned by a named owner and states what authority the component's content may influence. A component whose provenance could not be verified is tiered to reflect that. Tiers are re-evaluated when the supplier, the version, or the evidence changes.
+- Assign each component a trust tier. The tier is assigned by a named owner and states what authority the component's content may influence. A component whose provenance could not be verified is tiered to reflect that. Tiers are re-evaluated when the supplier, the version, or the evidence changes.
 
-Conduct application-specific behavioral testing of each compoment and record the results as evidence that feeds the behavioral baseline recorded at [admission](#34-admission-and-deployment). This is important as a given component's suitability is a question of its applicability to the current use case rather than a general property of the component.
+- Conduct application-specific behavioral testing of each component and record the results as evidence that feeds the behavioral baseline recorded at [admission](#34-admission-and-deployment). This is important as a given component's suitability is a question of its applicability to the current use case rather than a general property of the component.
 
-Where an agent can acquire tools or other components at runtime, the design either prohibits it or applies this same process at the point of acquisition.
+Where an agent can acquire tools or other components at runtime, the design must either prohibit it or apply this same process at the point of acquisition.
 
 > [!NOTE]
 > Detailed guidance on artifact integrity, provenance, and attestation for models, datasets, and training artifacts is the subject of CoSAI Workstream 1 [AIMM; Signing ML Artifacts], and general supply chain risk management practice is covered by NIST [SP 800-161 Rev 1 Update 1]. This paper does not restate either.
@@ -267,13 +270,15 @@ Author the policy surface as a first-class artifact, defining:
 System instructions MUST be written on the assumption that untrusted content will attempt to override them during runtime.
 
 > [!NOTE]
-> While no single method defeinds fully against prompt injection, a defence-in-depth strategy that employs, amongst other items system prompt techniques, tool permissions, and other mechanisms as outlined above, all work together to minimize the risk and impact of successful prompt injection.
+> While no single method defends fully against prompt injection, a defence-in-depth strategy that employs, amongst other items system prompt techniques, tool permissions, and other mechanisms as outlined above, all work together to minimize the risk and impact of successful prompt injection.
 
 For each constraint on the agent's authority, record whether it is enforced by a control outside the model or depends on the model complying with prose. Trace each element of the policy surface to a decision recorded during [scoping and design](#31-scoping-and-design), e.g., a tool permission to a permitted goal, an approval condition to the blast radius analysis.
 
 Apply instrumentation to allow for [decommissioning](#38-decommissioning) will later need to enumerate. Emit signals when the agent create resources (webhooks, subscriptions, sub-agents, durable memory writes, etc.).
 
-Each of these is versioned, reviewed by someone other than its author, and revertible independently of the code around it.
+Each artifact, not just the code, MUST be versioned, ideally stored in an auditable version control system. All changes reviewed by someone other than its author, and revertable independently of its surrounding code.
+
+The reviewed policy surface, handling logic, and instrumentation MUST carry a single version identity that is verifiable during [admission](#34-admission-and-deployment). Development and test environments MUST use non-production data and credentials, and the policy surface MUST never embeds credentials.
 
 **Gate.** The policy surface is under change control at parity with code, and a reviewer can answer what authority the agent holds, and why, by reading it. Each reviewed revision is identifiable for [admission](#34-admission-and-deployment).
 
