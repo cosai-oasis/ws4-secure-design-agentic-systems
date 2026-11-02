@@ -107,7 +107,7 @@ To capture these failures across modalities, each security mechanism is defined 
 
 Two operational attributes are recorded on the DFD itself: **System Processing Stage** (*where attacker-controlled information enters the target system or becomes security-relevant*) is derived directly from where a crossing occurs on the annotated DFD (**Section 4.2** and **Appendix B.2**), and **Modality** stays on the data flow as the implementation surface across which mechanisms generalize.
 
-**Running example.** We follow one system throughout the paper: a support-ticket triage agent. In its simplest form, a language model reads a customer ticket and emits one label from a fixed list, and a router sends the ticket to that queue (**Figure 2**). The `abuse` queue covers threats and fraud, and only that queue pages the on-call responders. Each subsection then adds the smallest change that exposes its idea. Each figure is the previous one plus the new components (blue), with the components and flows an exploit runs through marked in crimson. **Section 5.1** combines these changes into one system and applies the full method.
+**Running example.** We follow one system throughout the paper: a support-ticket triage agent. In its simplest form, a language model reads a customer ticket and emits one label from a fixed list, and a router sends the ticket to that queue (**Figure 2**). The `abuse` queue covers threats and fraud, and only that queue pages the on-call responders. Each subsection then adds the smallest change that exposes its idea. Each figure is the previous one plus the new components (blue), with the components and flows an exploit runs through marked in crimson. **Section 3.5** then shows the same crossings in two other domains, and **Section 5.1** combines these changes into one system and applies the full method.
 
 ```mermaid
 flowchart LR
@@ -477,7 +477,7 @@ Crossing the four invariants with the four divergences yields the thirteen bound
 
 ### 3.4 Representation
 
-**Representation** describes how adversarial information or influence is embodied in an artifact and becomes interpretable at a specified processing boundary. It records properties of the artifact at the specific state being examined; how the attacker built it is recorded separately (**Section 3.5** and **Appendix B.1**).
+**Representation** describes how adversarial information or influence is embodied in an artifact and becomes interpretable at a specified processing boundary. It records properties of the artifact at the specific state being examined; how the attacker built it is recorded separately (**Section 3.6** and **Appendix B.1**).
 
 #### 3.4.1 Primary Forms and Survival Across Flow Fidelity
 
@@ -635,7 +635,79 @@ flowchart LR
 
 *Figure 2K. The design of Figure 2I; crimson marks both amplification exploits.*
 
-### 3.5 Supporting Annotations Beyond the Core Tuple
+### 3.5 Transfer to Other Domains
+
+The tuple describes structure, so the same crossings appear far from support tickets. Each example below reuses an architecture from this section with different components, and its figure is labeled with the running-example figure it mirrors. **Section 5** analyzes both examples in full.
+
+#### 3.5.1 Coding Agent: Trail of Bits / Gemini CLI
+
+*Scenario:* a developer uses Gemini CLI with a Zapier MCP server configured with `trust=True`, so the model's tool calls run automatically. The model can read the developer's Google Calendar, and the CLI downscales every image before the model sees it.
+
+*Architecture:* the shape of **Figure 2I**, with an image input through an aliasing downscaler into the model, a tool the model calls, and secret context the model holds (**Figure 2L**). The developer looking at the image before uploading it plays the role of staff reviewing the screenshot.
+
+*Exploit:* the attacker publishes an image whose full-resolution pixels look ordinary and whose downscaled version spells out instructions to read the calendar and send it to an external address (Morozova & Hussain, 2025). The developer views the image, sees an ordinary picture, and hands it to the CLI. The model reads the downscaled instructions and calls the MCP tool, which sends the calendar out.
+
+*Fault:* the developer checked one artifact and the model read another (`Meaning × Artifact State`, *Transform Consistency*; `Steganographic → Overt Semantic`). Two legs the architecture grants finish the attack: `trust=True` lets the steered model call the tool (`Authority × Position`), and the tool sends calendar data to any recipient (`Confidentiality × Position`). **Section 5.2** derives the full chain and its cut points.
+
+```mermaid
+flowchart LR
+    subgraph ARCH["Analogous to Figure 2I: screenshot, downscaler, model, tool, and secret context"]
+        direction LR
+        IMG["Uploaded image"]:::exploit
+        DEV{{"Developer views full size"}}
+        DSC(["Aliasing downscaler"]):::exploit
+        LLM(["CLI model"]):::exploit
+        CAL[("Google Calendar")]:::exploit
+        MCP(["Zapier MCP tool"]):::exploit
+        EXT["External host"]:::exploit
+        IMG --> DEV
+        DEV --> DSC
+        DSC --> LLM
+        CAL --> LLM
+        LLM -- "tool call (trust=True)" --> MCP
+        MCP -- "calendar data" --> EXT
+    end
+    subgraph KEY["Legend"]
+        KEY_exploit["Implicated in the exploit"]:::exploit
+    end
+    linkStyle 1,2,3,4,5 stroke:#dc2626,stroke-width:2.5px
+    classDef exploit fill:#fee2e2,stroke:#dc2626,stroke-width:2.5px,color:#7f1d1d
+```
+
+*Figure 2L. The Trail of Bits / Gemini CLI attack, drawn on the architecture of Figure 2I; crimson marks the exploit.*
+
+#### 3.5.2 Delivery Robot: RP2 Stop-Sign Stickers
+
+*Scenario:* a campus delivery robot travels at 2 m/s and reads street signs with a camera and a sign classifier. The classifier emits one class from a fixed list, and a deterministic brake planner halts the robot at every `STOP` sign.
+
+*Architecture:* the shape of **Figure 2**, with an input, a model that emits a typed label, a deterministic consumer, and a safeguard that must fire (**Figure 2M**). The sign class plays the role of the queue label, and halting at `STOP` plays the role of paging on `abuse`.
+
+*Exploit:* the attacker puts Robust Physical Perturbation (RP2) stickers on a stop sign. A person still reads `STOP`; the classifier reads `Speed Limit 45`, as it did in 84.8% of drive-by video frames in Eykholt et al. (2018).
+
+*Fault:* the classifier and a human reader disagree about the same sign (`Meaning × Evaluator`, *Human-Machine Perception*; `Adversarial Perturbation`). The brake planner then runs exactly the logic it is authorized to run on a wrong percept, and the robot enters the crossing. `Authority` holds throughout, because the classifier can only emit a typed class. The physical harm follows from the Meaning failure alone. **Section 5.3** follows the same robot with a VLM planner, where an Authority crossing opens as well.
+
+```mermaid
+flowchart LR
+    subgraph ARCH["Analogous to Figure 2: input, typed-label model, deterministic consumer, and safeguard"]
+        direction LR
+        SGN["Stop sign with stickers"]:::exploit
+        CLS(["Sign classifier"]):::exploit
+        BRK(["Brake planner"]):::exploit
+        HLT{{"Halt at STOP"}}:::exploit
+        SGN -- "camera" --> CLS
+        CLS -- "sign class" --> BRK
+        BRK -- "STOP" --> HLT
+    end
+    subgraph KEY["Legend"]
+        KEY_exploit["Implicated in the exploit"]:::exploit
+    end
+    linkStyle 0,1,2 stroke:#dc2626,stroke-width:2.5px
+    classDef exploit fill:#fee2e2,stroke:#dc2626,stroke-width:2.5px,color:#7f1d1d
+```
+
+*Figure 2M. RP2 stickers on a delivery robot, drawn on the architecture of Figure 2; crimson marks the exploit.*
+
+### 3.6 Supporting Annotations Beyond the Core Tuple
 
 Records can carry optional annotations when evidence supports them: **Construction Method** (*Manual Construction*, *Adaptive Search*, or *Optimization*, including transformation-invariant optimization), **Attacker Knowledge / Access** (*Black-box*, *Partial Knowledge*, or *White-box*), and **Transfer Context** (*Direct-Target Development* or *Surrogate Transfer*) (**Appendix B.1**). Knowledge is recorded per component, since an attacker can know an image resizer exactly while treating the downstream model as a black box. **System Processing Stage** follows from where a crossing sits on the DFD (**Appendix B.2**).
 
@@ -1347,7 +1419,7 @@ To support automated traversal and cross-team reuse (**Section 7**), annotated D
 
 **Framework alignment notes.** The notes below expand the summary in **Section 6.1**; Tables C.1–C.4 follow.
 
-**Adversary catalogs (MITRE ATLAS, NIST AI 100-2e2025).** ATLAS's 2026 releases describe multimodal behavior in detail: triggers placed in "a modality that is not inspected, or is inspected differently from text" (`AML.T0129`), obfuscation across images, audio, and video frames (`AML.T0068`), and content served differently to AI systems than to humans (`AML.T0134`). For the Trail of Bits disclosure, ATLAS records indirect prompt injection (`AML.T0051.001`) and exfiltration through agent tool invocation (`AML.T0086`); the chain record places those techniques on Legs 1–3 and names the downscaler as the activation point. ATLAS mitigation `AML.M0010` lists resampling as an input-restoration defense and notes that adaptive adversaries account for preprocessing, which the method expresses structurally as a `Normalized` flow and the conservative survival of `Adversarial Perturbation` (**Table 2**). NIST AI 100-2e2025 provides a broader threat taxonomy organized by learning method, lifecycle phase, attacker objective, capability, and knowledge. Its *resource control* capability corresponds to an `Untrusted` flow from an external `«source»`, and its knowledge dimension aligns with the per-component *Attacker Knowledge / Access* annotation (**Section 3.5**).
+**Adversary catalogs (MITRE ATLAS, NIST AI 100-2e2025).** ATLAS's 2026 releases describe multimodal behavior in detail: triggers placed in "a modality that is not inspected, or is inspected differently from text" (`AML.T0129`), obfuscation across images, audio, and video frames (`AML.T0068`), and content served differently to AI systems than to humans (`AML.T0134`). For the Trail of Bits disclosure, ATLAS records indirect prompt injection (`AML.T0051.001`) and exfiltration through agent tool invocation (`AML.T0086`); the chain record places those techniques on Legs 1–3 and names the downscaler as the activation point. ATLAS mitigation `AML.M0010` lists resampling as an input-restoration defense and notes that adaptive adversaries account for preprocessing, which the method expresses structurally as a `Normalized` flow and the conservative survival of `Adversarial Perturbation` (**Table 2**). NIST AI 100-2e2025 provides a broader threat taxonomy organized by learning method, lifecycle phase, attacker objective, capability, and knowledge. Its *resource control* capability corresponds to an `Untrusted` flow from an external `«source»`, and its knowledge dimension aligns with the per-component *Attacker Knowledge / Access* annotation (**Section 3.6**).
 
 **Hazard and risk frameworks (STRIDE, OWASP, CoSAI Risk Map, MAESTRO).** A STRIDE category attaches to each sink constraint by the hazard it prevents: a *Disclosure policy* on an egress sink guards against Information Disclosure, an *Authority policy* on an authority sink against Elevation of Privilege, a *Resource budget* against Denial of Service, and a *Reference specification* against Tampering. A STRIDE-per-element review therefore keeps its vocabulary and gains derived crossings inside the trust zone that a coarse diagram treats as one process. OWASP `LLM01` (Prompt Injection), `LLM05` (Improper Output Handling), and `LLM06` (Excessive Agency) map to sink constraints and crossings at `«follower»`, `«renderer»`, and `«executor»` nodes. The CoSAI Risk Map's component axis (Input Handling, Reasoning Core, Output Handling, Tools) is the most stage-like construct among the reviewed frameworks; the DFD roles refine it by adding `«guard»` and `«transform»` as explicit components, and a mechanism record can carry the corresponding Risk Map risk identifier as a supporting annotation. MAESTRO's seven architectural layers locate the affected subsystem, and the DFD path locates the crossing within it.
 
