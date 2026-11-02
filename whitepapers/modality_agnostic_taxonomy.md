@@ -37,7 +37,7 @@ The method adds three lightweight annotations to the standard DFDs architects al
 
 ### 1.3 Ecosystem Positioning
 
-Each framework answers a different question about the same attack (**Figure 1**). An ATLAS technique describes what the attacker does, and one technique can be realized through several mechanisms that need different controls. NIST AI 100-2e2025's attacker capability and knowledge determine which of those mechanisms the adversary can actually reach. STRIDE classifies the hazard behind each constraint, so the mechanism's harm is the STRIDE category of the constraint it breaks (e.g., the same mechanism can lead to Elevation of Privilege on one path and Information Disclosure on another).
+Each framework answers a different question about the same attack (**Figure 1**). An ATLAS technique describes what the attacker does, and one technique can be realized through several mechanisms that need different controls. NIST AI 100-2e2025's attacker capability and knowledge determine which of those mechanisms the adversary can actually reach. Each constraint exists to prevent a hazard, and STRIDE classifies that hazard, so a mechanism inherits the STRIDE category of the constraint it breaks (e.g., the same mechanism can lead to Elevation of Privilege on one path and Information Disclosure on another).
 
 ```mermaid
 flowchart LR
@@ -90,7 +90,7 @@ The method covers inference-time security mechanisms in unimodal, multimodal, an
 * Long-term retrieval poisoning and persistent memory poisoning (deferred until the inference-time method is ratified).
 * Provenance spoofing, identity impersonation, and replay attacks as standalone families.
 * Side-channel and timing attacks that leak information through observed processing behavior (response latency, token-by-token streaming timing, resource consumption patterns); conventional side-channel analysis already covers these.
-* A bespoke impact or severity taxonomy; STRIDE categories attach directly to sink constraints (**Section 4.1**).
+* A bespoke impact or severity taxonomy; STRIDE categories attach to the hazard each sink constraint prevents (**Section 4.1**).
 * Model-safety failures that arise from benign data, signals, or outputs.
 
 ## 3. Defining a Mechanism
@@ -681,7 +681,7 @@ Three rules govern Step 1:
 
 * **State an explicit safeguard obligation for every safeguard whose job is to intervene.** Attacks that suppress a fraud flag, omit a malicious message from an executive summary, or make a video quality-control sampler skip non-compliant frames execute no unauthorized tool call. A liveness bound on the safeguard sink (for example, *"before settlement"* or *"within 1 hour"*) is what makes a suppressed alert a violation.
 * **Record an unconstrained sink as an architectural finding.** If policy lets a client previewer fetch images from any external host, exfiltration via rendered Markdown breaks no stated rule; the finding is the missing security requirement.
-* **Attach STRIDE impact categories to sink constraints.** Because STRIDE names the downstream consequence, the same `Meaning` divergence can cause Elevation of Privilege, Information Disclosure, or Tampering depending on which sink its path reaches.
+* **Classify each hazard with STRIDE.** Each sink constraint carries the STRIDE category of the hazard it prevents, so the same `Meaning` divergence can cause Elevation of Privilege, Information Disclosure, or Tampering depending on which sink its path reaches.
 
 ### 4.2 Step 2: Annotated Data-Flow Diagram
 
@@ -713,7 +713,7 @@ Once the diagram is annotated, findings follow from seven traversal rules (looku
 3. **Look up surviving representations.** At each crossing, intersect the incoming flow fidelity (`Full`, `Normalized`, or `Typed`) with the representation survival table (**Section 3.4.1, Table 2**) to determine which forms (*Overt Semantic*, *Encoded / Obfuscated*, *Steganographic*, or *Adversarial Perturbation*) arrive intact.
 4. **Emit mechanism records (one crossing per record).** Emit one record `M = ⟨Invariant, Divergence, Representation⟩` per crossing judged *realizable* by an attacker, noting its evidence maturity (`Observed`, `Demonstrated`, or `Feasible`). Keeping records 1-to-1 with crossings (so evading an input `«guard»` and steering a `«follower»` emit two distinct records even from a single payload) keeps chain lengths comparable across architectures.
 5. **Assemble attack chains (supplied vs. granted legs).** Each required step toward violating a sink constraint is a **leg**: **granted** when the architecture permits passage unconditionally (unguarded channels, `auto-approve` tools, or task-permitted navigation) and **supplied** when a deployed `«guard»` forces an active bypass:
-   * Harm requires *every leg* of a sink violation; the attacker supplies whichever legs the architecture did not already grant (yielding single-record exploits when remaining legs are granted, or in standalone `Time` and `Cost` failures).
+   * A hazard occurs only when *every leg* of a sink violation holds; the architecture grants some legs, and the attacker supplies the rest (yielding single-record exploits when remaining legs are granted, or in standalone `Time` and `Cost` failures).
    * Records link wherever one crossing's postcondition satisfies the next crossing's precondition. **Confidentiality exfiltration chains** join an integrity path (steering a `«follower»` that holds `Secret` state) with a confidentiality path (carrying that `Secret` output to an unauthorized `«receiver»`), capturing the "lethal trifecta" (Willison, 2025) as graph topology. *Fragmented / Distributed* payloads emit one `Meaning × Artifact State` aggregation record with a conjunctive precondition across the contributing flows.
 6. **Compute minimal structural cut points.** Identify the minimum set of flows or processes whose hardening or removal disconnects external sources from violated sinks (e.g. narrowing a `«follower» → «executor»` flow from `Full` to `Typed`, or gating an auto-fetching `«renderer»`).
 7. **Verify annotation coverage.** Confirm that every process, flow, and sink is annotated, flagging any unannotated element as a specification gap and recording the structural reason (*`relay` node, trusted and unreachable, within sink constraint, or out of scope*) whenever an element produces zero crossings.
@@ -730,7 +730,7 @@ Each derived attack chain maps to a falsifiable **security test scenario** whose
 Design-time reports can present compact summary counts by crossing pattern, sink, and cut point in the main text while placing exhaustive derivation tables in an appendix (e.g. the 15-component Invoice-Processing Agent in **Appendix D.1** yields 17 crossings, 1 missing-safeguard gap, 13 realizable records, 9 chains, and 13 tests).
 
 **Reverse traversal for incident mechanism triage (Use Case C).** To triage a disclosed vulnerability or incident (**Section 5.2**), run the same method in reverse on a minimal diagram:
-1. Draw *only* the path traversed from entry `«source»` to harmed sink using vendor-neutral functional roles (`«guard»`, `«transform»`, `«follower»`, `«executor»`, `«renderer»`).
+1. Draw *only* the path traversed from entry `«source»` to the sink where the hazard occurred, using vendor-neutral functional roles (`«guard»`, `«transform»`, `«follower»`, `«executor»`, `«renderer»`).
 2. Annotate roles, flow labels/fidelities, and the violated sink constraint along that path, then apply Step 3 to emit the chain's mechanism records, separate *supplied* bypasses from *granted* legs, and locate minimal cut points.
 3. Any architectural detail omitted from the incident report (such as whether a filter inspected the raw upload or the resized tensor) surfaces as an unannotated element, defining the exact triage question to ask the system owner; matching the resulting chain against the full DFD reveals sibling exposures across other tools and modalities.
 
@@ -929,7 +929,7 @@ flowchart LR
 
 ### 5.2 Incident Mechanism Triage (Use Case C): Trail of Bits / Gemini CLI Disclosure
 
-Retrospective classification of an incident or published exploit runs the same method on a minimal diagram (**Section 4.4**): draw only the path the attack traversed from entry `«source»` to harmed sink using vendor-neutral functional roles, annotate its flow labels, fidelities, and sink constraints, and derive the resulting crossings, mechanism records, and cut points.
+Retrospective classification of an incident or published exploit runs the same method on a minimal diagram (**Section 4.4**): draw only the path the attack traversed from entry `«source»` to the sink where the hazard occurred, using vendor-neutral functional roles, annotate its flow labels, fidelities, and sink constraints, and derive the resulting crossings, mechanism records, and cut points.
 
 In the August 2025 Trail of Bits disclosure against Gemini CLI (Morozova & Hussain, 2025), an uploaded image appears benign at full resolution when viewed by the user, but nearest-neighbor or bicubic downscaling reveals concealed instructions that the multimodal model interprets and executes through an auto-approved Zapier Model Context Protocol (MCP) tool to exfiltrate Google Calendar data (**Figure 4A**).
 
@@ -1028,7 +1028,7 @@ The taxonomy fills that gap and is used alongside existing frameworks. It gives 
 
 ### 6.1 Threat, Risk, and Governance Frameworks
 
-Applied to the Trail of Bits image-scaling attack (**Section 5.2**; **Appendix C, Table C.1**), existing AI security frameworks each cover part of the attack. NIST and IBM AI Risk Atlas identify adversarial techniques and associated risks; MITRE ATLAS captures attacker behavior and prompt injection techniques; MITRE D3FEND provides defensive countermeasures; MAESTRO examines architectural exposure and trust boundaries; and STRIDE classifies potential security consequences.
+Applied to the Trail of Bits image-scaling attack (**Section 5.2**; **Appendix C, Table C.1**), existing AI security frameworks each cover part of the attack. NIST and IBM AI Risk Atlas identify adversarial techniques and associated risks; MITRE ATLAS captures attacker behavior and prompt injection techniques; MITRE D3FEND provides defensive countermeasures; MAESTRO examines architectural exposure and trust boundaries; and STRIDE classifies the hazards an attack can cause.
 
 The mechanism-level account of **how an attack is constructed, transformed, activated, and propagated through an AI system** is spread across them. In the Trail of Bits example, the critical mechanism is pixel-level manipulation followed by image downscaling, which reveals concealed instructions that then steer model behavior and agent actions. The frameworks name prompt injection, obfuscation, and multimodal threats; the link between a processing transformation and the boundary violation it causes is the piece this taxonomy adds.
 
