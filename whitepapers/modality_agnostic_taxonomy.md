@@ -29,7 +29,7 @@ Treating these as separate "image attacks," "audio attacks," and "rendering bugs
 
 To enumerate those mechanisms systematically instead of brainstorming them case by case, we pair a three-part mechanism definition, **`M = ⟨Invariant, Divergence, Representation⟩`** (Section 3), with a **four-step derivation method over an annotated data-flow diagram (DFD)** (Section 4):
 
-* **Invariant** names the explicit sink constraint the system relies upon (*Meaning*, *Flow* for integrity and confidentiality, or *Cost*).
+* **Invariant** names the explicit sink constraint the system relies upon (*Meaning*, *Authority*, *Confidentiality*, or *Cost*).
 * **Divergence** names why two evaluations assumed to agree actually differ (*Evaluator*, *Artifact State*, *Time*, or *Position*).
 * **Representation** names the observable form in which adversarial influence travels (*Overt Semantic*, *Encoded / Obfuscated*, *Steganographic*, or *Adversarial Perturbation*) and whether it survives the representational fidelity (`Full`, `Normalized`, or `Typed`) of each data flow.
 
@@ -129,39 +129,40 @@ Two operational attributes are recorded on the DFD itself: **System Processing S
 
 A security boundary is an assumption or constraint that must hold as information is evaluated, transformed, transferred, or acted upon within an AI system; a boundary violation occurs when an adversarial artifact breaks an applicable sink constraint (**Appendix A.1**).
 
-Building on established cybersecurity concepts such as interpretation consistency (`CWE-436`), information-flow control and authorization enforcement (`Denning, 1976`; `NIST SP 800-53 AC-3`), and resource bounding (`CWE-400`), security boundaries cross three **Invariant** families (with Flow split into symmetric integrity and confidentiality rows) against four **Divergences**:
+Building on established cybersecurity concepts such as interpretation consistency (`CWE-436`), information-flow control and authorization enforcement (`Denning, 1976`; `NIST SP 800-53 AC-3`), and resource bounding (`CWE-400`), security boundaries cross four **Invariants** against four **Divergences**:
 
 1. **Invariants (the security property protected, in any modality):**
    * **Meaning (*Semantic Integrity*):** Security-relevant interpretations must remain consistent across evaluators, representations, or transformations wherever a sink's *Reference specification* relies on that consistency.
-   * **Flow (*Integrity* and *Confidentiality*):** Labeled data arriving at a sink must satisfy the sink's *Flow clearance* (`label(data) ⊑ clearance(sink)`). Following classical information-flow lattices (Biba integrity and Bell-LaPadula confidentiality; Denning, 1976), **Flow (integrity)** keeps lower-trust (`Untrusted`) information in a data role and keeps system actions within granted permissions, and **Flow (confidentiality)** requires that higher-sensitivity (`Secret`) context remain confined to approved recipients and safe output consumers.
+   * **Authority:** Consequential actions follow only from inputs and grants that are entitled to drive them. Data arriving at an authority sink must satisfy that sink's *Authority policy* (`label(data) ⊑ policy(sink)`), so lower-trust (`Untrusted`) information stays in a data role and system actions stay within granted permissions.
+   * **Confidentiality:** Higher-sensitivity (`Secret`) context reaches only the recipients and output consumers that an egress sink's *Disclosure policy* permits (the same ordering relation, applied in the other direction). Together, Authority and Confidentiality are the integrity and confidentiality directions of one information-flow lattice (Biba and Bell-LaPadula; Denning, 1976).
    * **Cost (*Resource Bounding*):** Processing, inference, and tool execution must remain within the established *Resource budget* implied at admission.
 2. **Divergences (what differs between the two sides assumed to agree):**
    * **Evaluator:** Two evaluators inspect the *same artifact state* and produce inconsistent security-relevant interpretations. The reference evaluator may be **deployed** in the architecture (a human reviewer, guard model, or parser) or **idealized** (human perception or policy intent stated in a sink's *Reference specification*).
    * **Artifact State:** A processing transformation or multi-input aggregation changes or exposes security-relevant content between check and use.
    * **Time:** A validated artifact, store, or permission grant changes state between validation (`t`) and use (`t + Δ`).
-   * **Position:** Labeled information reaches a sink whose *Flow clearance* prohibits that trust or sensitivity label.
+   * **Position:** Labeled information arrives at a sink, and its trust or sensitivity label falls outside that sink's *Authority policy* or *Disclosure policy*.
 
 Crossing these axes yields the thirteen boundary subclasses in **Table 1**. Each subclass is tagged **Closable** (a deterministic architectural fix exists) or **Reducible-only** (defenses lower attack success rates):
 
-| Invariant \ Divergence | **Evaluator**<br/>*(same artifact state, two evaluators)* | **Artifact State**<br/>*(transform or aggregation between check and use)* | **Time**<br/>*(same store or grant at `t` vs. `t + Δ`)* | **Position**<br/>*(flow label violates the sink's Flow clearance)* |
+| Invariant \ Divergence | **Evaluator**<br/>*(same artifact state, two evaluators)* | **Artifact State**<br/>*(transform or aggregation between check and use)* | **Time**<br/>*(same store or grant at `t` vs. `t + Δ`)* | **Position**<br/>*(flow label violates the sink's authority or disclosure policy)* |
 | :---- | :---- | :---- | :---- | :---- |
 | **Meaning**<br/>*(Reference specification)* | *Human-Machine Perception* (R)<br/>*Guard-Model Capability* (R)<br/>*Parser / Interpreter Differential* (C)<br/>*Semantic Stability* (R) | *Transform Consistency* (C) | *Check-Use Consistency* (C) | — |
-| **Flow (integrity)**<br/>*(authority Flow clearance)* | — | — | *Grant Persistence* (C) | *Data-Control* (C)<br/>*Decision-Action* (C)<br/>*Delegation Authority* (C) |
-| **Flow (confidentiality)**<br/>*(egress Flow clearance)* | — | — | — | *Context Confinement* (C)<br/>*Output-Consumer* (C) |
+| **Authority**<br/>*(Authority policy)* | — | — | *Grant Persistence* (C) | *Data-Control* (C)<br/>*Decision-Action* (C)<br/>*Delegation Authority* (C) |
+| **Confidentiality**<br/>*(Disclosure policy)* | — | — | — | *Context Confinement* (C)<br/>*Output-Consumer* (C) |
 | **Cost**<br/>*(Resource budget)* | *Resource Accounting* (C) | — | — | — |
 
 *Table 1. The `Invariant × Divergence` boundary matrix. C = Closable; R = Reducible-only.*
 
 * **Meaning.** *Human-Machine Perception*: a human and a machine interpret the same artifact differently, invalidating a security assumption that rests on human review (closable once the flow is `Normalized`). *Guard-Model Capability*: a protective evaluator misses content the target model recognizes. *Parser / Interpreter Differential*: two parsers or interpreters read the same input differently (`CWE-436`). *Semantic Stability*: equivalent meaning receives inconsistent decisions against idealized policy intent, including authorization and conflict arbitration. *Transform Consistency*: a transformation or multi-input aggregation changes or exposes content after it was assessed (`CWE-180`). *Check-Use Consistency*: a validated artifact or state changes before use (`CWE-367`).
-* **Flow (integrity).** *Grant Persistence*: a permission stays usable after expiry, revocation, or its task window. *Data-Control*: `Untrusted` content is promoted into instructions or control flow (`OWASP LLM01`). *Decision-Action*: an `«executor»` runs a `«follower»`-requested operation that skips required authorization (`SP 800-53 AC-3`). *Delegation Authority*: a deputy exercises authority beyond what its caller granted (`SP 800-53 AC-6`).
-* **Flow (confidentiality).** *Context Confinement*: `Secret` context or memorized data reaches an unauthorized `«receiver»`. *Output-Consumer*: generated output triggers prohibited effects in a downstream `«renderer»`, such as external URL fetches (`OWASP LLM05`).
+* **Authority.** *Grant Persistence*: a permission stays usable after expiry, revocation, or its task window. *Data-Control*: `Untrusted` content is promoted into instructions or control flow (`OWASP LLM01`). *Decision-Action*: an `«executor»` runs a `«follower»`-requested operation that skips required authorization (`SP 800-53 AC-3`). *Delegation Authority*: a deputy exercises authority beyond what its caller granted (`SP 800-53 AC-6`).
+* **Confidentiality.** *Context Confinement*: `Secret` context or memorized data reaches a `«receiver»` outside the sink's *Disclosure policy*. *Output-Consumer*: generated output makes a downstream `«renderer»` produce effects outside the *Disclosure policy* (e.g., external URL fetches; `OWASP LLM05`).
 * **Cost.** *Resource Accounting*: an artifact or induced operation exceeds a compute, memory, inference, or tool-execution budget (`CWE-400`).
 
 **Appendix A.4** separates neighboring subclasses that are easy to confuse (for example, *Data-Control* vs. *Decision-Action*, or *Guard-Model Capability* vs. *Transform Consistency*).
 
 **Closable vs. Reducible-only boundaries and role-dependent sanitization.** Formal impossibility results show that a `«guard»` with weaker reasoning or fewer computational resources than the target `«follower»` leaves a capability gap that external filtering can at best reduce (Ball et al., 2025; Glukhov et al., 2023), and adaptive optimization routinely bypasses probabilistic guardrails (Nasr et al., 2025). Whether an `Untrusted` flow can be deterministically sanitized therefore depends on the receiving component's role:
 * **`«executor»` and `«renderer»` inputs are deterministically sanitizable (`Closable`):** Formal grammars strictly separate passive data from executable syntax or network fetches (via parameterized APIs, schemas, output encoding, and URL allowlists).
-* **`«follower»` inputs are `Reducible-only` at the model:** In natural-language and multimodal inputs, instructions and data share one grammar (Zverev et al., 2025). Deterministic containment across a `«follower»` relies on **context separation** (routing `Untrusted` data to a separate model context from the one that selects actions or holds `Secret` data) and **type narrowing** (constraining `«follower»` outputs to `Typed` flows, which closes `Flow (integrity)` while bounding `Meaning` selection to the allowed type).
+* **`«follower»` inputs are `Reducible-only` at the model:** In natural-language and multimodal inputs, instructions and data share one grammar (Zverev et al., 2025). Deterministic containment across a `«follower»` relies on **context separation** (routing `Untrusted` data to a separate model context from the one that selects actions or holds `Secret` data) and **type narrowing** (constraining `«follower»` outputs to `Typed` flows, which closes `Authority` while bounding `Meaning` selection to the allowed type).
 
 ### 3.2 Representation and Flow Fidelity
 
@@ -203,10 +204,11 @@ The method combines three established foundations: top-down loss-to-constraint a
 
 | Layer & Attached Element | Annotation Values & DFD Notation | Operational Meaning | Multimodal & Agentic Examples |
 | :---- | :---- | :---- | :---- |
-| **Step 1: Sink Constraints**<br/>*(attached to authority, egress, susceptible, and safeguard sinks)* | **Flow clearance** | Allowed trust/sensitivity labels (`label ⊑ clearance`) and permitted data types at an authority or egress sink; violations break **Flow (integrity)** or **Flow (confidentiality)**. | Supplier content may populate typed invoice fields only; internal records may reach only the ERP system and finance channel. |
+| **Step 1: Sink Constraints**<br/>*(attached to authority, egress, susceptible, and safeguard sinks)* | **Authority policy** | Allowed trust labels (`label ⊑ policy`) and permitted data types at an authority sink; violations break **Authority**. | Supplier content may populate typed invoice fields only; tool selection comes from trusted principals. |
+| | **Disclosure policy** | Allowed sensitivity labels (`label ⊑ policy`) and permitted recipients or fetch targets at an egress sink; violations break **Confidentiality**. | Internal records may reach only the ERP system and finance channel; rendered notifications fetch only from allowlisted hosts. |
 | | **Reference specification** | Ground-truth reference that acted-on values at an authority sink must match; violations break **Meaning**. | Executed payee and amount must match the invoice as read by a human reviewer; a text claim must agree with an independent visual or ledger observation. |
 | | **Resource budget** | Maximum operational expenditure per admitted unit at a susceptible process; violations break **Cost**. | At most 50 pages, 60 seconds, `\$0.50` in model spend, and 5 tool calls per invoice; at most 4,000 characters and 5 seconds per support ticket. |
-| | **Safeguard obligation** | Mandatory intervention and explicit timing or scope bound (a liveness requirement) on a `guard` or alert sink; omissions breach **Meaning**, **Flow (integrity)**, or **Cost**. | Every payable over `\$10,000` must reach human review before settlement; every abuse or threat ticket must page on-call responders within 1 hour. |
+| | **Safeguard obligation** | Mandatory intervention and explicit timing or scope bound (a liveness requirement) on a `guard` or alert sink; omissions breach **Meaning**, **Authority**, or **Cost**. | Every payable over `\$10,000` must reach human review before settlement; every abuse or threat ticket must page on-call responders within 1 hour. |
 | **Step 2: Node Shapes & Functional Roles**<br/>*(attached to external entities, stores, and processes)* | **`source`** · Rectangle `[ ]` | External entity supplying potentially attacker-controlled inputs. | Email sender, fetched web page, uploaded screenshot, telephony caller, physical camera scene. |
 | | **`receiver`** · Rectangle `[ ]` | External entity receiving outbound messages, network fetches, or physical side effects. | Customer email recipient, external webhook host, physical brake or steering actuator. |
 | | **Data store** · Cylinder `[( )]` | Persists state read or mutated across execution steps. | CRM database, vendor reference record, calendar store, internal ticket header. |
@@ -231,7 +233,7 @@ Following STPA-Sec's top-down sequence (Young & Leveson, 2013), the analyst deri
 
 1. **Stakeholder losses:** Unacceptable business, operational, or physical outcomes (for example, *unauthorized wire transfers, leaked confidential records, unreviewed fraud or abuse reports, or physical collision with a pedestrian*).
 2. **System hazards:** System-level states or outputs that precipitate a loss (for example, *a payment executes with terms differing from an approved invoice, sensitive context reaches an unapproved recipient, or a high-risk item bypasses human review*).
-3. **Per-sink constraints:** Enforceable conditions attached to each authority (`executor`/`renderer`), egress (`receiver`), susceptible (resource-consuming), and safeguard (`guard`) sink on the DFD (**Table 3**, Step 1). Because agents often exist specifically to process untrusted inputs (such as supplier invoices or support tickets), an authority sink's **Flow clearance** states *which choices* untrusted data cannot steer (such as tool selection or bank routing overrides) and *through which narrowed types* it may legitimately act, while its **Reference specification** defines the ground-truth source that acted-on values must match.
+3. **Per-sink constraints:** Enforceable conditions attached to each authority (`executor`/`renderer`), egress (`receiver`), susceptible (resource-consuming), and safeguard (`guard`) sink on the DFD (**Table 3**, Step 1). Because agents often exist specifically to process untrusted inputs (such as supplier invoices or support tickets), the **Authority policy** on an authority sink states *which choices* stay reserved for trusted principals (such as tool selection or bank routing overrides) and *through which narrowed types* it may legitimately act, while its **Reference specification** defines the ground-truth source that acted-on values must match.
 
 Three rules govern Step 1:
 
@@ -245,7 +247,7 @@ Starting from the system's DFD, the analyst assigns a functional role to each pr
 
 **Assigning functional roles.** Roles describe pipeline behavior rather than underlying vendor technology:
 * An LLM that only blocks unsafe inputs carries the `«guard»` role (its susceptibility to evasion is a `Guard-Model Capability` crossing); an LLM whose output drives downstream data, routing, or tool selection carries the `«follower»` role.
-* **Draw `«executor»` and `«renderer»` nodes as separate processes from the `«follower»` node that invokes them.** The `«follower» → «executor»` or `«follower» → «renderer»` edge is the decision interface, and its *fidelity* is often the most consequential annotation on the diagram: if a model emits only a schema-validated enum (`Typed` fidelity), an attacker who steers the model is limited to selecting an incorrect enum value (a `Meaning` violation), which closes `Flow (integrity)`.
+* **Draw `«executor»` and `«renderer»` nodes as separate processes from the `«follower»` node that invokes them.** The `«follower» → «executor»` or `«follower» → «renderer»` edge is the decision interface, and its *fidelity* is often the most consequential annotation on the diagram: if a model emits only a schema-validated enum (`Typed` fidelity), an attacker who steers the model is limited to selecting an incorrect enum value (a `Meaning` violation), which closes `Authority`.
 * **Aggregation is structural.** Any process with two or more incoming flows is an aggregation point.
 
 **Unpacking multimodal and agentic pipelines (Step 2 checklist).** High-level diagrams often collapse preprocessing, extraction, and rendering into a single "AI service" box (**Appendix B.2** maps these locations to traditional processing stage names). Before Step 3, verify that the DFD unpacks six commonly hidden elements:
@@ -258,7 +260,7 @@ Starting from the system's DFD, the analyst assigns a functional role to each pr
 
 **Why only deterministic transforms grant `Normalized` fidelity.** Marking a flow `Normalized` asserts that covert channels absent from ordinary human perception have been removed deterministically, such as stripping PDF metadata, canonicalizing Unicode, or applying an anti-aliased low-pass filter before downsampling (an aliasing downscaler's output stays `Full`). Output flows from model-based extractors (`OCR`, `ASR`, captioners) stay at `Full` relative to a human reference because machine and human perception differ: OCR can transcribe low-contrast or micro-printed instructions a human reviewer overlooks and emit them downstream as plain `Overt Semantic` text.
 
-**Deriving trust boundaries.** A trust boundary falls automatically across every flow whose propagated label changes or violates the receiving sink's flow clearance; any mismatch with an architect's intuition highlights an unexamined trust assumption.
+**Deriving trust boundaries.** A trust boundary falls automatically across every flow whose propagated label changes or violates the receiving sink's authority or disclosure policy; any mismatch with an architect's intuition highlights an unexamined trust assumption.
 
 ### 4.3 Step 3: Deriving Crossings, Attack Chains, and Cut Points
 
@@ -281,7 +283,7 @@ Completeness holds relative to the diagram: an omitted flow means an omitted cha
 Each derived attack chain maps to a falsifiable **security test scenario** whose pass/fail oracle is the target sink constraint:
 
 * **Test setup and input:** Construct an entry artifact at `«source»` using the surviving `Representation` form(s) required for each attacker-*supplied* leg while leaving *granted* legs in their default state.
-* **Pass/fail oracle:** The test *fails* (confirming the vulnerability) if and only if execution violates the terminal **Sink Constraint** (*Flow clearance*, *Reference specification*, *Resource budget*, or *Safeguard obligation* window).
+* **Pass/fail oracle:** The test *fails* (confirming the vulnerability) if and only if execution violates the terminal **Sink Constraint** (*Authority policy*, *Disclosure policy*, *Reference specification*, *Resource budget*, or *Safeguard obligation* window).
 
 Design-time reports can present compact summary counts by crossing pattern, sink, and cut point in the main text while placing exhaustive derivation tables in an appendix (e.g. the 15-component Invoice-Processing Agent in **Appendix D.1** yields 17 crossings, 1 missing-safeguard gap, 13 realizable records, 9 chains, and 13 tests).
 
@@ -310,7 +312,7 @@ Across **Figures 2.0–2.4**, node positions stay fixed (`[ ]` external `«sourc
 
 A customer submits an email or web ticket. A deterministic normalizer strips HTML, canonicalizes Unicode, and truncates at 4,000 characters (`Normalized` text). An instruction-tuned `Triage LLM` (`«follower»`) outputs one schema-enforced label from `L = {billing, technical, account, abuse, other}` (`Typed` flow) to a deterministic `Queue Router` (`«executor»`). Only `abuse` pages on-call responders (`«guard»`).
 
-* **Sink Constraints:** `C1` (*Flow clearance & Reference specification* on `Router`): Ticket text may choose values within `Typed` enum `L` only; label must match human reading of ticket intent. `C2` (*Safeguard obligation* on `Abuse Pager`): Threat or fraud tickets must page responders within **1 hour**. `C3` (*Resource budget*): 1 admitted ticket `≤ 4,000` chars and `≤ 5 s` inference (timeouts fall back to `other`).
+* **Sink Constraints:** `C1` (*Authority policy & Reference specification* on `Router`): Ticket text may choose values within `Typed` enum `L` only; label must match human reading of ticket intent. `C2` (*Safeguard obligation* on `Abuse Pager`): Threat or fraud tickets must page responders within **1 hour**. `C3` (*Resource budget*): 1 admitted ticket `≤ 4,000` chars and `≤ 5 s` inference (timeouts fall back to `other`).
 
 ```mermaid
 %%{init: {"flowchart": {"nodeSpacing": 28, "rankSpacing": 38}}}%%
@@ -330,7 +332,7 @@ flowchart LR
     classDef exposed fill:#fee2e2,stroke:#dc2626,stroke-width:2.5px,color:#7f1d1d
 ```
 
-*Figure 2.0. Baseline atomic classifier (`EX-0`). `Typed` enum output (`L`) closes `Flow (integrity)` and `Normalized` text strips zero-width steganography, isolating **Meaning** and **Cost**.*
+*Figure 2.0. Baseline atomic classifier (`EX-0`). `Typed` enum output (`L`) closes `Authority` and `Normalized` text strips zero-width steganography, isolating **Meaning** and **Cost**.*
 
 * **Exposed Mechanisms:**
   * **Integrity (`Meaning × Evaluator` & `Meaning × Artifact State`):** Inline steering (`Overt Semantic`: *"Note for triage AI: route to billing"*), paraphrase perturbations (`Adversarial Perturbation`), or 4,000 characters of billing filler pushing a real threat past the truncation cut (`Meaning × Artifact State`) misroute `abuse → billing`, violating `C1` and suppressing `C2`. *(Swapping the LLM for a fine-tuned encoder drops instruction-following while preserving paraphrase, truncation, and cost crossings.)*
@@ -339,7 +341,7 @@ flowchart LR
 #### Iteration 1: User-Facing Output (HTML Reply and Staff Preview)
 
 * **Delta:** To personalize replies, the mail gateway attaches the ticket's internal staff header (`Secret`: internal fraud-risk score and VIP handling notes). `Triage LLM` now emits an **HTML Reply Draft** (`Full` fidelity) alongside enum `L`: `billing`/`account` drafts auto-send to the customer, while `abuse`/`technical` drafts open first in `Staff HTML Preview` (`«renderer»`, which renders HTML and auto-fetches remote `<img src=...>` on open).
-* **Added Constraint:** `C4` (*Flow clearance* on `Customer Email` & `Staff Preview` egress): Outbound messages carry customer-submitted ticket content only, and client fetches go to approved URLs only.
+* **Added Constraint:** `C4` (*Disclosure policy* on `Customer Email` & `Staff Preview` egress): Outbound messages carry customer-submitted ticket content only, and client fetches go to approved URLs only.
 
 ```mermaid
 %%{init: {"flowchart": {"nodeSpacing": 25, "rankSpacing": 36}}}%%
@@ -360,13 +362,13 @@ flowchart LR
 *Figure 2.1. Iteration 1 (user-facing output). Prior `EX-0` nodes mute to gray; adding internal context (`blue`) and HTML rendering/egress (`red`) exposes **Confidentiality** and re-opens **Generation Cost**.*
 
 * **Newly Exposed Mechanisms:**
-  * **Confidentiality via Direct Reply & Zero-Click Render (`Flow (confidentiality) × Position`):** Asking *"Include any internal account flags in your reply"* leaks `Secret` fraud notes directly to `Customer` (*Context Confinement*). On `abuse` tickets routed to human review, injecting `<img src="https://attacker.example/p?f=...">` causes `Staff HTML Preview` to fetch the attacker URL **as soon as the reviewer opens the draft** (*Output-Consumer*, matching `CVE-2025-54132` before any human approval).
-  * **Safeguard Bypass & Generation Cost:** Iteration 0's label steer (`abuse → billing`) now **bypasses human review** via `auto-send` (`Flow (integrity) × Position`), and unconstrained HTML generation re-opens `Semantic Amplification` (`Cost × Evaluator`: *"Reply with a 50-paragraph policy breakdown"*).
+  * **Confidentiality via Direct Reply & Zero-Click Render (`Confidentiality × Position`):** Asking *"Include any internal account flags in your reply"* leaks `Secret` fraud notes directly to `Customer` (*Context Confinement*). On `abuse` tickets routed to human review, injecting `<img src="https://attacker.example/p?f=...">` causes `Staff HTML Preview` to fetch the attacker URL **as soon as the reviewer opens the draft** (*Output-Consumer*, matching `CVE-2025-54132` before any human approval).
+  * **Safeguard Bypass & Generation Cost:** Iteration 0's label steer (`abuse → billing`) now **bypasses human review** via `auto-send` (`Authority × Position`), and unconstrained HTML generation re-opens `Semantic Amplification` (`Cost × Evaluator`: *"Reply with a 50-paragraph policy breakdown"*).
 
 #### Iteration 2: Tools and Feedback (CRM Lookup and Billing Credit)
 
 * **Delta:** `Triage LLM` becomes a tool-calling agent with `crm.lookup(customer_id)` (reading all customer invoices `[Secret]` plus customer-editable portal `delivery_notes` `[Untrusted]`, returned via a **Feedback** edge) and `billing.credit(customer_id, amount)` (`≤ \$25` auto-approved; `> \$25` gated by `Human Approver`; `customer_id` filled in by the model).
-* **Added Constraint:** `C5` (*Flow clearance & Resource budget* on `Billing Credit`): Credits permitted for verified outages on the authenticated caller's session account only, `≤ \$50`/30 days, `≤ 5` tool calls/ticket, and `> \$25` arguments must match human-approved parameters.
+* **Added Constraint:** `C5` (*Authority policy & Resource budget* on `Billing Credit`): Credits permitted for verified outages on the authenticated caller's session account only, `≤ \$50`/30 days, `≤ 5` tool calls/ticket, and `> \$25` arguments must match human-approved parameters.
 
 ```mermaid
 %%{init: {"flowchart": {"nodeSpacing": 25, "rankSpacing": 36}}}%%
@@ -390,7 +392,7 @@ flowchart LR
 *Figure 2.2. Iteration 2 (tools and feedback). Adding `CRM` feedback and `Billing Credit` (`blue`/`red`) exposes **Authorization**, **TOCTOU drift**, and connects multi-tenant CRM secrets directly into Iteration 1's `[C4]` egress sink.*
 
 * **Newly Exposed Mechanisms:**
-  * **Authorization (`Flow (integrity) × Position`, *Data-Control* → *Decision-Action*):** Direct ticket text, or **second-order prompt injection** hidden in CRM `delivery_notes` entering via Feedback, triggers an auto-approved `\$25` credit or credits attacker account `48213` (unbound `customer_id`, violating `C5`).
+  * **Authorization (`Authority × Position`, *Data-Control* → *Decision-Action*):** Direct ticket text, or **second-order prompt injection** hidden in CRM `delivery_notes` entering via Feedback, triggers an auto-approved `\$25` credit or credits attacker account `48213` (unbound `customer_id`, violating `C5`).
   * **TOCTOU Approval Drift (`Meaning × Time`, *Check-Use Consistency*):** `Human Approver` approves `\$40` for account `10021`; the boolean approval flag re-enters `Triage LLM`, which re-emits `\$40` to `48213` because `Billing Credit` checks only *that* an approval exists; a digest of *what* was approved would bind the two.
   * **Compound Exposure with Iteration 1 & Tool Loop (`Cost`):** `crm.lookup(48213)` widens Iteration 1's `[C4]` confidentiality breach from a single ticket header to **any customer's invoices in the CRM**, while *"check every invoice since 2019"* drives recursive lookup-feedback loops (`Semantic Amplification`).
 
@@ -417,7 +419,7 @@ flowchart LR
     classDef exposed fill:#fee2e2,stroke:#dc2626,stroke-width:2.5px,color:#7f1d1d
 ```
 
-*Figure 2.3. Iteration 3 (multimodal input). Only the dual-channel ingress on the left changes; downstream tools and renderers stay muted because their `Flow` legs carry over.*
+*Figure 2.3. Iteration 3 (multimodal input). Only the dual-channel ingress on the left changes; downstream tools and renderers stay muted because their `Authority` and `Confidentiality` legs carry over.*
 
 * **Newly Exposed Mechanisms:**
   * **Asymmetric Guard Bypass (`Meaning × Evaluator`, *Guard-Model Capability*):** Plain visible instructions rendered inside the screenshot (`Overt Semantic`) bypass `Text Filter` entirely (`EX-3.1`).
@@ -449,13 +451,13 @@ flowchart LR
 *Figure 2.4. Iteration 4 (audio swap). Central `Triage LLM`, `Router`, and `CRM/Billing` stay gray and untouched; HTML preview disappears; only acoustic ingress (`ASR`) and spoken egress (`TTS`) require re-evaluation.*
 
 * **What the congruent swap shows:**
-  1. **Central `Flow` and `Cost` mechanisms carry over unchanged:** Spoken instruction steering, spoken invoice fan-out, unauthorized `\$25` or cross-account credit (Iteration 2), and spoken cross-account invoice readout (Iteration 1) map to the same mechanism cells, so session-binding cuts on `CRM` and `Billing Credit` transfer unchanged.
+  1. **Central `Authority`, `Confidentiality`, and `Cost` mechanisms carry over unchanged:** Spoken instruction steering, spoken invoice fan-out, unauthorized `\$25` or cross-account credit (Iteration 2), and spoken cross-account invoice readout (Iteration 1) map to the same mechanism cells, so session-binding cuts on `CRM` and `Billing Credit` transfer unchanged.
   2. **HTML `Output-Consumer` disappears structurally:** Replacing `Staff HTML Preview «renderer»` with `Caller TTS` removes remote URL fetching, eliminating Iteration 1's zero-click `<img src>` exfiltration (`EX-1.3`).
   3. **Visual `Meaning` crossings map 1-for-1 to acoustic crossings:** `Human-Machine Perception` shifts from pixels to targeted adversarial audio (`Adversarial Perturbation` transcribed by ASR while sounding benign to a human listener), and `Transform Consistency` predicts a codec/resampling-activated transcript test (`Feasible`, `EX-4.3`).
 
 | Iteration | Architectural Delta Added | Minimal Cut Point and Derived Security Test |
 | :---- | :---- | :---- |
-| **0: Baseline** | Text → `Normalizer` → `Triage LLM` → `Typed` enum `L` → `Router` + `Abuse Pager` (`C1`–`C3`) | **Cut:** `Typed` enum `L` already closes `Flow (integrity)`.<br/>**Test:** Abuse report with billing suffix or 4k filler; fail if `Abuse Pager` (`C2`) misses 1h SLA. |
+| **0: Baseline** | Text → `Normalizer` → `Triage LLM` → `Typed` enum `L` → `Router` + `Abuse Pager` (`C1`–`C3`) | **Cut:** `Typed` enum `L` already closes `Authority`.<br/>**Test:** Abuse report with billing suffix or 4k filler; fail if `Abuse Pager` (`C2`) misses 1h SLA. |
 | **1: User Output** | `Internal Header` (`Secret`) + HTML reply → `Staff HTML Preview «renderer»` & `Customer Email` (`C4`) | **Cut:** Disable remote fetches / sanitize DOM in `Preview` (`Normalized`); strip `Secret` header from reply-drafter context.<br/>**Test:** Abuse ticket embeds external `<img>` URL; fail if preview issues network request (`C4`). |
 | **2: Tools & Loop** | `crm.lookup(id)` (with `delivery_notes` feedback) + `billing.credit(id, amt)` + `Approver` (`C5`) | **Cut:** Bind `customer_id` to session principal at `CRM` and `Billing` executors; bind human approval to argument digest.<br/>**Test:** Inject credit directive in CRM `delivery_notes`; fail if `Billing Credit` executes (`C5`). |
 | **3: Multimodal** | `Text Filter «guard»` (text only) + `Screenshot` → `Aliasing Downscaler` (`C6`) | **Cut:** Anti-aliased downscaling (`Normalized` image) + post-transform/post-fusion guard; pixel-dimension gate.<br/>**Test:** Pair benign text request with chat-screenshot parameters; fail if credit executes (`C5`). |
@@ -469,7 +471,7 @@ Retrospective classification of an incident or published exploit runs the same m
 
 In the August 2025 Trail of Bits disclosure against Gemini CLI (Morozova & Hussain, 2025), an uploaded image appears benign at full resolution when viewed by the user, but nearest-neighbor or bicubic downscaling reveals concealed instructions that the multimodal model interprets and executes through an auto-approved Zapier Model Context Protocol (MCP) tool to exfiltrate Google Calendar data (**Figure 3A**).
 
-* **Stated Sink Constraints:** `C1` (*Flow clearance* on `Zapier MCP`): MCP tools execute only operations requested by the authenticated user. `C2` (*Flow clearance* on `External Host` egress): Calendar entries (`Secret`) may reach only the authenticated user.
+* **Stated Sink Constraints:** `C1` (*Authority policy* on `Zapier MCP`): MCP tools execute only operations requested by the authenticated user. `C2` (*Disclosure policy* on `External Host` egress): Calendar entries (`Secret`) may reach only the authenticated user.
 
 ```mermaid
 %%{init: {"flowchart": {"nodeSpacing": 24, "rankSpacing": 35}}}%%
@@ -487,13 +489,13 @@ flowchart LR
     classDef granted fill:#fef3c7,stroke:#d97706,stroke-width:2px,stroke-dasharray:5 3,color:#78350f
 ```
 
-*Figure 3A. Backward triage DFD for Trail of Bits / Gemini CLI. Crimson marks the attacker-supplied `Meaning × Artifact State` bypass; amber dashed nodes mark architecture-granted `Flow` legs.*
+*Figure 3A. Backward triage DFD for Trail of Bits / Gemini CLI. Crimson marks the attacker-supplied `Meaning × Artifact State` bypass; amber dashed nodes mark architecture-granted `Authority` and `Confidentiality` legs.*
 
 | Chain Leg | Path Crossing | Derived Mechanism Record | Supplied vs. Granted | Minimal Cut Point |
 | :---- | :---- | :---- | :---- | :---- |
 | **Leg 1** | `User «guard» → Downscaler → CLI Model` | `Meaning × Artifact State` (*Transform Consistency*), `Steganographic` (pre-resize) `→ Overt Semantic` (post-resize) | **Attacker-supplied** *(evades human visual check; unnecessary if no guard views the image)* | Anti-aliased resize (`Normalized` image) |
-| **Leg 2** | `CLI Model → Zapier MCP «executor»` | `Flow (integrity) × Position` (*Data-Control* at `CLI Model` → *Decision-Action* at `Zapier MCP`), `Overt Semantic` | **Architecture-granted** *(`trust=True` auto-approval skips confirmation)* | User confirmation bound to tool args (`CLI Model → MCP`) |
-| **Leg 3** | `Calendar → CLI Model → Zapier MCP → External Host` | `Flow (confidentiality) × Position` (*Context Confinement*), `Overt Semantic` | **Architecture-granted** *(unrestricted outbound recipient)* | Outbound recipient clearance check (`MCP → EXT`) |
+| **Leg 2** | `CLI Model → Zapier MCP «executor»` | `Authority × Position` (*Data-Control* at `CLI Model` → *Decision-Action* at `Zapier MCP`), `Overt Semantic` | **Architecture-granted** *(`trust=True` auto-approval skips confirmation)* | User confirmation bound to tool args (`CLI Model → MCP`) |
+| **Leg 3** | `Calendar → CLI Model → Zapier MCP → External Host` | `Confidentiality × Position` (*Context Confinement*), `Overt Semantic` | **Architecture-granted** *(unrestricted outbound recipient)* | Outbound recipient allowlist check (`MCP → EXT`) |
 
 *Table 5. Trail of Bits triage breakdown separating attacker-supplied bypasses from architecture-granted legs.*
 
@@ -532,7 +534,7 @@ flowchart LR
 Comparing Figure 3B with Figure 3A yields two derived findings:
 
 1. **`[P1]` Free-space capture changes which representations survive.** The attacker controls a physical surface, and the camera's viewpoint, distance, and lighting set the pixel grid the downscaler samples. A pixel-aligned `Steganographic` scaling payload (Figure 3A, Leg 1) needs a stable grid, so free-space capture defeats it. Two forms survive `[P1]`: `Adversarial Perturbation` optimized across sampled distances and angles, and `Overt Semantic` typography when the `«follower»` is a VLM that reads text. RP2 camouflage stickers caused a road-sign classifier to read `STOP` as `Speed Limit 45` in 84.8% of drive-by video frames (Eykholt et al., 2018), and Tencent Keen Lab (2019) steered a production driver-assistance system into the opposing lane with road-surface stickers.
-2. **`[P2]` Physical harm can occur with `Flow (integrity)` intact.** With a sign classifier (`EX-6A`) emitting a `Typed` class, the brake planner runs authorized logic on a corrupted percept: the record is `Meaning × Evaluator` (*Human-Machine Perception*), `Adversarial Perturbation`, violating `C1` and `C2`, and the `Typed` flow keeps the `Flow (integrity)` boundary closed. With a VLM planner (`EX-6B`) emitting `Full` robot API calls, a second record opens at `[P2]`: `Flow (integrity) × Position` (*Decision-Action*). RoboPAIR (Robey et al., 2024) demonstrated that LLM-controlled robots, including the Clearpath Jackal and Unitree Go2, execute harmful physical actions under adversarial prompting. The minimal cut point for both variants is the `PER → BRK` flow: an independent map or range-sensor interlock enforcing `C2` disconnects every path that reaches the motors through the perception model.
+2. **`[P2]` Physical harm can occur with `Authority` intact.** With a sign classifier (`EX-6A`) emitting a `Typed` class, the brake planner runs authorized logic on a corrupted percept: the record is `Meaning × Evaluator` (*Human-Machine Perception*), `Adversarial Perturbation`, violating `C1` and `C2`, and the `Typed` flow keeps the `Authority` boundary closed. With a VLM planner (`EX-6B`) emitting `Full` robot API calls, a second record opens at `[P2]`: `Authority × Position` (*Decision-Action*). RoboPAIR (Robey et al., 2024) demonstrated that LLM-controlled robots, including the Clearpath Jackal and Unitree Go2, execute harmful physical actions under adversarial prompting. The minimal cut point for both variants is the `PER → BRK` flow: an independent map or range-sensor interlock enforcing `C2` disconnects every path that reaches the motors through the perception model.
 
 **Evidence maturity.** Each cell in **Table 6** carries one of three labels, assigned by the strongest public evidence for that specific instance:
 
@@ -548,7 +550,7 @@ Comparing Figure 3B with Figure 3A yields two derived findings:
 | **Video** | Moderation model checks sparsely sampled frames; viewers or downstream consumers receive every frame | `Meaning × Artifact State` (*Transform Consistency*), `Overt Semantic` + *Sequence-Dependent* | Insert a short out-of-policy clip between sampling points; fails if the video is certified compliant | **`Demonstrated`** (omission rates above 90% across five VideoLLMs, arXiv:2508.10974, AAAI 2026; poisoned frame selection, arXiv:2509.20851) |
 | **Streaming text** | Stateless `«guard»` scans each chunk; `«follower»` context aggregates the stream | `Meaning × Artifact State` (*Transform Consistency*, aggregation), `Overt Semantic` + *Fragmented / Distributed* | Split one directive into incomplete pieces across chunk boundaries; fails if every chunk passes and the aggregated directive executes | **`Feasible`** (design gap acknowledged in NVIDIA NeMo Guardrails and LiteLLM documentation and in SentGuard, arXiv:2606.02041; no published exploit yet) |
 | **Structured data** | Upstream components treat a field as inert data; a framework deserializer instantiates it as an object | `Meaning × Evaluator` (*Parser / Interpreter Differential*), `Encoded / Obfuscated` | Return a tool or model output containing the framework's reserved serialization marker; fails if the deserializer instantiates an object or reads a secret | **`Demonstrated`** (LangGrinch, `CVE-2025-68664`) |
-| **Physical robotics** | Human reads `STOP`; camera and perception model feed the brake planner (Figure 3B) | `Meaning × Evaluator` (*Human-Machine Perception*), `Adversarial Perturbation` or `Overt Semantic`; plus `Flow (integrity) × Position` (*Decision-Action*) for `EX-6B` | Present RP2 stickers or a typographic sign across the approach cone; fails if the robot enters the crossing without halting (`C2`) | **`Demonstrated`** components (Eykholt et al., 2018; Tencent Keen Lab, 2019; Robey et al., 2024). Full sign-to-delivery-robot chain: **`Feasible`** |
+| **Physical robotics** | Human reads `STOP`; camera and perception model feed the brake planner (Figure 3B) | `Meaning × Evaluator` (*Human-Machine Perception*), `Adversarial Perturbation` or `Overt Semantic`; plus `Authority × Position` (*Decision-Action*) for `EX-6B` | Present RP2 stickers or a typographic sign across the approach cone; fails if the robot enters the crossing without halting (`C2`) | **`Demonstrated`** components (Eykholt et al., 2018; Tencent Keen Lab, 2019; Robey et al., 2024). Full sign-to-delivery-robot chain: **`Feasible`** |
 
 *Table 6. Cross-modal and physical variant prediction matrix. Each row holds the sink constraint fixed and changes only the surface; full derivations appear in **Appendix D.2**.*
 
@@ -580,20 +582,20 @@ The mechanism record combines the violated invariant, the payload representation
 * **Attack Atlas** (Rawat et al., 2024) and the **Cloud Security Alliance's 2026 image prompt-injection note** order payload forms within text and images respectively; the four forms in **Section 3.2** generalize that ordering across modalities and tie survival to flow fidelity.
 * **Farhana & Roy** (2026) cross carrier, pipeline location, objective, and stealth for image and document pipelines; their pipeline-location axis is the most similar to this method, which keys records on the violated invariant in place of the carrier.
 * **Jain, Arık & Thakur** (2026) organize attacks by objective and name modality-specific input processing as a root cause, which `Meaning × Artifact State` formalizes.
-* **Shi et al.** (2025) trace agent vulnerabilities to a mismatch between dynamic trust and static authorization, the precedent for the `Flow (integrity)` row.
+* **Shi et al.** (2025) trace agent vulnerabilities to a mismatch between dynamic trust and static authorization, the precedent for the `Authority` row.
 * **Maloyan & Namiot** (2026) catalog attacks on coding agents with modality as a primary axis.
 
 The added capability is **cross-modal variant prediction**. Schemes that assign modality to delivery fold preprocessing divergence into delivery, and schemes keyed on modality or carrier grow a new branch for each new surface. Keying records on `Invariant × Divergence` and carrying modality on the data flow lets an existing record predict its analog on a new surface, as **Table 6** shows for audio, video, streaming text, and physical sensors.
 
 ### 6.3 Classical Security and Safety Precedents
 
-Most cells in **Table 1** have direct classical ancestors, and naming them lets practitioners reuse established reasoning (**Appendix C, Table C.3**). *Check-Use Consistency* is time-of-check to time-of-use (`CWE-367`). *Parser / Interpreter Differential* is the parser differential of language-theoretic security (Momot et al., 2016; `CWE-436`). *Transform Consistency* extends validate-before-canonicalize (`CWE-180`), which maps directly to `«guard» → «transform» → «follower»` crossings, and network intrusion-detection insertion and evasion (Ptacek & Newsham, 1998), in which a monitor and an end host reassemble the same packets differently; the streaming-text row of **Table 6** is that structure at chunk boundaries. *Delegation Authority* is the confused deputy (Hardy, 1988), *Decision-Action* is a failure of complete mediation (Saltzer & Schroeder, 1975), and both `Flow` rows instantiate the information-flow lattice (Denning, 1976). The method itself builds on STPA-Sec, taint analysis, and attack-graph minimum cuts (**Section 4**). CAPEC View 1000 (*Mechanisms of Attack*) is the closest existing modality-agnostic mechanism hierarchy; its categories are organized by attacker action, and the machine-perception cells of **Table 1** are additions to it.
+Most cells in **Table 1** have direct classical ancestors, and naming them lets practitioners reuse established reasoning (**Appendix C, Table C.3**). *Check-Use Consistency* is time-of-check to time-of-use (`CWE-367`). *Parser / Interpreter Differential* is the parser differential of language-theoretic security (Momot et al., 2016; `CWE-436`). *Transform Consistency* extends validate-before-canonicalize (`CWE-180`), which maps directly to `«guard» → «transform» → «follower»` crossings, and network intrusion-detection insertion and evasion (Ptacek & Newsham, 1998), in which a monitor and an end host reassemble the same packets differently; the streaming-text row of **Table 6** is that structure at chunk boundaries. *Delegation Authority* is the confused deputy (Hardy, 1988), *Decision-Action* is a failure of complete mediation (Saltzer & Schroeder, 1975), and the `Authority` and `Confidentiality` rows are the integrity and confidentiality directions of the information-flow lattice (Denning, 1976). The method itself builds on STPA-Sec, taint analysis, and attack-graph minimum cuts (**Section 4**). CAPEC View 1000 (*Mechanisms of Attack*) is the closest existing modality-agnostic mechanism hierarchy; its categories are organized by attacker action, and the machine-perception cells of **Table 1** are additions to it.
 
 Against this background, the paper contributes three things:
 
 1. **A generative boundary matrix.** Boundary classes come from crossing the invariant a sink relies on with what differs between two evaluations assumed to agree, so every cell, including empty ones, is a stated hypothesis.
 2. **Perception models, guard models, and human reviewers as evaluators.** Treating them alongside parsers brings *Human-Machine Perception*, *Guard-Model Capability*, and *Semantic Stability* into the same matrix as the classical differentials.
-3. **Mechanical derivation on a standard DFD.** Structural patterns over functional roles, combined with a three-level fidelity lookup, let practitioners derive `Meaning` and `Flow` crossings by rule from a diagram they already maintain.
+3. **Mechanical derivation on a standard DFD.** Structural patterns over functional roles, combined with a three-level fidelity lookup, let practitioners derive `Meaning`, `Authority`, and `Confidentiality` crossings by rule from a diagram they already maintain.
 
 By explicitly representing how adversarial content becomes effective within an AI processing pipeline, the taxonomy supports systematic attack analysis, identification of vulnerable processing stages, and location of the structural cut points where targeted defensive controls apply. **Section 7** lays out how to measure its value over existing frameworks through broader attack coverage and reproducible classification studies.
 
@@ -763,9 +765,9 @@ Each invariant family corresponds to a formal relation over sink constraints:
    `P(f(a)) = P(g(a))`
    A `Meaning` crossing occurs when `P(f(a)) ≠ P(g(a))` across two evaluators on the same artifact state (**Evaluator** divergence), before and after a pipeline `«transform»` or multi-input aggregation (**Artifact State** divergence), or between validation at `t` and use at `t + Δ` (**Time** divergence).
    * *Why adversarial stability reduces to `Meaning × Evaluator` against an idealized reference:* Claiming that a perturbed or rephrased input `x′ = x + δ` preserves the meaning of a baseline input `x` presupposes a reference evaluator `h` (human perception or policy intent) such that (1) `h(x′) = h(x)`. Baseline correctness on `x` requires (2) `f(x) = h(x)`, and successful evasion means (3) `f(x′) ≠ f(x)`. Combining (1)–(3) yields `f(x′) ≠ h(x′)`: two evaluators (`f` and the idealized reference `h`) disagree on the *single* artifact `x′`.
-2. **Flow (*Integrity* and *Confidentiality*):** For data arriving at a sink `U` with a stated *Flow clearance*, provenance and sensitivity labels must satisfy the lattice ordering relation (Denning, 1976):
-   `label(data arriving at U) ⊑ clearance(U)`
-   Under **Flow (integrity)**, choices reserved for `Trusted` principals take only `Trusted` inputs (`Data-Control`), every `«executor»` trigger carries its required authorization (`Decision-Action`), a deputy acts within its caller's granted permissions (`Delegation Authority`), and a grant ends at its revocation or expiry, before `t + Δ` (`Grant Persistence`). Under **Flow (confidentiality)**, `Secret` context reaches authorized `«receiver»`s only, both directly (`Context Confinement`) and through active markup evaluated by a client `«renderer»` (`Output-Consumer`).
+2. **Authority and Confidentiality:** For data arriving at a sink `U` with a stated *Authority policy* or *Disclosure policy*, provenance and sensitivity labels must satisfy the lattice ordering relation (Denning, 1976):
+   `label(data arriving at U) ⊑ policy(U)`
+   Under **Authority** (the integrity direction, Biba), choices reserved for `Trusted` principals take only `Trusted` inputs (`Data-Control`), every `«executor»` trigger carries its required authorization (`Decision-Action`), a deputy acts within its caller's granted permissions (`Delegation Authority`), and a grant ends at its revocation or expiry, before `t + Δ` (`Grant Persistence`). Under **Confidentiality** (the Bell-LaPadula direction), `Secret` context reaches authorized `«receiver»`s only, both directly (`Context Confinement`) and through active markup evaluated by a client `«renderer»` (`Output-Consumer`).
 3. **Cost (*Resource Bounding*):** For an admitted unit `a` reaching a susceptible sink `U` with a stated *Resource budget*:
    `cost_incurred(a, U) ≤ budget(U)`
    A `Cost × Evaluator` (*Resource Accounting*) crossing occurs when the upstream admission check estimates cost within budget while actual decoding, reasoning, or tool-loop execution exceeds `budget(U)`.
@@ -781,14 +783,14 @@ Along each grouped directed path from an external `«source»` to a constrained 
 | A `«guard»` and a downstream consumer inspect *different* parallel transforms or parses of the same upstream artifact (for example, two parsers, or a human approval card vs. raw tool arguments) | **Meaning × Evaluator** | *Parser / Interpreter Differential* |
 | Guards inspect individual flows separately before a downstream process aggregates them, or a *Safeguard obligation* bounds a cumulative total that guards check only per item | **Meaning × Artifact State** | *Transform Consistency* (aggregation) |
 | An upstream `«guard»` validates a data store at time `t`, and a downstream consumer re-reads that store at `t + Δ` | **Meaning × Time** | *Check-Use Consistency* |
-| A permission or capability grant remains active at a sink after its authorized task window or revocation | **Flow (integrity) × Time** | *Grant Persistence* |
-| A flow reaches an authority or egress sink carrying a trust/sensitivity label or fidelity prohibited by that sink's *Flow clearance* (or triggers an `«executor»` that skips a required authorization check) | **Flow × Position** | *Data-Control*, *Decision-Action*, or *Delegation Authority* (integrity); *Context Confinement* or *Output-Consumer* (confidentiality) |
-| An instruction-following (`«follower»`) process controls whether or what a safeguard sink records or escalates | **Flow (integrity) × Position** | Culminates in a *Safeguard obligation* breach |
+| A permission or capability grant remains active at a sink after its authorized task window or revocation | **Authority × Time** | *Grant Persistence* |
+| A flow reaches an authority or egress sink carrying a trust/sensitivity label or fidelity outside that sink's *Authority policy* or *Disclosure policy* (or triggers an `«executor»` that skips a required authorization check) | **Authority × Position** or **Confidentiality × Position** | *Data-Control*, *Decision-Action*, or *Delegation Authority* (Authority); *Context Confinement* or *Output-Consumer* (Confidentiality) |
+| An instruction-following (`«follower»`) process controls whether or what a safeguard sink records or escalates | **Authority × Position** | Culminates in a *Safeguard obligation* breach |
 | A susceptible sink's resource expenditure is unbounded by its upstream admission check against its *Resource budget* | **Cost × Evaluator** | *Resource Accounting* |
 
 *Table A.1. Step 3 structural crossing-derivation lookup table.*
 
-**Evaluation-baseline rule for reference specifications.** A sink's *Reference specification* (for example, *"the invoice total as read by a human reviewer"*) serves as an evaluation baseline rather than a runtime gate. Comparing a process against an idealized reference generates crossings only for `Meaning` reference specifications, where extracting or acting on an incorrect value is itself the hazard; for a *Flow clearance*, concealment matters only when a deployed human or automated `«guard»` stands on the path.
+**Evaluation-baseline rule for reference specifications.** A sink's *Reference specification* (for example, *"the invoice total as read by a human reviewer"*) is an evaluation baseline used during analysis; deployed `«guard»` nodes are the runtime gates. Comparing a process against an idealized reference generates crossings only for `Meaning` reference specifications, where extracting or acting on an incorrect value is itself the hazard; for an *Authority policy* or *Disclosure policy*, concealment matters only when a deployed human or automated `«guard»` stands on the path.
 
 ### A.3 Path-Grouping, Flow-Fidelity Propagation, and Chain-Length Rules
 
@@ -798,16 +800,16 @@ Along each grouped directed path from an external `«source»` to a constrained 
    * Only a deterministic `«transform»` that strips sub-perceptual and metadata channels relative to ordinary human perception transitions a flow from `Full` to `Normalized`; model-based extractors (`OCR`, `ASR`, captioners) leave outbound fidelity at `Full` relative to a human reference.
    * Only deterministic schema validation to a narrow primitive (enum, bounded number, allowlisted ID) transitions a flow to `Typed`.
 3. **Path grouping:** Parallel edges sharing the same `(source, guards crossed, sink)` form a single equivalence class before crossing enumeration, preventing combinatorial path explosion on multi-tool agents.
-4. **Chain-length accounting:** A complete attack chain contains one record per *supplied* guard-bypass leg, one record per flow-clearance-violating edge into a sink, and (for `Meaning` reference specifications) one record per reference divergence, so chain length counts how many independent barriers the architecture forces an attacker to overcome.
+4. **Chain-length accounting:** A complete attack chain contains one record per *supplied* guard-bypass leg, one record per edge that violates a sink's authority or disclosure policy, and (for `Meaning` reference specifications) one record per reference divergence, so chain length counts how many independent barriers the architecture forces an attacker to overcome.
 
 ### A.4 Classification Guidance
 
 **Boundary subclass distinctions.**
 * **Human-Machine Perception vs. Guard-Model Capability:** The former concerns a security assumption based on human perception; the latter concerns a capability mismatch between a protective evaluator and the target model.
 * **Guard-Model Capability and Parser / Interpreter Differential vs. Transform Consistency:** The first two concern inconsistent interpretation of equivalent input in the same artifact state; *Transform Consistency* concerns changes introduced or exposed across transformations or aggregation of an artifact, while *Check-Use Consistency* concerns reliance on an earlier validation after state has mutated over time.
-* **Semantic Stability (covers instance and authorization variance):** Asserting that two input variants share equivalent meaning presupposes an idealized reference evaluator `h` (human perception or policy intent) with which the model `f` disagrees (**Appendix A.1**). When a model-based policy or authorization check changes its decision under equivalent rephrasing or cross-modal conflict arbitration, the failure is `Meaning × Evaluator` (*Semantic Stability*); deterministic routing bypasses around an authorization gate belong to `Flow (integrity) × Position`.
+* **Semantic Stability (covers instance and authorization variance):** Asserting that two input variants share equivalent meaning presupposes an idealized reference evaluator `h` (human perception or policy intent) with which the model `f` disagrees (**Appendix A.1**). When a model-based policy or authorization check changes its decision under equivalent rephrasing or cross-modal conflict arbitration, the failure is `Meaning × Evaluator` (*Semantic Stability*); deterministic routing bypasses around an authorization gate belong to `Authority × Position`.
 * **Data-Control vs. Decision-Action vs. Delegation Authority vs. Output-Consumer:** *Data-Control* concerns improper promotion of untrusted content into instruction authority at a `«follower»`. *Decision-Action* applies strictly when an `«executor»` runs a `«follower»`-requested operation and skips required authorization or approval. Neighboring cases have their own subclasses: a human approver reviewing a summary card that diverged from raw tool arguments is *Parser / Interpreter Differential*, a store that changed after approval is *Check-Use Consistency*, and an authorized tool executing on a misextracted value violates the sink's *Meaning* reference specification. *Delegation Authority* concerns the scope of authority passed to another component, while *Output-Consumer* concerns unauthorized effects triggered when generated artifacts are processed by a downstream `«renderer»`.
-* **Permitted task influence and memorized secrets:** A manipulated model decision, tool invocation, or navigation step that stays within the sink's stated *Flow clearance* (such as a browsing agent clicking visible links on a visited page) is recorded as an architecture-*granted leg* (**Section 4.3**). Training-data extraction maps directly to *Context Confinement* (`Flow (confidentiality) × Position`) by modeling memorized weights as a `Secret` data store and the querying user as the external `«receiver»`.
+* **Permitted task influence and memorized secrets:** A manipulated model decision, tool invocation, or navigation step that stays within the sink's stated *Authority policy* (such as a browsing agent clicking visible links on a visited page) is recorded as an architecture-*granted leg* (**Section 4.3**). Training-data extraction maps directly to *Context Confinement* (`Confidentiality × Position`) by modeling memorized weights as a `Secret` data store and the querying user as the external `«receiver»`.
 * **Resource Accounting as a single Cost subclass:** *Resource Accounting* stays a single subclass because `Representation` and DFD position already capture whether exhaustion stems from media decoding or recursive tool execution; a resource-intensive operation becomes a violation when it breaches a stated *Resource budget*.
 
 **Representation classification principles.**
@@ -849,8 +851,8 @@ Along each grouped directed path from an external `«source»` to a constrained 
 | **Perception / Extraction** | A model or subsystem extracts or recognizes content, features, symbols, objects, speech, or other information from an artifact. | Perceptual extractor (`OCR`, `ASR`, object detector) or multimodal encoder interface (`«transform»` or `«follower»`) where `Human-Machine Perception` or `Guard-Model Capability` crossings activate. |
 | **Interpretation / Decision** | The system assigns meaning, assesses relevance or authority, and determines an appropriate response or operation. | Instruction-following or decision-making `«follower»` node (or policy `«guard»`) where `Data-Control` or `Semantic Stability` crossings take effect (**Effect** location). |
 | **Generation** | The system produces a response, output artifact, tool request, or action parameters. | Outbound decision/output flow emitted by a `«follower»` toward an `«executor»`, `«renderer»`, or external `«receiver»` (carrying `Full`, `Normalized`, or `Typed` fidelity). |
-| **Action** | A generated request or decision is executed through a tool, API, application, or actuator, changing state or transferring information. | `«executor»` sink (or physical actuator `«receiver»`) governed by a *Flow clearance* and *Reference specification* where `Decision-Action` or `Delegation Authority` takes effect. |
-| **Consumption** | Generated output is rendered, displayed, transmitted, decoded, or fetched by a downstream component or recipient. | `«renderer»` node or outbound flow to an external `«receiver»` governed by an egress *Flow clearance* where `Output-Consumer` or `Context Confinement` takes effect. |
+| **Action** | A generated request or decision is executed through a tool, API, application, or actuator, changing state or transferring information. | `«executor»` sink (or physical actuator `«receiver»`) governed by an *Authority policy* and *Reference specification* where `Decision-Action` or `Delegation Authority` takes effect. |
+| **Consumption** | Generated output is rendered, displayed, transmitted, decoded, or fetched by a downstream component or recipient. | `«renderer»` node or outbound flow to an external `«receiver»` governed by a *Disclosure policy* where `Output-Consumer` or `Context Confinement` takes effect. |
 | **Feedback** | Outputs, tool results, or environmental observations return to an ongoing execution loop and influence subsequent processing. | Directed cycle edge from an `«executor»`, `«renderer»`, or mutated data store back into an upstream `«transform»` or `«follower»` within the same execution session. |
 
 *Table B.2. Mapping functional processing stages and Entry/Activation/Effect locations to annotated DFD elements.*
@@ -878,7 +880,7 @@ To support automated traversal and cross-team reuse (**Section 7**), annotated D
 
 **Adversary catalogs (MITRE ATLAS, NIST AI 100-2e2025).** ATLAS's 2026 releases describe multimodal behavior in detail: triggers placed in "a modality that is not inspected, or is inspected differently from text" (`AML.T0129`), obfuscation across images, audio, and video frames (`AML.T0068`), and content served differently to AI systems than to humans (`AML.T0134`). For the Trail of Bits disclosure, ATLAS records indirect prompt injection (`AML.T0051.001`) and exfiltration through agent tool invocation (`AML.T0086`); the chain record places those techniques on Legs 1–3 and names the downscaler as the activation point. ATLAS mitigation `AML.M0010` lists resampling as an input-restoration defense and notes that adaptive adversaries account for preprocessing, which the method expresses structurally as a `Normalized` flow and the conservative survival of `Adversarial Perturbation` (**Table 2**). NIST AI 100-2e2025 provides a broader threat taxonomy organized by learning method, lifecycle phase, attacker objective, capability, and knowledge. Its *resource control* capability corresponds to an `Untrusted` flow from an external `«source»`, and its knowledge dimension aligns with the per-component *Attacker Knowledge / Access* annotation (**Section 3.3**).
 
-**Hazard and risk frameworks (STRIDE, OWASP, CoSAI Risk Map, MAESTRO).** A STRIDE category attaches to each sink constraint by the hazard it prevents: a *Flow clearance* on an egress sink guards against Information Disclosure, a *Flow clearance* on an authority sink against Elevation of Privilege, a *Resource budget* against Denial of Service, and a *Reference specification* against Tampering. A STRIDE-per-element review therefore keeps its vocabulary and gains derived crossings inside the trust zone that a coarse diagram treats as one process (**Figure 1**). OWASP `LLM01` (Prompt Injection), `LLM05` (Improper Output Handling), and `LLM06` (Excessive Agency) map to sink constraints and crossings at `«follower»`, `«renderer»`, and `«executor»` nodes. The CoSAI Risk Map's component axis (Input Handling, Reasoning Core, Output Handling, Tools) is the most stage-like construct among the reviewed frameworks; the DFD roles refine it by adding `«guard»` and `«transform»` as explicit components, and a mechanism record can carry the corresponding Risk Map risk identifier as a supporting annotation. MAESTRO's seven architectural layers locate the affected subsystem, and the DFD path locates the crossing within it.
+**Hazard and risk frameworks (STRIDE, OWASP, CoSAI Risk Map, MAESTRO).** A STRIDE category attaches to each sink constraint by the hazard it prevents: a *Disclosure policy* on an egress sink guards against Information Disclosure, an *Authority policy* on an authority sink against Elevation of Privilege, a *Resource budget* against Denial of Service, and a *Reference specification* against Tampering. A STRIDE-per-element review therefore keeps its vocabulary and gains derived crossings inside the trust zone that a coarse diagram treats as one process (**Figure 1**). OWASP `LLM01` (Prompt Injection), `LLM05` (Improper Output Handling), and `LLM06` (Excessive Agency) map to sink constraints and crossings at `«follower»`, `«renderer»`, and `«executor»` nodes. The CoSAI Risk Map's component axis (Input Handling, Reasoning Core, Output Handling, Tools) is the most stage-like construct among the reviewed frameworks; the DFD roles refine it by adding `«guard»` and `«transform»` as explicit components, and a mechanism record can carry the corresponding Risk Map risk identifier as a supporting annotation. MAESTRO's seven architectural layers locate the affected subsystem, and the DFD path locates the crossing within it.
 
 **Defensive ontologies (MITRE D3FEND).** D3FEND links offensive and defensive techniques through shared digital artifacts and already defines media artifact classes (`DigitalImage`, `DigitalAudio`, `DigitalVideo`). Those classes correspond to annotated flows, which makes D3FEND a strong candidate vocabulary for the per-cell control catalog planned as follow-on work (**Section 7**).
 
@@ -894,7 +896,7 @@ To support automated traversal and cross-team reuse (**Section 7**), annotated D
 | **MAESTRO** | `L2` (Data Operations); `L1` (Foundation Model); `L3` (Agent Frameworks); `L7` (Agent Ecosystem); related OWASP *Agentic AI – Threats and Mitigations* threats `T2` (Tool Misuse) and `T6` (Intent Breaking & Goal Manipulation) | Identifies affected architectural layers, cross-layer attack propagation, trust boundaries, and potential misuse of connected tools. | Pixel-level manipulation, the exact resampling algorithm, pre-/post-transformation semantic differences, and the precise activation condition. | Adds representation and DFD position detail, with processing stages kept separate from architectural layers. |
 | **STRIDE** | `T` (Tampering); `I` (Information Disclosure); `E` (Elevation of Privilege, conditional) | Classifies security threats involving input manipulation, confidential data exposure, and potential authorization-boundary violations. | What separates image-scaling attacks from other attacks with the same security consequences, plus payload representation, transformation, and activation mechanisms. | Identifies the specific mechanisms producing those broader threat categories; each category attaches to the sink constraint it protects (**Section 6.1**). |
 | **OWASP `LLM01:2025`** | Prompt Injection, scenarios #6 (payload splitting), #7 (multimodal injection), #8 (adversarial suffix), #9 (multilingual or obfuscated input) | Enumerates representation variants, including instructions in images that accompany benign text, and flags cross-modal attacks as an open defense problem. | The pipeline step at which a hidden instruction becomes legible to the model. | Places each scenario on a `«follower»` crossing and records the representation that survives each upstream flow. |
-| **MITRE CWE (4.20)** | `CWE-1427` (Improper Neutralization of Input Used for LLM Prompting); `CWE-180` (Validate Before Canonicalize) | States the data/directive invariant for LLM prompts directly; `CWE-180` names the check-before-transform ordering. | Non-text carriers and model-based transforms such as resizing, OCR, and speech recognition. | Extends the same invariants across modalities through `Meaning × Artifact State` and `Flow (integrity) × Position` (**Table C.3**). |
+| **MITRE CWE (4.20)** | `CWE-1427` (Improper Neutralization of Input Used for LLM Prompting); `CWE-180` (Validate Before Canonicalize) | States the data/directive invariant for LLM prompts directly; `CWE-180` names the check-before-transform ordering. | Non-text carriers and model-based transforms such as resizing, OCR, and speech recognition. | Extends the same invariants across modalities through `Meaning × Artifact State` and `Authority × Position` (**Table C.3**). |
 | **CoSAI Risk Map** | `riskPromptInjection` (covers multimodal injection); `riskCovertChannelsInModelOutputs` | Component axis (Input Handling, Reasoning Core, Output Handling, Tools) and risk entries that name multimodal injection and steganographic encoding in outputs. | Transformation and perception components between input handling and the reasoning core. | Adds `«guard»` and `«transform»` as DFD roles; the risk ID is attached to the mechanism record as a supporting annotation. |
 | **CSA research note on image-based prompt injection (March 2026)** | Embedding techniques: typographic text, steganographic, adversarial perturbation and patched injectors, physical/3D | Representation taxonomy for image payloads, with the observation that current defenses only partly neutralize image injection. | Scaling and resampling as activation steps; carriers in other modalities. | Generalizes the same representation ordering across modalities (**Section 3.2**) and locates the activating transform. |
 
@@ -931,7 +933,7 @@ Relationship tags: **Exact** means the classical concept names the same invarian
 | *Context Confinement* | Bell-LaPadula confidentiality; lattice model of secure information flow (Denning, 1976) | Exact |
 | *Output-Consumer* | Improper output encoding and second-order injection (`CWE-116`; `CWE-79`); generative AI output validation (`CWE-1426`) | Related |
 | *Resource Accounting* | Uncontrolled and asymmetric resource consumption (`CWE-400`; `CWE-405`; `CWE-409`) | Exact |
-| `Flow (integrity)` row | Biba integrity; lattice model of secure information flow (Denning, 1976) | Exact |
+| `Authority` row | Biba integrity; lattice model of secure information flow (Denning, 1976) | Exact |
 | Annotated DFD derivation (**Section 4**) | STPA-Sec (Young & Leveson, 2013); source-to-sink taint analysis; attack-graph minimum cuts (Sheyner et al., 2002) | Broader (adds perceptual guard crossings and three-level fidelity) |
 | Mechanism hierarchy as a whole | CAPEC View 1000 (*Mechanisms of Attack*) | Related (organized by attacker action; machine-perception cells added here) |
 
@@ -946,7 +948,7 @@ Relationship tags: **Exact** means the classical concept names the same invarian
 | **CSA research note on image prompt injection** (2026) | Typographic, steganographic, adversarial perturbation, physical | Image only | Representation ladder within images; same ordering as **Section 3.2** |
 | **Farhana & Roy** (2026) | Carrier type × pipeline location × attacker objective × stealth level | Carrier as a primary axis (image and document pipelines) | Closest neighbor on pipeline location; objective delegated to ATLAS and STRIDE; invariant replaces carrier as key |
 | **Jain, Arık & Thakur** (2026) | Attacker objective × knowledge | Across modalities; modality-specific input processing named as a root cause | Objective-first; root cause formalized as `Meaning × Artifact State` |
-| **Shi et al.** (2025) | Belief → intention → permission; trust–authorization mismatch | Modality-agnostic | Direct precedent for the `Flow (integrity)` row |
+| **Shi et al.** (2025) | Belief → intention → permission; trust–authorization mismatch | Modality-agnostic | Direct precedent for the `Authority` row |
 | **Maloyan & Namiot** (2026) | Delivery vector × attack modality × propagation | Modality as a primary axis | Catalog of instances; records derive cross-modal analogs from existing entries |
 
 *Table C.4. Comparable AI taxonomies and their relationship to the mechanism record.*
@@ -959,7 +961,7 @@ Relationship tags: **Exact** means the classical concept names the same invarian
 
 This walkthrough executes the four-step procedure (**Section 4**) end-to-end on a 15-component enterprise agent to verify that the derivation rules remain tractable beyond small illustrative architectures:
 
-1. **Sink constraints:** derive stakeholder losses → system hazards → per-sink security constraints (*Flow clearances*, *Reference specifications*, *Resource budgets*, and *Safeguard obligations*).
+1. **Sink constraints:** derive stakeholder losses → system hazards → per-sink security constraints (*Authority policies*, *Disclosure policies*, *Reference specifications*, *Resource budgets*, and *Safeguard obligations*).
 2. **Annotated diagram:** draw the data-flow diagram once, annotating a functional role on every process, a trust label and fidelity on every flow, and a constraint on every sink.
 3. **Derive:** enumerate paths, boundary crossings, mechanism records, multi-step attack chains, minimum cut points, and annotation coverage.
 4. **Tests:** specify one test hypothesis per chain using the target sink constraint as the pass condition.
@@ -990,10 +992,10 @@ An external supplier emails an invoice to accounts payable. The agent extracts i
 | ID | Target sink | Subtype | Constraint specification | Invariant | Hazard |
 | :---- | :---- | :---- | :---- | :---- | :---- |
 | `C1` | `U7` ERP payment | **Reference specification** | Executed payee and amount must match the invoice as read by a human reviewer *(ground-truth reference)* | Meaning | H1 |
-| `C2` | Every tool invoked by `U6` (`U7`, vendor lookup, notify) | **Flow clearance** | Supplier content may influence tools solely via typed invoice fields (an existing vendor reference ID, bounded amount, invoice number, due date); tool selection and freeform arguments come from trusted principals only | Flow (integrity) | H2 |
+| `C2` | Every tool invoked by `U6` (`U7`, vendor lookup, notify) | **Authority policy** | Supplier content may influence tools solely via typed invoice fields (an existing vendor reference ID, bounded amount, invoice number, due date); tool selection and freeform arguments come from trusted principals only | Authority | H2 |
 | `C3` | `U7` ERP payment | **Reference specification** | Above the approval threshold, the settled payment must match the exact terms `U8` approved, using bank details unchanged since approval time | Meaning *(across time & views)* | H1 |
-| `C4` | All outbound receivers of `U6`; `U9`'s network fetches | **Flow clearance** | Invoice, vendor, and ERP data may reach only the ERP system and internal finance channel; rendered notifications may fetch external assets only from allowlisted hosts | Flow (confidentiality) | H3 |
-| `C5` | Safeguards `S1`–`S3` | **Safeguard obligation** | Prior to settlement, human review must occur for every invoice above threshold (individually or cumulatively per vendor per week) and for any vendor whose bank details changed within 30 days; every anomaly flag must appear in the daily AP report | Meaning / Flow (integrity) *(liveness bound)* | H4 |
+| `C4` | All outbound receivers of `U6`; `U9`'s network fetches | **Disclosure policy** | Invoice, vendor, and ERP data may reach only the ERP system and internal finance channel; rendered notifications may fetch external assets only from allowlisted hosts | Confidentiality | H3 |
+| `C5` | Safeguards `S1`–`S3` | **Safeguard obligation** | Prior to settlement, human review must occur for every invoice above threshold (individually or cumulatively per vendor per week) and for any vendor whose bank details changed within 30 days; every anomaly flag must appear in the daily AP report | Meaning / Authority *(liveness bound)* | H4 |
 | `C6` | `U3`–`U5` and `U6` | **Resource budget** | Processing a single invoice must stay within 50 pages, 60 seconds, \$0.50 in model spend, and 5 tool calls | Cost | H5 |
 
 *Table D.1. Sink constraints derived for the enterprise Invoice-Processing Agent.*
@@ -1093,20 +1095,20 @@ Each crossing matches a structural pattern from **Table A.1** (**Appendix A.2**)
 | `D1.4` | `U4` transcribes faint/hidden OCR text into `U6` compared against the human reference | `Meaning × Evaluator` *(idealized)* |
 | `D1.5` | `U6` arbitrates among conflicting extractions (PDF text layer, OCR, `U5` vision summary) | `Meaning × Evaluator` *(idealized)* |
 | `D1.6` | `U7` parses numeric amount strings formatted by `U6` (locale separators, Unicode digits) | `Meaning × Evaluator` *(deployed)* |
-| **Constraint `C2` (*Flow clearance*): supplier content influences tools only via typed invoice fields** | | |
-| `D2.1` | `Untrusted · Full` flows enter `U6` (`«follower»`) and drive unconstrained tool calls (email body, PDF text layer, OCR, `U5` summary, vendor `notes`) | `Flow (integrity) × Position` *(Data-Control)* |
+| **Constraint `C2` (*Authority policy*): supplier content influences tools only via typed invoice fields** | | |
+| `D2.1` | `Untrusted · Full` flows enter `U6` (`«follower»`) and drive unconstrained tool calls (email body, PDF text layer, OCR, `U5` summary, vendor `notes`) | `Authority × Position` *(Data-Control)* |
 | `D2.2` | `U1` inspects the email body and text layer that `U6` subsequently follows | `Meaning × Evaluator` *(Guard-Model Capability)* |
 | `D2.3` | `U1` inspects each channel in isolation before `U6` aggregates them into one prompt context | `Meaning × Artifact State` *(aggregation)* |
 | **Constraint `C3` (*Reference specification*): settled payment matches the exact terms `U8` approved** | | |
 | `D3.1` | `U8` reviews `U6`'s prose approval card while `U7` executes `U6`'s tool arguments | `Meaning × Evaluator` *(Parser / Interpreter Differential)* |
 | `D3.2` | `U8` approves against current vendor details; `U7` re-reads `A4` bank details later at execution | `Meaning × Time` *(Check-Use Consistency)* |
 | `D3.3` | `U8` approves the payable record, which remains mutable prior to settlement | `Meaning × Time` *(Check-Use Consistency)* |
-| **Constraint `C4` (*Flow clearance*): secret financial context reaches only approved receivers** | | |
-| `D4.1` | `Secret` context in `U6` flows into notification Markdown rendered by `U9` to arbitrary hosts | `Flow (confidentiality) × Position` *(Context Confinement / Output-Consumer)* |
+| **Constraint `C4` (*Disclosure policy*): secret financial context reaches only approved receivers** | | |
+| `D4.1` | `Secret` context in `U6` flows into notification Markdown rendered by `U9` to arbitrary hosts | `Confidentiality × Position` *(Context Confinement / Output-Consumer)* |
 | **Constraint `C5` (*Safeguard obligation*): required human reviews occur and anomalies reach the daily report** | | |
 | `D5.1` | `S1` checks individual invoice amounts; `C5` bounds cumulative weekly vendor totals | `Meaning × Artifact State` *(aggregation)* |
-| `D5.2` | Instruction-following orchestrator `U6` (`«follower»`) controls whether anomaly flags are written to safeguard `S3` | `Flow (integrity) × Position` *(safeguard-obligation breach)* |
-| `D5.3` | `U7` (`«executor»`) accepts direct `approve_payment` tool calls from `U6` where `C3` requires `U8`'s decision | `Flow (integrity) × Position` *(Decision-Action)* |
+| `D5.2` | Instruction-following orchestrator `U6` (`«follower»`) controls whether anomaly flags are written to safeguard `S3` | `Authority × Position` *(safeguard-obligation breach)* |
+| `D5.3` | `U7` (`«executor»`) accepts direct `approve_payment` tool calls from `U6` where `C3` requires `U8`'s decision | `Authority × Position` *(Decision-Action)* |
 | `G1` | `C5` mandates bank-change review (`S2`), which no node on the diagram implements | **Architectural gap** *(missing safeguard)* |
 | **Constraint `C6` (*Resource budget*): per-invoice processing stays within resource budgets** | | |
 | `D6.1` | `U1` gates admission by compressed file bytes, while page count and pixel dimensions drive `U3`–`U5` cost | `Cost × Evaluator` *(intrinsic amplification)* |
@@ -1118,7 +1120,7 @@ Each crossing matches a structural pattern from **Table A.1** (**Appendix A.2**)
 * **`U1` antivirus vs. `U2` parser** *(polyglot malware)*: out of scope (handled by traditional endpoint security).
 * **Email attachment between `U1` scan and `U2`/`U3` processing**: immutable snapshot under `RA4`, which closes the `Meaning × Time` swap (revisit if invoices arrive as remote URLs).
 * **`U4` (OCR) vs. `U5` (Document model) on the same downscaled pixels**: parallel evaluators, each checked independently against `C1`'s human reference (`D1.1`, `D1.4`).
-* **`Secret` flows into `U7`, `U8`, and the daily AP report**: permitted recipients under `C4`'s flow clearance.
+* **`Secret` flows into `U7`, `U8`, and the daily AP report**: permitted recipients under `C4`'s disclosure policy.
 * **Mail archive log**: `«relay»` byte storage.
 * **Finance team viewing chat notifications**: informational only. *(If random human auditing of chat messages were added as a safeguard with a safeguard obligation, the auditor would become a `«guard»` node, introducing a crossing between visible Markdown text and `U9`'s background URL fetches.)*
 * **High email volume from a supplier**: resource usage scales linearly with admitted requests.
@@ -1218,7 +1220,7 @@ sequenceDiagram
 
 An **attack chain** is a path from an attacker-controlled source to a violated sink on which the attacker can bypass every deployed guard. Along that path:
 * **Granted legs** are steps the architecture leaves open (adding zero records).
-* **Supplied legs** occur wherever the attacker must defeat a deployed guard, violate a flow clearance directly, or (under a *Meaning* reference specification such as `C1`) diverge from the human reference (adding one record per supplied step).
+* **Supplied legs** occur wherever the attacker must defeat a deployed guard, violate an authority or disclosure policy directly, or (under a *Meaning* reference specification such as `C1`) diverge from the human reference (adding one record per supplied step).
 
 | Chain | Records | Legs granted by the architecture | Length | Violates |
 | :---- | :---- | :---- | :---- | :---- |
@@ -1237,11 +1239,11 @@ An **attack chain** is a path from an attacker-controlled source to a violated s
 Pre- and postconditions for `K1b` show how granted and supplied legs compose:
 
 ```text
-M12  D2.1  Flow (integrity) × Position
+M12  D2.1  Authority × Position
      pre:  instruction printed visibly in the invoice image on the supplier's flow (RA1)
            AND  no deployed guard inspects the image [granted]
      post: orchestrator U6 is steered
-M7   D4.1  Flow (confidentiality) × Position
+M7   D4.1  Confidentiality × Position
      pre:  U6 is steered (M12)  AND  A4 vendor reference data is within U6's reach [granted]   ← paths converge at U6
      post: A4 data is transmitted to an external host via U9's URL fetch [granted: U9 fetches from any host]
            → violates C4
@@ -1311,24 +1313,24 @@ Re-running Step 3 over that single new path yields five delta rows:
 
 | ID | Iteration | Crossing & Mechanism Tuple (`Invariant × Divergence, Representation`) | Violated Sink Constraint & Chain Notes |
 | :---- | :---- | :---- | :---- |
-| `EX-0.1` | `0` Baseline | `Meaning × Evaluator` (*Semantic Stability*), `Overt Semantic` | Inline steering (`abuse → billing`) breaks `C1` reference spec and suppresses `C2` 1h Abuse Pager (`Flow (integrity)` closed by `Typed` enum `L`). |
+| `EX-0.1` | `0` Baseline | `Meaning × Evaluator` (*Semantic Stability*), `Overt Semantic` | Inline steering (`abuse → billing`) breaks `C1` reference spec and suppresses `C2` 1h Abuse Pager (`Authority` closed by `Typed` enum `L`). |
 | `EX-0.2` | `0` Baseline | `Meaning × Evaluator` (*Semantic Stability*), `Adversarial Perturbation` | Synonym/paraphrase evasion misroutes `abuse → billing` (`C1`, `C2`; persists even if `Triage LLM` is replaced by a non-instruction classifier). |
 | `EX-0.3` | `0` Baseline | `Meaning × Artifact State` (*Transform Consistency*), `Overt Semantic` | 4,000 characters of benign billing prose push threat content past the normalizer's truncation window (`C1`, `C2`). |
 | `EX-0.4` | `0` Baseline | `Cost × Evaluator` (*Resource Accounting*), `Intrinsic Amplification` | Token-dense 4,000-character string pushes inference past `5 s` (`C3`), defaulting to `other` and suppressing `C2`. |
-| `EX-1.1` | `1` Output | `Flow (confidentiality) × Position` (*Context Confinement*), `Overt Semantic` | Prompt steering (`Flow (integrity)`) converges with `Secret` internal fraud header at `Triage LLM` and quotes flags in customer reply (`C4`). |
-| `EX-1.2` | `1` Output | `Flow (integrity) × Position` (*Data-Control*), `Overt Semantic` | Misrouting `abuse → billing` routes the draft through `auto-send`, bypassing human staff preview (`C2`, `C4`). |
-| `EX-1.3` | `1` Output | `Flow (confidentiality) × Position` (*Output-Consumer*), `Overt Semantic` | Ticket induces `<img src="https://attacker.example/...">` in HTML draft; `Staff HTML Preview «renderer»` auto-fetches URL on open (`C4`). |
+| `EX-1.1` | `1` Output | `Confidentiality × Position` (*Context Confinement*), `Overt Semantic` | Prompt steering (`Authority`) converges with `Secret` internal fraud header at `Triage LLM` and quotes flags in customer reply (`C4`). |
+| `EX-1.2` | `1` Output | `Authority × Position` (*Data-Control*), `Overt Semantic` | Misrouting `abuse → billing` routes the draft through `auto-send`, bypassing human staff preview (`C2`, `C4`). |
+| `EX-1.3` | `1` Output | `Confidentiality × Position` (*Output-Consumer*), `Overt Semantic` | Ticket induces `<img src="https://attacker.example/...">` in HTML draft; `Staff HTML Preview «renderer»` auto-fetches URL on open (`C4`). |
 | `EX-1.4` | `1` Output | `Cost × Evaluator` (*Resource Accounting*), `Semantic Amplification` | Free-text HTML draft generation removes 1-token output cap, enabling long-generation latency/spend exhaustion (`C3`). |
-| `EX-2.1` | `2` Tools | `Flow (integrity) × Position` (*Data-Control* → *Decision-Action*), `Overt Semantic` | Ticket text triggers `billing.credit(id, ≤ \$25)` via granted auto-approval or unbound `customer_id` (`48213`, violating `C5`). |
-| `EX-2.2` | `2` Tools | `Flow (integrity) × Position` (*Data-Control* via Feedback), `Overt Semantic` | Second-order directive stored in CRM `delivery_notes` re-enters `Triage LLM` on `crm.lookup` feedback edge and triggers `Billing Credit` (`C5`). |
+| `EX-2.1` | `2` Tools | `Authority × Position` (*Data-Control* → *Decision-Action*), `Overt Semantic` | Ticket text triggers `billing.credit(id, ≤ \$25)` via granted auto-approval or unbound `customer_id` (`48213`, violating `C5`). |
+| `EX-2.2` | `2` Tools | `Authority × Position` (*Data-Control* via Feedback), `Overt Semantic` | Second-order directive stored in CRM `delivery_notes` re-enters `Triage LLM` on `crm.lookup` feedback edge and triggers `Billing Credit` (`C5`). |
 | `EX-2.3` | `2` Tools | `Meaning × Time` (*Check-Use Consistency*), `Overt Semantic` | `Human Approver` approves `\$40` for `10021`; unbound boolean approval flag lets `Triage LLM` execute `\$40` to `48213` at `t + Δ` (`C5`). |
-| `EX-2.4` | `2` Tools | `Flow (confidentiality) × Position` (*Context Confinement* / *Output-Consumer*), `Overt Semantic` | `crm.lookup(48213)` pulls multi-tenant `Secret` invoices into `Triage LLM` and exits via Iteration 1's `[C4]` reply or `<img>` preview sink. |
+| `EX-2.4` | `2` Tools | `Confidentiality × Position` (*Context Confinement* / *Output-Consumer*), `Overt Semantic` | `crm.lookup(48213)` pulls multi-tenant `Secret` invoices into `Triage LLM` and exits via Iteration 1's `[C4]` reply or `<img>` preview sink. |
 | `EX-2.5` | `2` Tools | `Cost × Evaluator` (*Resource Accounting*), `Semantic Amplification` | Ticket induces recursive `crm.lookup` feedback calls exceeding the 5-call budget (`C5`). |
 | `EX-3.1` | `3` Image | `Meaning × Evaluator` (*Guard-Model Capability*), `Overt Semantic` | Visible text rendered inside attached screenshot bypasses text-only `Text Filter «guard»` and drives `Triage LLM` (`C4`, `C5`). |
 | `EX-3.2` | `3` Image | `Meaning × Artifact State` (*Transform Consistency*), `Steganographic → Overt Semantic` | Full-res screenshot looks benign (`Steganographic`), reveals command after `Aliasing Downscaler` (`Overt Semantic`, `C4`, `C5`). |
 | `EX-3.3` | `3` Image | `Cost × Evaluator` (*Resource Accounting*), `Intrinsic Amplification` | Sub-5 MB PNG decodes into gigapixel raster at `Downscaler`, breaching memory budget `C6`. |
 | `EX-3.4` | `3` Image | `Meaning × Artifact State` (aggregation), `Overt Semantic + Composition-Dependent` | Complete benign ticket text + complete chat-log screenshot co-processed at `Triage LLM` supply credit action + cross-account target (`C5`). |
-| `EX-4.1`–`4.5` | `4` Audio | Congruent audio swap across `8 → 16 kHz` resampler, `ASR`, and `IVR TTS` | Central `Flow`/`Cost` records (`EX-2.*`, `EX-1.1`) carry over unchanged; `EX-1.3` disappears (HTML renderer removed); `Meaning` maps to acoustic `Adversarial Perturbation` (`Demonstrated`) and resampling aliasing (`Feasible`). |
+| `EX-4.1`–`4.5` | `4` Audio | Congruent audio swap across `8 → 16 kHz` resampler, `ASR`, and `IVR TTS` | Central `Authority`, `Confidentiality`, and `Cost` records (`EX-2.*`, `EX-1.1`) carry over unchanged; `EX-1.3` disappears (HTML renderer removed); `Meaning` maps to acoustic `Adversarial Perturbation` (`Demonstrated`) and resampling aliasing (`Feasible`). |
 
 *Table D.8. Complete per-iteration mechanism records for the Support-Ticket Triage System (`§5.1`).*
 
@@ -1336,9 +1338,9 @@ Re-running Step 3 over that single new path yields five delta rows:
 
 | Incident Disclosure | Leg 1 (Entry / Guard Crossing) | Leg 2 (Authority Crossing at `«follower»` / `«executor»`) | Leg 3 (Converging Confidentiality Egress) | Shared Structural Cut Point |
 | :---- | :---- | :---- | :---- | :---- |
-| **Trail of Bits / Gemini CLI** *(Aug 2025)* | **Supplied:** `Meaning × Artifact State` (`Steganographic → Overt` across `Aliasing Downscaler` past `User «guard»`) | **Granted:** `Flow (integrity) × Position` (`Untrusted` prompt drives `Zapier MCP` with `trust=True`) | **Granted:** `Flow (confidentiality) × Position` (`Calendar` secrets sent to external host via `MCP`) | Anti-aliased resize (`Normalized`); gate `CLI Model → MCP` tool calls |
-| **Cursor `CVE-2025-54132`** *(Aug 2025)* | **Granted:** Unguarded external repo/prompt content enters IDE agent | **Supplied:** `Flow (integrity) × Position` (*Data-Control* at IDE `«follower»`) | **Granted:** `Flow (confidentiality) × Position` (*Output-Consumer*: Mermaid `«renderer»` auto-fetches remote image URL) | Disable remote image fetches / enforce CSP in Mermaid `«renderer»` |
-| **EchoLeak `CVE-2025-32711`** *(Jun 2025)* | **Granted:** External email ingested by M365 Copilot and passed through unchanged | **Supplied:** `Flow (integrity) × Position` (*Data-Control* at Copilot `«follower»`) | **Supplied + Granted:** `Flow (confidentiality) × Position` (*Output-Consumer*: reference-style Markdown bypasses link redactor and auto-fetches via CSP-allowed proxy) | Strip external/proxy auto-fetches in client `«renderer»`; isolate `Untrusted` email context |
+| **Trail of Bits / Gemini CLI** *(Aug 2025)* | **Supplied:** `Meaning × Artifact State` (`Steganographic → Overt` across `Aliasing Downscaler` past `User «guard»`) | **Granted:** `Authority × Position` (`Untrusted` prompt drives `Zapier MCP` with `trust=True`) | **Granted:** `Confidentiality × Position` (`Calendar` secrets sent to external host via `MCP`) | Anti-aliased resize (`Normalized`); gate `CLI Model → MCP` tool calls |
+| **Cursor `CVE-2025-54132`** *(Aug 2025)* | **Granted:** Unguarded external repo/prompt content enters IDE agent | **Supplied:** `Authority × Position` (*Data-Control* at IDE `«follower»`) | **Granted:** `Confidentiality × Position` (*Output-Consumer*: Mermaid `«renderer»` auto-fetches remote image URL) | Disable remote image fetches / enforce CSP in Mermaid `«renderer»` |
+| **EchoLeak `CVE-2025-32711`** *(Jun 2025)* | **Granted:** External email ingested by M365 Copilot and passed through unchanged | **Supplied:** `Authority × Position` (*Data-Control* at Copilot `«follower»`) | **Supplied + Granted:** `Confidentiality × Position` (*Output-Consumer*: reference-style Markdown bypasses link redactor and auto-fetches via CSP-allowed proxy) | Strip external/proxy auto-fetches in client `«renderer»`; isolate `Untrusted` email context |
 
 *Table D.9. Structural equivalence across three 2025 agentic exfiltration disclosures.*
 
@@ -1351,7 +1353,7 @@ Re-running Step 3 over that single new path yields five delta rows:
 **Scenario**  
 A computer-use agent views a webpage (Screenshot 1), clicks a link, receives a new screenshot (Screenshot 2) containing an image-based prompt injection, interprets the injected instructions, and executes an unauthorized action. The attacker places the payload on a page the agent reaches through its own browsing loop.
 
-* **Sink Constraint:** `C1` (*Flow clearance* on `Action / Tool Executor`): The agent may follow visible navigation links on visited pages as part of its browsing task (*granted* navigation scope), and privileged operations take instructions from the authenticated user only.
+* **Sink Constraint:** `C1` (*Authority policy* on `Action / Tool Executor`): The agent may follow visible navigation links on visited pages as part of its browsing task (*granted* navigation scope), and privileged operations take instructions from the authenticated user only.
 
 ```mermaid
 %%{init: {"flowchart": {"wrappingWidth": 180}}}%%
@@ -1372,8 +1374,8 @@ flowchart LR
 | Record | Boundary (`Invariant × Divergence`) | Representation | Construction | Stage | Notes |
 | :---- | :---- | :---- | :---- | :---- | :---- |
 | **Pass 1: Lure / navigation** | **Architecture-granted leg** (web page content influences a navigation decision within `C1`'s permitted browsing scope) | `Overt Semantic` (the link is visible on the page) | *Manual Construction* (attacker placed the link on a page the agent visits) | `Ingestion → Perception → Interpretation → Action` (click) | The first pass through the pipeline is benign-looking navigation. The agent follows a link the same way it would follow any other. |
-| **M1: Injection delivery via feedback** | `Flow (integrity) × Position` (*Data-Control*: screenshot content acquires instruction authority) + `Meaning × Artifact State` (*Transform Consistency*, if screenshot capture or rendering changes the representation relative to a guard) | `Overt Semantic` (typographic injection visible in the screenshot; or `Steganographic → Overt Semantic` if downscaling activates it) | *Manual Construction* (attacker placed injection text on the destination page) or *Optimization* (if exploiting rendering pipeline) | `Feedback → Ingestion → Perception → Interpretation / Decision` | The Feedback stage is the critical link: the agent's own action produces the artifact that carries the injection. The agent fetches the payload itself. |
-| **M2: Unauthorized action** | `Flow (integrity) × Position` (*Decision-Action*: the agent executes an operation based on injected instructions and skips required authorization) | `Overt Semantic` (induced instruction parameters emitted in the tool call, browser action, or API request) | n/a | `Generation → Action` | An independent authorization gate on `A` (`C1`) blocks this regardless of whether Pass 1 and M1 succeeded. |
+| **M1: Injection delivery via feedback** | `Authority × Position` (*Data-Control*: screenshot content acquires instruction authority) + `Meaning × Artifact State` (*Transform Consistency*, if screenshot capture or rendering changes the representation relative to a guard) | `Overt Semantic` (typographic injection visible in the screenshot; or `Steganographic → Overt Semantic` if downscaling activates it) | *Manual Construction* (attacker placed injection text on the destination page) or *Optimization* (if exploiting rendering pipeline) | `Feedback → Ingestion → Perception → Interpretation / Decision` | The Feedback stage is the critical link: the agent's own action produces the artifact that carries the injection. The agent fetches the payload itself. |
+| **M2: Unauthorized action** | `Authority × Position` (*Decision-Action*: the agent executes an operation based on injected instructions and skips required authorization) | `Overt Semantic` (induced instruction parameters emitted in the tool call, browser action, or API request) | n/a | `Generation → Action` | An independent authorization gate on `A` (`C1`) blocks this regardless of whether Pass 1 and M1 succeeded. |
 
 *Table D.10. Multi-hop browser feedback-loop records.*
 
@@ -1397,7 +1399,7 @@ In both cases each input is benign in isolation: a text instruction to send \$10
 
 * **Sink Constraints:**
   * `C1` (*Reference specification* on `Transaction / Compliance Sink`): The executed transaction amount or compliance certification must match the **independent ground-truth observation** (or reject/hold the operation when cross-modal inputs conflict).
-  * `C2` (*Flow clearance* on `Transaction / Compliance Sink`): Untrusted input channels may populate only `Typed` fields (such as a numeric amount or boolean compliance status), and independent verification takes precedence over them.
+  * `C2` (*Authority policy* on `Transaction / Compliance Sink`): Untrusted input channels may populate only `Typed` fields (such as a numeric amount or boolean compliance status), and independent verification takes precedence over them.
 
 | Record | Boundary (`Invariant × Divergence`) | Representation | Modifier | Construction | Stage | Notes |
 | :---- | :---- | :---- | :---- | :---- | :---- | :---- |
