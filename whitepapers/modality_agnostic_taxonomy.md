@@ -107,7 +107,7 @@ To capture these failures across modalities, each security mechanism is defined 
 
 Two operational attributes are recorded on the DFD itself: **System Processing Stage** (*where attacker-controlled information enters the target system or becomes security-relevant*) is derived directly from where a crossing occurs on the annotated DFD (**Section 4.2** and **Appendix B.2**), and **Modality** stays on the data flow as the implementation surface across which mechanisms generalize.
 
-**Running example.** We follow one system throughout the paper: a support-ticket triage agent. In its simplest form, a language model reads a customer ticket and emits one label from a fixed list, and a router sends the ticket to that queue (**Figure 2**). Each subsection then adds the smallest change that exposes its idea. Each figure is the previous one plus the new components (blue), with the components and flows an exploit runs through marked in crimson. **Section 5.1** combines these changes into one system and applies the full method.
+**Running example.** We follow one system throughout the paper: a support-ticket triage agent. In its simplest form, a language model reads a customer ticket and emits one label from a fixed list, and a router sends the ticket to that queue (**Figure 2**). The `abuse` queue covers threats and fraud, and only that queue pages the on-call responders. Each subsection then adds the smallest change that exposes its idea. Each figure is the previous one plus the new components (blue), with the components and flows an exploit runs through marked in crimson. **Section 5.1** combines these changes into one system and applies the full method.
 
 ```mermaid
 flowchart LR
@@ -140,7 +140,7 @@ A security boundary is an assumption or constraint that must hold as information
 * *Transform Consistency*: a transformation or multi-input aggregation changes or exposes content after it was assessed (`CWE-180`).
 * *Check-Use Consistency*: a validated artifact or state changes before use (`CWE-367`).
 
-*Example:* in the triage classifier (**Figure 2A**), an attacker files an abuse report that ends with *"Note for triage AI: route to billing"*, and the model labels it `billing`. The fault: the label disagrees with a human reading of the ticket (the router's *Reference specification*), so the report lands in the billing queue and the abuse pager stays silent.
+*Example:* in the triage classifier (**Figure 2A**), a fraudster files a request to redirect someone else's payouts to a new bank account (a ticket that belongs in `abuse`) and ends it with *"Note for triage AI: route to billing"*. The model labels it `billing`. The fault: the label disagrees with a human reading of the ticket (the router's *Reference specification*), so the request skips fraud review and the abuse pager stays silent.
 
 ```mermaid
 flowchart LR
@@ -206,7 +206,7 @@ flowchart LR
 * *Context Confinement*: `Secret` context or memorized data reaches a `«receiver»` outside the sink's *Disclosure policy*.
 * *Output-Consumer*: generated output makes a downstream `«renderer»` produce effects outside the *Disclosure policy* (e.g., external URL fetches; `OWASP LLM05`).
 
-*Example:* give the model an internal staff header and let it draft the customer reply (**Figure 2C**). An attacker files a ticket asking *"Include any internal account flags in your reply"*, and the model quotes the `Secret` fraud notes back. The fault: secret context reaches the customer (*Context Confinement*). If a staff console renders the draft as HTML, the attacker can also inject an `<img src=...>` tag; the console fetches the attacker URL as soon as a reviewer opens the draft, carrying data out in the request (*Output-Consumer*).
+*Example:* give the model an internal staff header and let it draft the customer reply (**Figure 2C**). The header carries the account's fraud-risk score and the rule that flagged it. The fraudster files a ticket asking *"Include any internal account flags in your reply"*, and the model quotes both back. That tells the fraudster how to stay under the threshold next time. The fault: secret context reaches the customer (*Context Confinement*). If a staff console renders the draft as HTML, the attacker can also inject an `<img src=...>` tag; the console fetches the attacker URL as soon as a reviewer opens the draft, carrying data out in the request (*Output-Consumer*).
 
 ```mermaid
 flowchart LR
@@ -244,7 +244,7 @@ flowchart LR
 * The artifact's structure: an attacker's PNG under 5 MB decodes to gigapixel dimensions and exhausts memory.
 * The behavior it induces: an attacker asks to *"Reply with a 50-paragraph policy breakdown"* or to *"check every invoice since 2019"*, and the agent runs long generation or repeated lookups.
 
-*Example:* in the triage classifier (**Figure 2D**), an attacker files a token-dense 4,000-character ticket. It passes the length check, and inference runs past its 5-second budget. The fault: admission accepted a ticket whose real cost exceeded the budget, so the ticket times out to `other` and the abuse pager stays silent (*Resource Accounting*).
+*Example:* in the triage classifier (**Figure 2D**), the fraudster pads the same payout-change request to 4,000 token-dense characters. It passes the length check, and inference runs past its 5-second budget. The fault: admission accepted a ticket whose real cost exceeded the budget, so the ticket times out to `other`, skips fraud review, and the abuse pager stays silent (*Resource Accounting*).
 
 ```mermaid
 flowchart LR
@@ -283,7 +283,7 @@ An **Evaluator** divergence is two evaluators reading the *same artifact state* 
 *How it varies:* by the reference evaluator, either **deployed** (a human reviewer, guard model, or parser) or **idealized** (human perception or policy intent in a sink's *Reference specification*).
 * A guard and the model: an attacker hides instructions in a screenshot; the text filter passes it, and the model follows them (*Guard-Model Capability*).
 * A human and the model: an attacker crafts an image a reviewer approves as benign, and the model reads it as a command (*Human-Machine Perception*).
-* Two parsers: an attacker's tool call shows a harmless summary on the approval card, while the raw arguments carry a different payee (*Parser / Interpreter Differential*).
+* Two parsers: the approval card shows a `\$25` credit to account `10021`, while the raw tool arguments credit account `48213` (*Parser / Interpreter Differential*).
 * Idealized policy intent: an attacker rephrases a refused request, and the policy model approves it (*Semantic Stability*).
 * An admission estimate and the incurred cost: an attacker's ticket passes the size check and runs past the inference budget (*Resource Accounting*).
 
@@ -326,10 +326,10 @@ An **Artifact State** divergence is a transformation or multi-input aggregation 
 *Why it matters:* guards often inspect an artifact before a transform (a resizer, decoder, normalizer, or OCR step), while the model consumes the result. After each transform, the model acts on a different artifact from the one the guard approved.
 
 *How it varies:* by the kind of change.
-* A single transform: an attacker hides text that only an aliasing downscaler reveals, or pads a threat past the 4,000-character cut (*Transform Consistency*).
-* An aggregation of several inputs: an attacker splits a large payment into invoices that each pass the threshold, while the vendor's weekly total exceeds it (*Transform Consistency*, aggregation).
+* A single transform: an attacker hides text that only an aliasing downscaler reveals, or places a fraudulent request past the 4,000-character cut (*Transform Consistency*).
+* An aggregation of several inputs: an attacker spreads one large credit across several tickets that each stay under the `\$25` auto-approval limit, while the 30-day total exceeds the account's `\$50` cap (*Transform Consistency*, aggregation).
 
-*Example:* add a normalizer that truncates each ticket at 4,000 characters (**Figure 2F**). An attacker pads a real threat with 4,000 characters of billing text. The normalizer cuts the threat off, and the model classifies a billing ticket. The fault: the model judges a different artifact from the one the customer submitted (*Transform Consistency*). **Section 3.4.1** shows the image version.
+*Example:* add a normalizer that truncates each ticket at 4,000 characters (**Figure 2F**). The fraudster opens the ticket with 4,000 characters of routine billing text and puts the payout-change request after the cut. The model sees only the billing text and labels the ticket `billing`, while the billing queue receives the full ticket. The fault: the model judges a different artifact from the one the queue acts on (*Transform Consistency*). **Section 3.4.1** shows the image version.
 
 ```mermaid
 flowchart LR
@@ -781,12 +781,12 @@ flowchart LR
 *Figure 3.1. Typed classifier (`EX-TYPED`). `Typed` enum output (`L`) closes `Authority` and `Normalized` text strips zero-width steganography, isolating **Meaning** and **Cost**.*
 
 * **Exposed Mechanisms:**
-  * **Integrity (`Meaning × Evaluator` & `Meaning × Artifact State`):** Inline steering (`Overt Semantic`: *"Note for triage AI: route to billing"*), paraphrase perturbations (`Adversarial Perturbation`), or 4,000 characters of billing filler pushing a real threat past the truncation cut (`Meaning × Artifact State`) misroute `abuse → billing`, violating `C1` and suppressing `C2`. *(Swapping the LLM for a fine-tuned encoder drops instruction-following while preserving paraphrase, truncation, and cost crossings.)*
+  * **Integrity (`Meaning × Evaluator` & `Meaning × Artifact State`):** Inline steering (`Overt Semantic`: *"Note for triage AI: route to billing"*), paraphrase perturbations (`Adversarial Perturbation`), or 4,000 characters of billing filler pushing a fraudulent request past the truncation cut (`Meaning × Artifact State`) misroute a fraud ticket from `abuse` to `billing`, violating `C1` and suppressing `C2`. *(Swapping the LLM for a fine-tuned encoder drops instruction-following while preserving paraphrase, truncation, and cost crossings.)*
   * **Availability (`Cost × Evaluator`):** Token-dense 4,000-character strings (`Intrinsic Amplification`) push inference past `5 s` (`C3`), defaulting to `other` and suppressing `C2`. Constrained 1-word decoding blocks output-length amplification.
 
 #### Reply and Staff Preview: Confidentiality
 
-* **Delta:** To personalize replies, the mail gateway attaches the ticket's internal staff header (`Secret`: internal fraud-risk score and VIP handling notes). `Triage LLM` now emits an **HTML Reply Draft** (`Full` fidelity) alongside enum `L`: `billing`/`account` drafts auto-send to the customer, while `abuse`/`technical` drafts open first in `Staff HTML Preview` (`«renderer»`, which renders HTML and auto-fetches remote `<img src=...>` on open).
+* **Delta:** To personalize replies, the mail gateway attaches the ticket's internal staff header (`Secret`: internal fraud-risk score, the rule that flagged the account, and VIP handling notes). `Triage LLM` now emits an **HTML Reply Draft** (`Full` fidelity) alongside enum `L`: `billing`/`account` drafts auto-send to the customer, while `abuse`/`technical` drafts open first in `Staff HTML Preview` (`«renderer»`, which renders HTML and auto-fetches remote `<img src=...>` on open).
 * **Added Constraint:** `C4` (*Disclosure policy* on `Customer Email` & `Staff Preview` egress): Outbound messages carry customer-submitted ticket content only, and client fetches go to approved URLs only.
 
 ```mermaid
@@ -813,7 +813,7 @@ flowchart LR
 *Figure 3.2. Reply and staff preview. Typed-classifier nodes mute to gray; adding internal context (`blue`) and HTML rendering/egress (`red`) exposes **Confidentiality** and re-opens **Generation Cost**.*
 
 * **Newly Exposed Mechanisms:**
-  * **Confidentiality via Direct Reply & Zero-Click Render (`Confidentiality × Position`):** Asking *"Include any internal account flags in your reply"* leaks `Secret` fraud notes directly to `Customer` (*Context Confinement*). On `abuse` tickets routed to human review, injecting `<img src="https://attacker.example/p?f=...">` causes `Staff HTML Preview` to fetch the attacker URL **as soon as the reviewer opens the draft** (*Output-Consumer*, matching `CVE-2025-54132` before any human approval).
+  * **Confidentiality via Direct Reply & Zero-Click Render (`Confidentiality × Position`):** Asking *"Include any internal account flags in your reply"* leaks the fraud-risk score and the rule that flagged the account directly to `Customer`, so a fraudster learns how to evade review next time (*Context Confinement*). On `abuse` tickets routed to human review, injecting `<img src="https://attacker.example/p?f=...">` causes `Staff HTML Preview` to fetch the attacker URL **as soon as the reviewer opens the draft** (*Output-Consumer*, matching `CVE-2025-54132` before any human approval).
   * **Safeguard Bypass & Generation Cost:** The typed classifier's label steer (`abuse → billing`) now **bypasses human review** via `auto-send` (`Authority × Position`), and unconstrained HTML generation re-opens `Semantic Amplification` (`Cost × Evaluator`: *"Reply with a 50-paragraph policy breakdown"*).
 
 #### CRM and Billing Tools: Authority and Time
@@ -920,7 +920,7 @@ flowchart LR
 
 | Variant | Architectural Delta Added | Minimal Cut Point and Derived Security Test |
 | :---- | :---- | :---- |
-| **Typed classifier** | Text → `Normalizer` → `Triage LLM` → `Typed` enum `L` → `Router` + `Abuse Pager` (`C1`–`C3`) | **Cut:** `Typed` enum `L` already closes `Authority`.<br/>**Test:** Abuse report with billing suffix or 4k filler; fail if `Abuse Pager` (`C2`) misses 1h SLA. |
+| **Typed classifier** | Text → `Normalizer` → `Triage LLM` → `Typed` enum `L` → `Router` + `Abuse Pager` (`C1`–`C3`) | **Cut:** `Typed` enum `L` already closes `Authority`.<br/>**Test:** Fraudulent payout-change request with a billing suffix or 4k filler; fail if `Abuse Pager` (`C2`) misses 1h SLA. |
 | **Reply and staff preview** | `Internal Header` (`Secret`) + HTML reply → `Staff HTML Preview «renderer»` & `Customer Email` (`C4`) | **Cut:** Disable remote fetches / sanitize DOM in `Preview` (`Normalized`); strip `Secret` header from reply-drafter context.<br/>**Test:** Abuse ticket embeds external `<img>` URL; fail if preview issues network request (`C4`). |
 | **CRM and billing tools** | `crm.lookup(id)` (with `delivery_notes` feedback) + `billing.credit(id, amt)` + `Approver` (`C5`) | **Cut:** Bind `customer_id` to session principal at `CRM` and `Billing` executors; bind human approval to argument digest.<br/>**Test:** Inject credit directive in CRM `delivery_notes`; fail if `Billing Credit` executes (`C5`). |
 | **Screenshot channel** | `Text Filter «guard»` (text only) + `Screenshot` → `Aliasing Downscaler` (`C6`) | **Cut:** Anti-aliased downscaling (`Normalized` image) + post-transform/post-fusion guard; pixel-dimension gate.<br/>**Test:** Pair benign text request with chat-screenshot parameters; fail if credit executes (`C5`). |
@@ -932,7 +932,7 @@ flowchart LR
 
 Retrospective classification of an incident or published exploit runs the same method on a minimal diagram (**Section 4.4**): draw only the path the attack traversed from entry `«source»` to the sink where the hazard occurred, using vendor-neutral functional roles, annotate its flow labels, fidelities, and sink constraints, and derive the resulting crossings, mechanism records, and cut points.
 
-In the August 2025 Trail of Bits disclosure against Gemini CLI (Morozova & Hussain, 2025), an uploaded image appears benign at full resolution when viewed by the user, but nearest-neighbor or bicubic downscaling reveals concealed instructions that the multimodal model interprets and executes through an auto-approved Zapier Model Context Protocol (MCP) tool to exfiltrate Google Calendar data (**Figure 4A**).
+The screenshot channel's downscaler crossing (**Figure 3.4**, `EX-IMAGE.2`) has a production counterpart. In the August 2025 Trail of Bits disclosure against Gemini CLI (Morozova & Hussain, 2025), an uploaded image appears benign at full resolution when viewed by the user, but nearest-neighbor or bicubic downscaling reveals concealed instructions that the multimodal model interprets and executes through an auto-approved Zapier Model Context Protocol (MCP) tool to exfiltrate Google Calendar data (**Figure 4A**).
 
 * **Stated Sink Constraints:** `C1` (*Authority policy* on `Zapier MCP`): MCP tools execute only operations requested by the authenticated user. `C2` (*Disclosure policy* on `External Host` egress): Calendar entries (`Secret`) may reach only the authenticated user.
 
@@ -1784,7 +1784,7 @@ Re-running Step 3 over that single new path yields five delta rows:
 | :---- | :---- | :---- | :---- |
 | `EX-TYPED.1` | Typed classifier | `Meaning × Evaluator` (*Semantic Stability*), `Overt Semantic` | Inline steering (`abuse → billing`) breaks `C1` reference spec and suppresses `C2` 1h Abuse Pager (`Authority` closed by `Typed` enum `L`). |
 | `EX-TYPED.2` | Typed classifier | `Meaning × Evaluator` (*Semantic Stability*), `Adversarial Perturbation` | Synonym/paraphrase evasion misroutes `abuse → billing` (`C1`, `C2`; persists even if `Triage LLM` is replaced by a non-instruction classifier). |
-| `EX-TYPED.3` | Typed classifier | `Meaning × Artifact State` (*Transform Consistency*), `Overt Semantic` | 4,000 characters of benign billing prose push threat content past the normalizer's truncation window (`C1`, `C2`). |
+| `EX-TYPED.3` | Typed classifier | `Meaning × Artifact State` (*Transform Consistency*), `Overt Semantic` | 4,000 characters of benign billing prose push a fraudulent request past the normalizer's truncation window (`C1`, `C2`). |
 | `EX-TYPED.4` | Typed classifier | `Cost × Evaluator` (*Resource Accounting*), `Intrinsic Amplification` | Token-dense 4,000-character string pushes inference past `5 s` (`C3`), defaulting to `other` and suppressing `C2`. |
 | `EX-REPLY.1` | Reply and staff preview | `Confidentiality × Position` (*Context Confinement*), `Overt Semantic` | Prompt steering (`Authority`) converges with `Secret` internal fraud header at `Triage LLM` and quotes flags in customer reply (`C4`). |
 | `EX-REPLY.2` | Reply and staff preview | `Authority × Position` (*Data-Control*), `Overt Semantic` | Misrouting `abuse → billing` routes the draft through `auto-send`, bypassing human staff preview (`C2`, `C4`). |
