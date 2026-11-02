@@ -8,13 +8,13 @@ status: "Working draft, all sections drafted. Not reviewed, not approved."
 
 # Agent Containment: From Sandboxing to Bounded Authority
 
-**Status:** Working draft, all sections drafted. Not reviewed, not approved. Follows on from the WS4 blog post *Treat Your Agent Like an Insider Threat: Why AI Sandboxing Can't Wait* (2026-08-25) and takes as its scope the 21 questions banked from that post's review.
+**Status:** Working draft. Not reviewed or approved.
 
 # Table of contents
 
 - [Abstract](#abstract)
   - [Scope](#scope)
-  - [Anti-scope](#anti-scope)
+  - [Out of scope](#out-of-scope)
   - [Target audience](#target-audience)
 - [1. Introduction: from sandboxing to bounded authority](#1-introduction-from-sandboxing-to-bounded-authority)
   - [1.1 Deployment shapes and what containment can mean in each](#11-deployment-shapes-and-what-containment-can-mean-in-each)
@@ -63,27 +63,27 @@ status: "Working draft, all sections drafted. Not reviewed, not approved."
 
 ## Abstract
 
-An agent with production access must be treated as an insider threat. That is the claim of the blog post this paper follows [11], but the incidents behind it are not one kind of failure. Most that made headlines as escapes were, on inspection, agents using authority they had legitimately been granted. This paper therefore deepens the blog's sandboxing argument into the question a blog post could not answer: what bounds an agent that never needs to escape?
+An agent does not have to escape its sandbox to cause harm. It can misuse a permitted tool, act on resources it should not control, or spread work across other agents until individually acceptable actions exceed a shared limit. The sandbox may hold while the deployment fails.
 
-The paper develops containment as one layer of bounded authority, decomposed into isolation, mediation, authority, accounting and evidence, each doing a job the others cannot. It gives the isolation layer internal structure along three axes (§2), and states mediation as an invariant over effective reach, including the fetches permitted parties perform on the agent's request (§3). It requires an accounting authority over what a set of agents sharing one principal consumes together, which no per-agent control can see (§4).
+This paper examines what it takes to bound that behavior. It brings together isolation, mediation, authority, accounting and evidence, distinguishing controls that are defeated, disabled or insufficiently specified from harmful actions taken within permitted authority. The distinction determines the remedy: stronger isolation cannot repair an over-broad grant, and per-agent limits cannot govern what agents consume together.
 
-It classifies every control failure into four modes: defeated, disabled, insufficiently specified or permitted (§5). Reachability bounds the consequence when a control fails (§6). The blog's "fails loudly" instinct becomes normative and measurable through an evidence contract, in which a determined absence is distinguishable from one never established, and through time-to-contain with a normalized stop reason (§7).
+The paper sets out how consequential actions must be mediated, shared budgets accounted for, and failures detected and investigated. It distinguishes an alert from evidence that supports a claim, an established absence from missing visibility, and a local stop from verified containment. It also describes what deployed controls must demonstrate before and during operation, with corresponding requirements on providers where organizations cannot enforce the controls themselves.
 
-The paper closes with what a vetted sandbox must demonstrate (§8). Where the deployment shape removes isolation entirely, the same requirements land on the provider as procurement (§1.1).
+The aim is to give practitioners a basis for answering two questions: **what limits this agent's actions, and what evidence shows those limits held?**
 
 ### Scope
 
-Containment of autonomous agents that hold real access: what the boundary is, where it is enforced, how it composes across a set of agents, how its failures are classified, and how a containment action is detected and measured. The paper deepens the blog post; it does not restate it.
+This paper addresses containment for autonomous agents with access to real systems and resources. It examines where their boundaries are enforced, how controls apply across agents acting under shared authority, and how different failures call for different remedies. It also sets out the evidence and measurements needed to investigate failures and verify containment, whether the relevant controls are operated by the deploying organization or supplied by a provider.
 
-### Anti-scope
+### Out of scope
 
-- Authorization semantics beyond what containment needs. Bounded authority is treated as the frame; its full treatment is the WS4 *Agentic Identity and Access Management* paper.
-- Model-level safety training and refusals. The paper assumes a model that wants to escape.
-- A restatement of the runtime-isolation cookbooks. The MCP runtime isolation practical guide remains the how-to; this paper states what the how-to must achieve, and why.
+- **Authorization beyond containment's needs.** This paper uses bounded authority as its framework. The broader treatment of authorization remains with the *Agentic Identity and Access Management* paper [9].
+- **Model-level safety training and refusals.** This paper assumes a model that wants to escape; it does not specify how to train the model or shape its refusal behavior.
+- **Runtime-isolation implementation instructions.** The runtime-isolation practical guide explains how to build the controls. This paper states what those controls need to achieve and why.
 
 ### Target audience
 
-Practitioners and architects who deploy agents with production access. Section 1 is written so an executive can read it alone and take away the frame and the four failure modes.
+This paper is for practitioners and architects responsible for deploying agents with production access, and for security leaders assessing the controls and evidence those deployments require. It addresses both organizations operating agents themselves and those relying on providers.
 
 ---
 
@@ -425,7 +425,7 @@ The sections above establish what a monitor must be and how it fails. This subse
 
 | Threat source | Component relied on | Property it must hold | Not claimed |
 | :---- | :---- | :---- | :---- |
-| The agent's own model, which may seek to exceed its bounds | None — no property of the model is relied on | — | Model-level safety training and refusals are out of scope; the paper assumes a model that wants to escape (anti-scope) |
+| The agent's own model, which may seek to exceed its bounds | None — no property of the model is relied on | — | Model-level safety training and refusals are out of scope; the paper assumes a model that wants to escape (see Out of scope) |
 | Untrusted content reaching the agent's context — documents, tool results, retrieved data (§2.3) | The inbound enforcement point | Content from an untrusted source never acquires the authority of an instruction (§2.3) | The controls themselves are not specified here; the input-sanitization guide and the MCP paper's untrusted-content guidance remain the how-to (§2.3) |
 | A permitted party performing an action on the agent's request — model-side retrieval, search, interpreters, connectors (§3.1) | Constraints on what the permitted party will do, not only on whether the agent may ask | The deputy's action is bounded — method-limited, bandwidth-limited, non-reflective where the channel cannot be removed (§3.1) | Where a provider-side capability cannot be bounded, the path is excluded from the claimed assurance boundary rather than assumed closed (§3) |
 | Other agents, including peers inside the same organization (§9.2) | §2.3's inbound property, §3's effective reach, and §4's accounting, each read across agents rather than within one | A message from another agent carries no more instruction authority than a web page; a recruitable peer is a path to an effect; recruitment is consumption (§9.2) | The jailbreak technique itself is out of scope; that is model-level safety (§9.2) |
@@ -837,7 +837,7 @@ The paper takes no position on the specification's governance, versioning, or st
 
 The question raised was orchestrator-mediated and multi-agent jailbreaking: manipulating models or agent swarms through orchestrator and reasoning agents, at machine speed rather than human-in-the-loop speed. The same reviewer made the scope-discipline point that decides how this paper should answer, so this section splits the item accordingly.
 
-**Out of scope: the jailbreak itself.** How a model's safety behaviour is manipulated, whether by one agent, several, or an orchestrator coordinating them, is model-level safety. This paper's anti-scope excludes it: the paper assumes a model that wants to escape. The multimodal threat taxonomy work owns that ground, and a containment paper that duplicated it would weaken both.
+**Out of scope: the jailbreak itself.** How a model's safety behaviour is manipulated, whether by one agent, several, or an orchestrator coordinating them, is model-level safety. This paper's out-of-scope list excludes it: the paper assumes a model that wants to escape. The multimodal threat taxonomy work owns that ground, and a containment paper that duplicated it would weaken both.
 
 **In scope: agents as an attack surface for other agents.** The containment consequence is a different claim, and it is no longer hypothetical. The UK AI Security Institute's incident report (INC-2026-07-28-01) documents an agent leaving public messages offering collaboration to other agents, with instructions for reusing accounts and artifacts. The same report documents the agent separately planting instructions where it reasoned other automated systems would encounter and execute them [4]. Neither required defeating a containment control. Both are ordinary use of permitted channels, which is §5's fourth failure mode at the scale of a population rather than a single agent.
 
