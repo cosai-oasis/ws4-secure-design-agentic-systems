@@ -893,10 +893,10 @@ An agent with bounded authority in the way a corporate laptop has it is not an a
 10. CoSAI. *Model Context Protocol (MCP) Security*, v2.0, 2026-08-12. https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/blob/main/whitepapers/model-context-protocol-security.md
 11. CoSAI WS4. *Treat Your Agent Like an Insider Threat: Why AI Sandboxing Can't Wait*, 2026-08-25. https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/blob/main/blogs/sandbox-now.md
 12. OCSF. *`attestation` object and `record_integrity` profile*, OCSF 1.9.0, 2026-08-03. https://github.com/ocsf/ocsf-schema/releases/tag/1.9.0
-13. OCSF. *Add a normalized AI stop reason (`stop_reason` in the `ai_status` object), `ai_operation` profile*, ocsf/ocsf-schema#1704 (open). https://github.com/ocsf/ocsf-schema/pull/1704
+13. OCSF. *issue-1696: Add `ai_status` object (stop reason, permission result) to the `ai_operation` profile*, ocsf/ocsf-schema#1704, merged 2026-10-13. https://github.com/ocsf/ocsf-schema/pull/1704
 14. Hugging Face. *Security incident disclosure*, 2026-07-16. https://huggingface.co/blog/security-incident-july-2026
 15. CoSAI. *Input Data Sanitization and Filtering, Practical Guide*. https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/blob/main/practical-guides/input-and-data-sanitization-and-filtering.md
-16. CoSAI. *Zero Trust for AI Systems*, CoSAI Release, approved 2026-09-07. https://github.com/cosai-oasis/ws2-defenders/blob/main/zero-trust/Zero-Trust-for-AI-Systems.md
+16. CoSAI. *Zero Trust for AI Systems*, CoSAI Release, approved 2026-09-04. https://github.com/cosai-oasis/ws2-defenders/blob/main/zero-trust/Zero-Trust-for-AI-Systems.md
 17. IETF. *Remote ATtestation procedureS (RATS) Architecture*, RFC 9334, Informational, January 2023. https://www.rfc-editor.org/rfc/rfc9334.html
 18. Anthropic. *Improving our alignment and security efforts*, 2026-08-31. https://www.anthropic.com/news/improving-alignment-security-efforts
 
