@@ -92,6 +92,7 @@ The method covers inference-time security mechanisms in unimodal, multimodal, an
 * Side-channel and timing attacks that leak information through observed processing behavior (response latency, token-by-token streaming timing, resource consumption patterns); conventional side-channel analysis already covers these.
 * A bespoke impact or severity taxonomy; STRIDE categories attach to the hazard each sink constraint prevents (**Section 4.1**).
 * Model-safety failures that arise from benign data, signals, or outputs.
+* Infrastructure-operator access to plaintext prompts, context, or outputs during inference (e.g., a cloud operator reading unencrypted inference memory); confidential-compute and hardware-attestation frameworks cover this.
 
 ## 3. Defining a Mechanism
 
@@ -714,7 +715,7 @@ Once the diagram is annotated, findings follow from seven traversal rules (looku
 4. **Emit mechanism records (one crossing per record).** Emit one record `M = ⟨Invariant, Divergence, Representation⟩` per crossing judged *realizable* by an attacker, noting its evidence maturity (`Observed`, `Demonstrated`, or `Feasible`). Keeping records 1-to-1 with crossings (so evading an input `«guard»` and steering a `«follower»` emit two distinct records even from a single payload) keeps chain lengths comparable across architectures.
 5. **Assemble attack chains (supplied vs. granted legs).** Each required step toward violating a sink constraint is a **leg**: **granted** when the architecture permits passage unconditionally (unguarded channels, `auto-approve` tools, or task-permitted navigation) and **supplied** when a deployed `«guard»` forces an active bypass:
    * A hazard occurs only when *every leg* of a sink violation holds; the architecture grants some legs, and the attacker supplies the rest (yielding single-record exploits when remaining legs are granted, or in standalone `Time` and `Cost` failures).
-   * Records link wherever one crossing's postcondition satisfies the next crossing's precondition. **Confidentiality exfiltration chains** join an integrity path (steering a `«follower»` that holds `Secret` state) with a confidentiality path (carrying that `Secret` output to an unauthorized `«receiver»`), capturing the "lethal trifecta" (Willison, 2025) as graph topology. *Fragmented / Distributed* payloads emit one `Meaning × Artifact State` aggregation record with a conjunctive precondition across the contributing flows.
+   * Records link wherever one crossing's postcondition satisfies the next crossing's precondition. **Confidentiality exfiltration chains** join an integrity path (steering a `«follower»` that holds `Secret` state) with a confidentiality path (carrying that `Secret` output to an unauthorized `«receiver»`), capturing the "lethal trifecta" (Willison, 2025) as graph topology. A confidentiality chain can also include a `Meaning` leg at egress: a DLP `«guard»` reads the output as clean, while the `Secret` content sits in zero-width characters or image metadata (`Meaning × Evaluator`, `Steganographic`). *Fragmented / Distributed* payloads emit one `Meaning × Artifact State` aggregation record with a conjunctive precondition across the contributing flows.
 6. **Compute minimal structural cut points.** Identify the minimum set of flows or processes whose hardening or removal disconnects external sources from violated sinks (e.g. narrowing a `«follower» → «executor»` flow from `Full` to `Typed`, or gating an auto-fetching `«renderer»`).
 7. **Verify annotation coverage.** Confirm that every process, flow, and sink is annotated, flagging any unannotated element as a specification gap and recording the structural reason (*`relay` node, trusted and unreachable, within sink constraint, or out of scope*) whenever an element produces zero crossings.
 
@@ -1079,6 +1080,10 @@ Bishop, M. (2002). *Computer security: Art and science*. Addison-Wesley.
 
 Boucher, N., Shumailov, I., Anderson, R., & Papernot, N. (2022). Bad characters: Imperceptible NLP attacks. *IEEE Symposium on Security and Privacy*. https://arxiv.org/abs/2106.09898
 
+Carlini, N., et al. (2021). Extracting training data from large language models. *30th USENIX Security Symposium*. arXiv:2012.07805. https://arxiv.org/abs/2012.07805
+
+Carlini, N., et al. (2023). Extracting training data from diffusion models. *32nd USENIX Security Symposium*. arXiv:2301.13188. https://arxiv.org/abs/2301.13188
+
 Chao, P., Robey, A., Dobriban, E., Hassani, H., Pappas, G. J., & Wong, E. (2023). Jailbreaking black box large language models in twenty queries. arXiv:2310.08419. https://arxiv.org/abs/2310.08419
 
 Chen, Wang, Lu, Zhang, & Zhang. (2026). AudioHijack. *IEEE Symposium on Security and Privacy*. arXiv:2604.14604. https://arxiv.org/abs/2604.14604
@@ -1140,6 +1145,8 @@ MITRE. (2026). *D3FEND* (ontology version 1.6.0). https://d3fend.mitre.org/
 Momot, F., Bratus, S., Hallberg, S. M., & Patterson, M. L. (2016). The seven turrets of Babel: A taxonomy of LangSec errors and how to expunge them. *IEEE Cybersecurity Development (SecDev)*.
 
 Morozova, K., & Hussain, S. (2025, August 21). *Weaponizing image scaling against production AI systems*. Trail of Bits. https://blog.trailofbits.com/2025/08/21/weaponizing-image-scaling-against-production-ai-systems/
+
+Nasr, M., et al. (2023). Scalable extraction of training data from (production) language models. arXiv:2311.17035. https://arxiv.org/abs/2311.17035
 
 Nasr, M., et al. (2025). The attacker moves second: Stronger adaptive attacks bypass defenses against LLM jailbreaks and prompt injections. arXiv:2510.09023. https://arxiv.org/abs/2510.09023
 
@@ -1256,7 +1263,7 @@ Along each grouped directed path from an external `«source»` to a constrained 
 
 ### A.3 Path-Grouping, Flow-Fidelity Propagation, and Chain-Length Rules
 
-1. **Label propagation across multi-input nodes:** Any process receiving `k ≥ 2` incoming flows propagates the *least-trusted* provenance label (`Untrusted < Trusted`) and the *most-sensitive* confidentiality label (`Secret > Public`) to its outbound flows unless a deterministic rule on a `«guard»` or `«executor»` strips or rejects that label.
+1. **Label propagation across multi-input nodes:** Any process receiving `k ≥ 2` incoming flows propagates the *least-trusted* provenance label (`Untrusted < Trusted`) and the *most-sensitive* confidentiality label (`Secret > Public`) to its outbound flows unless a deterministic rule on a `«guard»` or `«executor»` strips or rejects that label. Labels also persist through generation: a `«follower»` output carries the `Secret` label of any `Secret` context the model held while generating it, so a label attached at ingestion follows the data to every egress flow.
 2. **Flow-fidelity transitions:**
    * A flow leaves an external `«source»` at `Full` fidelity unless constrained by physical or protocol framing.
    * Only a deterministic `«transform»` that strips sub-perceptual and metadata channels relative to ordinary human perception transitions a flow from `Full` to `Normalized`; model-based extractors (`OCR`, `ASR`, captioners) leave outbound fidelity at `Full` relative to a human reference.
@@ -1271,7 +1278,7 @@ Along each grouped directed path from an external `«source»` to a constrained 
 * **Guard-Model Capability and Parser / Interpreter Differential vs. Transform Consistency:** The first two concern inconsistent interpretation of equivalent input in the same artifact state; *Transform Consistency* concerns changes introduced or exposed across transformations or aggregation of an artifact, while *Check-Use Consistency* concerns reliance on an earlier validation after state has mutated over time.
 * **Semantic Stability (covers instance and authorization variance):** Asserting that two input variants share equivalent meaning presupposes an idealized reference evaluator `h` (human perception or policy intent) with which the model `f` disagrees (**Appendix A.1**). When a model-based policy or authorization check changes its decision under equivalent rephrasing or cross-modal conflict arbitration, the failure is `Meaning × Evaluator` (*Semantic Stability*); deterministic routing bypasses around an authorization gate belong to `Authority × Position`.
 * **Data-Control vs. Decision-Action vs. Delegation Authority vs. Output-Consumer:** *Data-Control* concerns improper promotion of untrusted content into instruction authority at a `«follower»`. *Decision-Action* applies strictly when an `«executor»` runs a `«follower»`-requested operation and skips required authorization or approval. Neighboring cases have their own subclasses: a human approver reviewing a summary card that diverged from raw tool arguments is *Parser / Interpreter Differential*, a store that changed after approval is *Check-Use Consistency*, and an authorized tool executing on a misextracted value violates the sink's *Meaning* reference specification. *Delegation Authority* concerns the scope of authority passed to another component, while *Output-Consumer* concerns unauthorized effects triggered when generated artifacts are processed by a downstream `«renderer»`.
-* **Permitted task influence and memorized secrets:** A manipulated model decision, tool invocation, or navigation step that stays within the sink's stated *Authority policy* (such as a browsing agent clicking visible links on a visited page) is recorded as an architecture-*granted leg* (**Section 4.3**). Training-data extraction maps directly to *Context Confinement* (`Confidentiality × Position`) by modeling memorized weights as a `Secret` data store and the querying user as the external `«receiver»`.
+* **Permitted task influence and memorized secrets:** A manipulated model decision, tool invocation, or navigation step that stays within the sink's stated *Authority policy* (such as a browsing agent clicking visible links on a visited page) is recorded as an architecture-*granted leg* (**Section 4.3**). Training-data extraction maps to *Context Confinement* (`Confidentiality × Position`) by modeling memorized weights as a `Secret` data store and the querying user as the external `«receiver»` (Carlini et al., 2021; Nasr et al., 2023; for diffusion models, Carlini et al., 2023; ATLAS `AML.T0057`). System-prompt extraction (`AML.T0056`) falls in the same cell, with the system prompt as the `Secret` store.
 * **Resource Accounting as a single Cost subclass:** *Resource Accounting* stays a single subclass because `Representation` and DFD position already capture whether exhaustion stems from media decoding or recursive tool execution; a resource-intensive operation becomes a violation when it breaches a stated *Resource budget*.
 
 **Representation classification principles.**
