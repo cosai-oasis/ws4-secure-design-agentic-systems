@@ -37,37 +37,20 @@ The method adds three lightweight annotations to the standard DFDs architects al
 
 ### 1.3 Ecosystem Positioning
 
-This work covers the inside of the pipeline, which sits between existing adversary catalogs and downstream risk or control frameworks (**Figure 1**). It is meant to be used alongside those frameworks:
+Each framework answers a different question about the same attack (**Figure 1**). An ATLAS technique describes what the attacker does, and one technique can be realized through several mechanisms that need different controls. NIST AI 100-2e2025's attacker capability and knowledge determine which of those mechanisms the adversary can actually reach. STRIDE classifies the hazard behind each constraint, so the mechanism's harm is the STRIDE category of the constraint it breaks (e.g., the same mechanism can lead to Elevation of Privilege on one path and Information Disclosure on another).
 
 ```mermaid
-%%{init: {"flowchart": {"nodeSpacing": 24, "rankSpacing": 36}}}%%
 flowchart LR
-    IN["Untrusted Input<br/>«source»"]:::outer
-
-    subgraph ZONE["Traditional STRIDE Trust Zone (Opaque in Coarse Threat Models)"]
-        direction LR
-        GRD{{"Upstream Check<br/>«guard»"}}:::here
-        TRN(["Resize / Decode / ASR<br/>«transform»"]):::here
-        LLM(["Agent Model<br/>«follower»"]):::here
-        RND(["Preview / Tool<br/>«renderer» · «executor»"]):::here
-        GRD --> TRN --> LLM --> RND
-    end
-
-    OUT["System Sink / Egress<br/>[Sink Constraint]"]:::outer
-
-    IN --> GRD
-    RND --> OUT
-
-    ATL["NIST AI 100-2 & MITRE ATLAS<br/>Adversary capabilities & entry tactics"]:::tag -. "labels entry" .-> IN
-    MECH["This Paper: M = ⟨I, D, R⟩<br/>Exposes check-vs.-use & flow crossings"]:::heretag -. "derives inside zone" .-> TRN
-    STR["STRIDE · OWASP · CoSAI SAIF<br/>Downstream hazard & governance risk"]:::tag -. "rates impact" .-> OUT
-
-    classDef outer fill:#f8fafc,stroke:#64748b,stroke-width:1.5px,color:#0f172a
-    classDef here fill:#fee2e2,stroke:#dc2626,stroke-width:2px,color:#7f1d1d
-    classDef tag fill:#f1f5f9,stroke:#94a3b8,stroke-width:1px,color:#334155
-    classDef heretag fill:#dbeafe,stroke:#1d4ed8,stroke-width:2px,color:#0f172a
+    AT("<b>MITRE ATLAS</b><br/>What is the attacker doing?")
+    AM("<b>NIST AI 100-2e2025</b><br/>Can the attacker reach it?")
+    T("<b>Mechanism taxonomy</b><br/>Where does the perimeter break?")
+    ST("<b>STRIDE</b><br/>Which hazard results?")
+    AT -- "one technique, several mechanisms" --> T
+    AM -- "capability limits which are realizable" --> T
+    T -- "breaks a constraint that prevents a hazard" --> ST
 ```
-*Figure 1. Ecosystem positioning across an agent pipeline. NIST AI 100-2 and MITRE ATLAS characterize adversary capabilities and entry tactics (left); STRIDE, OWASP, and CoSAI SAIF categorize downstream hazards and governance risks (right). Coarse threat models treat the inference pipeline inside the dashed trust zone as opaque; this paper annotates its internal guards, transforms, models, and renderers to derive where assumptions fail across modalities.*
+
+*Figure 1. How the mechanism taxonomy relates to existing security frameworks. Each box names the question that framework answers.*
 
 MITRE ATLAS (`AML.T0129`, `AML.T0068`), OWASP (`LLM01:2025`), and CoSAI's Risk Map already name multimodal prompt injection and payload obfuscation. This paper adds the violated pipeline invariant and the preprocessing, perception, and rendering steps where payloads activate. Section 6 compares the method with those frameworks, neighboring academic taxonomies, and classical security precedents, and **Appendix C** holds the crosswalk tables.
 
@@ -880,7 +863,7 @@ To support automated traversal and cross-team reuse (**Section 7**), annotated D
 
 **Adversary catalogs (MITRE ATLAS, NIST AI 100-2e2025).** ATLAS's 2026 releases describe multimodal behavior in detail: triggers placed in "a modality that is not inspected, or is inspected differently from text" (`AML.T0129`), obfuscation across images, audio, and video frames (`AML.T0068`), and content served differently to AI systems than to humans (`AML.T0134`). For the Trail of Bits disclosure, ATLAS records indirect prompt injection (`AML.T0051.001`) and exfiltration through agent tool invocation (`AML.T0086`); the chain record places those techniques on Legs 1–3 and names the downscaler as the activation point. ATLAS mitigation `AML.M0010` lists resampling as an input-restoration defense and notes that adaptive adversaries account for preprocessing, which the method expresses structurally as a `Normalized` flow and the conservative survival of `Adversarial Perturbation` (**Table 2**). NIST AI 100-2e2025 provides a broader threat taxonomy organized by learning method, lifecycle phase, attacker objective, capability, and knowledge. Its *resource control* capability corresponds to an `Untrusted` flow from an external `«source»`, and its knowledge dimension aligns with the per-component *Attacker Knowledge / Access* annotation (**Section 3.3**).
 
-**Hazard and risk frameworks (STRIDE, OWASP, CoSAI Risk Map, MAESTRO).** A STRIDE category attaches to each sink constraint by the hazard it prevents: a *Disclosure policy* on an egress sink guards against Information Disclosure, an *Authority policy* on an authority sink against Elevation of Privilege, a *Resource budget* against Denial of Service, and a *Reference specification* against Tampering. A STRIDE-per-element review therefore keeps its vocabulary and gains derived crossings inside the trust zone that a coarse diagram treats as one process (**Figure 1**). OWASP `LLM01` (Prompt Injection), `LLM05` (Improper Output Handling), and `LLM06` (Excessive Agency) map to sink constraints and crossings at `«follower»`, `«renderer»`, and `«executor»` nodes. The CoSAI Risk Map's component axis (Input Handling, Reasoning Core, Output Handling, Tools) is the most stage-like construct among the reviewed frameworks; the DFD roles refine it by adding `«guard»` and `«transform»` as explicit components, and a mechanism record can carry the corresponding Risk Map risk identifier as a supporting annotation. MAESTRO's seven architectural layers locate the affected subsystem, and the DFD path locates the crossing within it.
+**Hazard and risk frameworks (STRIDE, OWASP, CoSAI Risk Map, MAESTRO).** A STRIDE category attaches to each sink constraint by the hazard it prevents: a *Disclosure policy* on an egress sink guards against Information Disclosure, an *Authority policy* on an authority sink against Elevation of Privilege, a *Resource budget* against Denial of Service, and a *Reference specification* against Tampering. A STRIDE-per-element review therefore keeps its vocabulary and gains derived crossings inside the trust zone that a coarse diagram treats as one process. OWASP `LLM01` (Prompt Injection), `LLM05` (Improper Output Handling), and `LLM06` (Excessive Agency) map to sink constraints and crossings at `«follower»`, `«renderer»`, and `«executor»` nodes. The CoSAI Risk Map's component axis (Input Handling, Reasoning Core, Output Handling, Tools) is the most stage-like construct among the reviewed frameworks; the DFD roles refine it by adding `«guard»` and `«transform»` as explicit components, and a mechanism record can carry the corresponding Risk Map risk identifier as a supporting annotation. MAESTRO's seven architectural layers locate the affected subsystem, and the DFD path locates the crossing within it.
 
 **Defensive ontologies (MITRE D3FEND).** D3FEND links offensive and defensive techniques through shared digital artifacts and already defines media artifact classes (`DigitalImage`, `DigitalAudio`, `DigitalVideo`). Those classes correspond to annotated flows, which makes D3FEND a strong candidate vocabulary for the per-cell control catalog planned as follow-on work (**Section 7**).
 
