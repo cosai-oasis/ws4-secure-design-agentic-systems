@@ -117,15 +117,19 @@ Section 5.4 collects the assumptions behind each layer: the threats it addresses
 
 ### 1.1 Deployment shapes and what containment can mean in each
 
-Which of the five layers you can actually build depends on where the agent runs and who controls it. Three shapes cover most deployments.
+Where an agent runs, and who controls its environment and authority, determines which controls an organization can implement itself and which it must require from a provider. This paper considers three deployment shapes.
 
-**Built and operated.** The organization runs the agent on infrastructure it controls. Every layer is available, and every requirement in this paper applies as an engineering requirement.
+**Built and operated.** The organization runs the agent on infrastructure it controls. All five layers are available to implement, and the requirements in this paper apply as engineering responsibilities.
 
-**Procured and integrated.** The agent arrives inside third-party software, or runs on employee desktops where no container boundary exists at all. Isolation is simply unavailable; there is nothing to put the box around. What survives is exactly as much as you can still interpose at the request layer: mediated tool and MCP calls (§3), bounded and attenuated authority, and accounting across the principal (§4). Where you can interpose nothing — a fully third-party agent — containment is wholly a procurement requirement on the provider, and this paper's requirements should be read as the specification of what to demand, in contracts and in evidence, rather than what to build. The rule throughout: **where the organization controls the principal's authority, the requirement is engineering; where it does not, the identical requirement lands on the provider as procurement.**
+**Procured and integrated.** The agent is supplied as third-party software, runs on employee desktops, or is operated by a provider. These arrangements do not by themselves determine whether isolation is available or who operates it. The relevant distinction is which controls the organization can implement itself and which it must require from the provider.
 
-**The agent that builds its own boxes.** The coding agent that must create and run containers is a shape in its own right: it has a container boundary, but the workload wants to make more of them, so the question is not whether a boundary exists but what it must look like. Handing such an agent the host's container-runtime socket places the enforcement point inside the agent's reach (§2.1); what a sandbox must demonstrate instead is specified in §8.
+Where the organization can interpose at the request layer, it can mediate tool and MCP calls (§3), bound and attenuate authority, and account for consumption across agents sharing a principal (§4). For controls it cannot operate itself, the corresponding requirements become procurement obligations: specify what the provider must implement and what evidence it must supply. Where the organization cannot interpose any controls, those requirements fall wholly on the provider.
 
-Sections that follow are written for the first shape and marked, where the distinction bites, for the second.
+Engineering and procurement responsibilities can coexist in one deployment. The underlying requirements remain the same; responsibility for implementing and demonstrating them follows actual control.
+
+**Agents that create containers.** A coding agent may have a container boundary while also needing to create and run additional containers. The design question is how to support that work while keeping the enforcement point outside the agent's reach. Giving the agent access to the host's container-runtime socket places that enforcement point within reach (§2.1). Section 8 specifies what a sandbox supporting this workload must demonstrate.
+
+The following sections use the built-and-operated deployment as their starting point. Where the distinction affects a requirement, they identify what changes for procured and integrated deployments, including the division between engineering and procurement responsibilities.
 
 ---
 
