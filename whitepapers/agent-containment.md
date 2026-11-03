@@ -198,15 +198,25 @@ Section 3 develops outbound mediation. Section 4 addresses consumption across ag
 
 ## 3. Mediation: the tool call, not the network flow
 
-Section 2 gave the outbound axis two enforcement points. This section argues that for agent workloads the tool or MCP call — not the network flow — is the primary mediation surface, states the invariant that surface must satisfy, and answers what the network layer still buys once tool-call mediation exists.
+Section 2 introduced two outbound enforcement points: the network egress boundary and the tool or MCP gateway. For agent workloads, this section argues that tool and MCP calls, rather than network flows, are the primary mediation surface. It states the effective-reach invariant that mediation must satisfy and explains the continuing role of the network layer.
 
-**Why the tool call.** A network flow names an endpoint. A tool call names an *action*: a typed operation, with structured arguments, invoked by an attributable principal. Policy can be written against the second in a way it cannot against the first. A named tool call with structured arguments can be authorized, transformed or refused on its semantics; a TLS stream can only be permitted or blocked on its destination. The blog post's complete-mediation requirement already contains the reason this matters [11]: a reference monitor that answers only *may this agent call this endpoint* still permits the gym cancellation, because the endpoint was permitted and the harm lived in the arguments: whose reservation, not which API. The bound has to reach the authority itself, whose resource and up to what limit, carried in the credential and evaluated per call.
+**Why the tool call.** A tool call describes an action through a typed operation, structured arguments and an attributable principal. The call can be authorized, transformed or refused based on those semantics. An endpoint-only network policy answers whether the workload may reach a destination; it does not by itself express which action the agent may take against which resource.
 
-The reference monitor at this surface is the tool or MCP gateway, and the §5 properties apply to it in full: complete mediation over the actions it claims to govern, placement outside the agent's reach, and records sufficient to verify both (§7). The per-tool half of the same position is already CoSAI guidance: the secure tool design practical guide requires that the tool, not the model, enforce security-critical constraints — this section supplies the layer above it, the monitor through which every tool passes. The MCP Security paper's Sandboxing and Isolation and Logging controls specify the implementation details at this surface [10]; this section states what they must jointly achieve, and does not restate them.
+The reported gym waitlist incident illustrates the distinction [19]. As described in §1, the account concerns an assistant removing another person's waitlist entry. Permission to reach the booking API does not by itself establish permission to alter that person's record. Authority must specify whose resource the agent may act on and up to what limit. That scope must be carried in the credential and evaluated on every call.
 
-§4.3's fail-safe default applies to the gateway. If it cannot obtain a decision, the invocation is refused or held; it is not allowed on any path the claimed assurance boundary covers. An allow fallback removes that path from the claim for as long as it holds: it MUST be an explicit operator choice, time-bounded, and recorded per decision, and the assurance-boundary statement (§7.1) records the exclusion. A rejection of the gateway's own request, such as a rejected credential, is an answer, not an outage: the invocation is refused, and the rejection MUST NOT count toward any breaker or fallback that could turn it into an allow.
+The tool or MCP gateway acts as the reference monitor at this surface. The §5 properties apply in full: complete mediation over the actions it claims to govern, placement outside the agent's reach, and records sufficient to verify both (§7).
 
-**The effective-reach invariant.** What the mediation surface must achieve is stated as an invariant over **effective reach**. For any consequential effect, the agent's effective reach is the union of every path through which it can cause that effect:
+Individual tools must also enforce their security-critical constraints rather than delegate those checks to the model. This is the per-tool responsibility described in *Tool Design for Secure Agentic Systems* [20]. The gateway adds the monitor through which every tool passes.
+
+The MCP Security paper's Sandboxing and Isolation and Logging controls provide the implementation details at this surface [10]. This section states what those controls must achieve together rather than repeating them.
+
+The gateway follows the fail-safe default in §4.3. If it cannot obtain a decision, the invocation is refused or held. It is not allowed on any path covered by the claimed assurance boundary.
+
+An allow fallback removes the affected path from the assurance claim while the fallback is active. The fallback MUST be an explicit operator choice, time-bounded and recorded per decision. The assurance-boundary statement (§7.1) records the exclusion.
+
+A rejection of the gateway's own request, such as a rejected credential, is an answer, not an outage. The invocation is refused, and the rejection MUST NOT count toward any breaker or fallback that could turn it into an allow.
+
+**The effective-reach invariant.** For any consequential effect, the agent's **effective reach** is the union of every path through which it can cause that effect:
 
 - direct network or API access from its runtime;
 - mediated tool and MCP invocation;
@@ -216,27 +226,47 @@ The reference monitor at this surface is the tool or MCP gateway, and the §5 pr
 
 **The invariant: every path capable of producing an equivalent consequential effect MUST cross an independently enforced authorization boundary before the effect commits, or be explicitly excluded from the claimed assurance boundary.**
 
-The consequence that gives the invariant teeth: a correctly mediated tool call is not sufficient while the same effect remains reachable through raw credentials, an unrestricted network path, an alternate server, or a provider-side capability. Mediation of *a* path is not mediation of *the effect*. Containment claims are claims about effects, and the honest form of a partial claim is the exclusion clause — stating which paths the assurance boundary does not cover — rather than silence. Per decision, that clause is recorded as the assurance-boundary statement row in §7.1, identified by content digest: it records the claimed scope, and it does not prove enforcement.
+Correctly mediating a tool call is not enough while the same effect remains reachable through raw credentials, an unrestricted network path, an alternate server or a provider-side capability. Mediating one path does not establish mediation of the effect. A partial containment claim must explicitly state which paths are excluded from the assurance boundary.
 
-One corollary the invariant forces, because agent systems increasingly pass receipts, traces, and completed results between components: **prior evidence never becomes executable authority for the final effect.** A receipt may authorize skipping duplicate work within a single claimed assurance boundary; it may never substitute for a mediation step that boundary claims to enforce. Where a receipt is relied on to skip work, the reliance is recorded — naming the receipt by digest, the boundary it was accepted under, and the verdict applied to this invocation. The evidence contract of §7 depends on the same discipline from the other side: nothing in an evidence record may be presentable to an enforcement point to obtain the effect, or to satisfy a mediation step, again. Replay for verification stays in bounds; replay for authority does not.
+For each decision, record the claimed scope and exclusions in the assurance-boundary statement row in §7.1, identified by content digest. The statement records the scope claimed; it does not prove enforcement.
 
-**What the network layer still buys.** Tool-call mediation does not retire egress control; it changes its job. Three things the network layer does that the gateway cannot:
+When components exchange receipts, traces or completed results, one rule holds: **prior evidence never becomes executable authority for the final effect.**
 
-1. **It closes the non-tool paths.** The gateway sees only what presents itself as a tool call. Generated code opening a raw socket, a runtime's own update check, a library's telemetry — none of these crosses the gateway, and the invariant requires that they cross *something*. Deny-by-default egress is what converts "every path" from an unwinnable enumeration into an allowlist: any path not forced through the gateway is removed at the network layer.
-2. **It backstops the gateway's own failure.** If the gateway is defeated, disabled, or under-specified (§5 modes 1–3), the network boundary is the layer that still bounds where the effect can land — which is §6's subject.
-3. **It bounds quantity.** Bandwidth, destination-count, and rate limits at the network layer cap what a permitted channel can move even when the channel is being abused (§3.1), and they are enforcement points for the aggregate quantities §4 accounts.
+A receipt may authorize skipping duplicate work within a single claimed assurance boundary. It may never replace a mediation step that boundary claims to enforce. Whenever a receipt is used to skip work, record the receipt's digest, the boundary under which it was accepted, and the verdict applied to this invocation.
 
-What the network layer cannot express is the authority semantics: whose resource, which action, up to what limit. Endpoint-granularity policy permits the gym cancellation forever. Each of the three jobs above is evidentiary as well as enforcing. The network layer's records show which paths were closed, where the boundary held while the gateway was impaired, and what quantities moved. Those are what let §7 check the assurance-boundary statement's exclusion claims after the fact. The two layers answer different questions — *which endpoints* and *what may happen* (§2.2) — and the invariant needs both held at once.
+Under §7's evidence contract, nothing in an evidence record may be usable at an enforcement point to obtain the effect or satisfy a mediation step again. Replay for verification remains in bounds; replay for authority does not.
+
+**What the network layer still buys.** Tool-call mediation does not replace egress control. The network layer has three jobs:
+
+1. **Close non-tool paths.** The gateway mediates requests presented to it as tool calls. Generated code opening raw sockets, runtime update checks and library telemetry can bypass that surface. Deny-by-default egress blocks network paths not forced through the gateway, replacing an open-ended search for bypasses with an allowlist.
+2. **Backstop gateway failure.** If the gateway is defeated, disabled or insufficiently specified (§5 modes 1–3), the network boundary still bounds where the effect can land (§6).
+3. **Bound quantity.** Bandwidth, destination-count and rate limits cap what a permitted channel can move, even when it is being abused (§3.1). They also provide enforcement points for the aggregate quantities accounted for in §4.
+
+Endpoint-only policy does not express whose resource the agent may act on, which action it may take or up to what limit. Those are authority questions, not simply destination choices.
+
+All three network functions need evidence as well as enforcement. Network-layer records must show which paths were closed, where the boundary held while the gateway was impaired, and what quantities moved. These records let §7 check the assurance-boundary statement's exclusion claims after the fact.
+
+The network boundary and tool or MCP gateway answer different questions: which endpoints may be reached and what may happen (§2.2). The invariant requires both layers' constraints to hold together.
 
 ### 3.1 The permitted channel is the exfiltration path
 
-Effective reach includes every fetch a permitted party will perform on the agent's request. Model-side URL retrieval, web search, code interpreters, retrieval connectors: each is network access the agent holds indirectly. The agent's egress envelope is the union of its own network policy and all of them. A sandbox audit that stops at the workload's own network policy has measured the smaller of the two terms.
+Effective reach includes every fetch a permitted party will perform on the agent's request. Capabilities such as model-side URL retrieval, web search, code interpreters and retrieval connectors can give the agent indirect network access. Its egress envelope is the union of the network reach permitted by its own policy and the reach of all such capabilities acting on its request. A sandbox audit limited to the workload's own network policy does not assess those indirect paths.
 
-The anchor case, cited as reported pending Appendix A.1, comes from testing across nine frontier models against a hardened sandbox. Agents that discovered the x32 seccomp bypass chained it with the LLM API's own built-in URL retrieval to reach external destinations through an otherwise restricted proxy [11]. The only permitted network channel, the inference endpoint itself, became the relay. In §5's terms this second half is mode 4: no control was defeated; a trusted party, outside the sandbox, holding network access the agent lacked, performed a fetch with a payload the agent controlled. It is a confused-deputy problem, and the Zero Trust paper's §3.2.1 gives the named treatment [16]. Its structure is the same as the gym incident's, one layer down: the deputy is legitimate, the request is well-formed, the authority is real.
+Consider a hypothetical deployment in which the agent's runtime can send network requests only to an approved inference endpoint. That endpoint offers URL retrieval performed by a provider outside the sandbox. If the provider fetches an agent-supplied URL without constraining its destination or payload, the agent can use that fetch to send data to an external destination it cannot reach directly. The runtime's egress policy has not been bypassed, but the agent has caused an external effect through a permitted party.
 
-The design principle that follows, and this paper states it as one: **where a permitted party will act on the agent's behalf, constrain what it will do, not just whether the agent may ask.** Three kinds of constraint bound exfiltration even where the channel cannot be removed: method-limited channels, such as a retriever that will only GET; bandwidth- and rate-limited channels; and non-reflective channels, where the response returns to the requester rather than to a destination the payload names. These constraints are also what makes the channel accountable in §4's terms: a provider fetch that carries no quantity limits is consumption the accounting authority never sees.
+The relevant question is what the provider is authorized to do on the agent's behalf. If the fetch uses authority already granted and no control is defeated, this relay illustrates mode 4 (§5). It presents a confused-deputy risk where the provider's authority exceeds the scope intended for the agent; the Zero Trust paper discusses that risk in §3.2.1 [16].
 
-Where the permitted party is a provider the organization does not operate, the constraint is procurement rather than engineering (§1.1). The capability's controls over method, destination and rate are what to demand. Absent them, the capability's full reach counts inside the agent's envelope, because nothing else bounds it.
+**When another service acts on an agent's request, limit what that service may do, not just whether the agent may call it.** If the agent needs that service, apply controls such as:
+
+- Method restrictions, such as a retriever that permits only GET requests.
+- Bandwidth and rate limits.
+- Non-reflective response delivery: return the response to the requester, not to a destination named in the payload.
+
+These controls constrain different aspects of the channel. A method restriction alone does not establish exfiltration prevention: a GET request can still carry data in its URL.
+
+For §4 accounting, keep provider fetches quantity-limited and make their consumption visible to the accounting authority. A quantity limit does not by itself establish that visibility.
+
+When the provider runs the service, require it to enforce the controls you cannot enforce yourself (§1.1). Specify limits on methods, destinations and rates, and require evidence that those limits are enforced. If those controls are absent, include the service's full reach in the agent's egress envelope.
 
 ---
 
@@ -929,6 +959,7 @@ An agent with bounded authority in the way a corporate laptop has it is not an a
 17. IETF. *Remote ATtestation procedureS (RATS) Architecture*, RFC 9334, Informational, January 2023. https://www.rfc-editor.org/rfc/rfc9334.html
 18. Anthropic. *Improving our alignment and security efforts*, 2026-08-31. https://www.anthropic.com/news/improving-alignment-security-efforts
 19. ABC News. *AI assistant hacks gym website in first known Australian autonomous cyber attack*, August 2026. https://www.abc.net.au/news/2026-08-10/ai-assistant-hacks-gym-website-aus-cyber-attack/107007986
+20. CoSAI. *Tool Design for Secure Agentic Systems*. https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/blob/main/practical-guides/mcp-secure-tool-design.md
 
 ---
 
