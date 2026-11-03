@@ -135,41 +135,64 @@ The following sections use the built-and-operated deployment as their starting p
 
 ## 2. The three hardening axes
 
-The containment layer decomposes along the direction in which influence travels. **Local**: the agent must not affect the host beyond what is intended. **Outbound**: the agent must not affect systems remote to the host beyond what is intended. **Inbound**: the agent must not be influenced by unintended external signals, whether they originate on the host or remotely. Each axis has its own enforcement point, its own property to hold, and its own way of failing. Conflating them is how a deployment ends up hardened on one axis and open on another.
+The three hardening axes describe the direction in which influence travels:
 
-The decomposition reveals the shape of existing guidance. The blog post's "What Strong Sandboxing Requires" list is almost entirely local and outbound. The MCP runtime isolation guide [8], this workstream's own how-to, is almost entirely local, with a little outbound and no inbound at all. The axes give that guidance a spine, and make its gaps visible. The Zero Trust paper's *AI Threat Boundary* [16] and these axes are complementary, not identical: theirs marks what must not be trusted; these axes mark what must not be reached. The agent sits inside both.
+- **Local:** the agent must not affect the host beyond what is intended.
+- **Outbound:** the agent must not affect systems remote to the host beyond what is intended.
+- **Inbound:** the agent must not be influenced by unintended external signals, whether they originate on the host or remotely.
+
+Each axis has its own enforcement point, property to uphold and ways of failing. Keeping them separate makes uneven protection visible: a deployment can be hardened on one axis and exposed on another.
+
+The axes help identify which controls a deployment needs and where existing guidance applies. The MCP runtime isolation guide [8] provides implementation instructions for runtime controls. The *AI Threat Boundary* in *Zero Trust for AI Systems* [16] identifies model and data-pipeline components that must be treated as untrusted. The axes address a different question: how to constrain effects on the host, actions against remote systems, and influence from incoming content. The two views complement each other; neither replaces the other.
 
 ### 2.1 Local
 
-The enforcement point is the operating-system boundary around the agent's process: namespaces and filesystem policy, syscall filtering, mandatory access control, and, where the workload warrants stronger, a userspace kernel or microVM beneath the container. The reference monitor at this axis is the kernel or its stand-in. The property it must hold is the §5 set: every host-facing action mediated, the policy outside the agent's write scope, the enforcement verifiable.
+Local controls are enforced at the operating-system boundary around the agent's process. They use namespaces, filesystem policy, syscall filtering and mandatory access control. Where the workload warrants stronger isolation, the design includes a userspace kernel or microVM beneath the container.
 
-The blog post's controls that live here: OS-enforced isolation rather than agent instructions; privilege minimization in both directions, blocking the named escalation paths (no Docker socket, no metadata service) and shrinking default authority so a compromise yields little; and progressive hardening for workloads that need more than a shared kernel.
+The kernel or its stand-in acts as the reference monitor. It must meet the three properties described in §5: every host-facing action is mediated, the policy remains outside the agent's write scope, and enforcement is verifiable.
 
-The concrete case that tests the axis is the coding agent that needs to build and run containers (§1.1). Mounting the host's container-runtime socket into the sandbox does not weaken the boundary; it relocates the enforcement point to the wrong side of it. Anything that can reach that daemon holds a documented API for privileged escape. The monitor is now *inside* the agent's reach, a §5 mode-2 condition by construction. The workable shapes keep a real isolation boundary between the agent and the engine it drives: a rootless engine inside the sandbox, or a runtime backed by its own isolation layer. The requirement warrants a control answer, not a prohibition. What a vetted sandbox must demonstrate for this case is specified in §8.
+Local hardening relies on OS-enforced isolation, not instructions asking the agent to stay within bounds. Privilege minimization works in both directions: block escalation paths, including access to the host's Docker socket and metadata services, and reduce default authority to limit what a compromise can do. Where a shared kernel is insufficient for the workload, apply progressively stronger isolation.
+
+The coding agent that needs to build and run containers (§1.1) tests this boundary. Exposing the host's privileged container-runtime socket inside the sandbox gives the agent an API for privileged host actions. It puts the enforcement point within the agent's reach, a §5 mode-2 condition, rather than keeping it outside.
+
+The answer is a control design, not a blanket prohibition on creating containers. Options include a rootless engine inside the sandbox or a runtime backed by its own isolation layer. These are implementation options, not proof of containment: the resulting boundary must satisfy the enforcement properties in §5 and meet the demonstrations specified in §8.
 
 ### 2.2 Outbound
 
-Outbound has two enforcement points, and they answer different questions. The **network egress boundary** (proxy, allowlist, DNS policy) answers *which endpoints this workload may reach*. The **tool or MCP gateway** answers *what this agent may cause to happen*, in typed, attributable operations. §3 argues that for agent workloads the second is the primary mediation surface, and states what the first still buys once the second exists. Both must hold the same property: the agent's **effective reach**, the union of every path to an external effect including every fetch a provider will perform on the agent's request (§3.1), crosses an independently enforced boundary before the effect commits.
+Outbound controls have two enforcement points with different jobs:
 
-The blog post's controls that live here: egress controls that treat every permitted channel, the inference endpoint included, as a potential exfiltration path; the credential-injecting proxy, so credentials never enter the agent's reach; short-lived, task-scoped credentials with circuit breakers; complete mediation; and bounded delegation. Outbound authority is carried as much by what the agent *holds* as by what it can *route to*.
+- The **network egress boundary**, using mechanisms such as a proxy, allowlist or DNS policy, determines which endpoints the workload may reach.
+- The **tool or MCP gateway** governs what the agent may cause to happen, through typed operations attributable to a principal.
 
-One boundary of this axis is deliberate: everything above is per-agent. The outbound quantities an operator actually cares about, bytes, destinations and spend, are consumed across the set of agents sharing a principal, and no per-agent control on this axis sees the sum. That is §4's subject.
+For agent workloads, §3 treats the gateway as the primary mediation surface and explains the continuing role of the network boundary.
+
+Both enforcement points must uphold the **effective-reach invariant**. Effective reach is the union of every path through which the agent can cause an external effect, including fetches a provider performs on its request (§3.1). Section 3 states the full rule:
+
+> every path capable of producing an equivalent consequential effect MUST cross an independently enforced authorization boundary before the effect commits, or be explicitly excluded from the claimed assurance boundary.
+
+An exclusion limits the assurance claim; it does not close the path or establish that it is safe.
+
+Outbound hardening combines egress controls, protected credentials, complete mediation and bounded delegation. Treat every permitted channel, including the inference endpoint, as a potential exfiltration path. Use a credential-injecting proxy so credentials never enter the agent's reach, and use short-lived, task-scoped credentials with circuit breakers. Outbound authority depends both on what the agent holds and on what it can reach.
+
+The controls above apply to individual agents. Operators also need to account for bytes, destinations and spend across the set of agents sharing a principal. A per-agent control does not provide that aggregate view. Section 4 addresses this shared-principal accounting.
 
 ### 2.3 Inbound
 
-Inbound is where prompt injection lives, and its enforcement point is unlike the other two. There is no boundary the agent might cross; there is content crossing *into* the agent's context, and the property to hold is that content from an untrusted source never acquires the authority of an instruction. The controls, input filtering and validation, output checks, the data/control distinction, detached defences, and red teaming, are specified in the input sanitization practical guide [15] and in the MCP paper's untrusted-content guidance [10]; this paper does not restate them. The axis stays in the decomposition because without it the model is incomplete. The reader is sent to the guides for the how.
+Inbound controls address content entering the agent's context, including prompt injection. The focus is not the agent crossing into another resource, but information crossing into its context. The required property is that content from an untrusted source never acquires the authority of an instruction.
 
-What belongs *here* is the axis's relationship to the other two: inbound arms them. An agent does not need to be adversarial to test its bounds. The fastest way to get an agent that behaves adversarially is for something it read to tell it to. A deployment hardened locally and outbound but open inbound has built strong walls around an agent whose goals an attacker can set. This is why the paper's threat model — a model that wants to escape — is not paranoia about the model: on an open inbound axis, *wants to escape* is an input, not a disposition.
+Implementation guidance belongs in the input sanitization practical guide [15] and the MCP paper's untrusted-content guidance [10]. This includes input filtering and validation, output checks, the data/control distinction, detached defences and red teaming. This paper retains the inbound axis because the containment model is incomplete without it, but does not restate those implementation controls.
+
+Inbound attacks can make an otherwise cooperative agent behave adversarially. A document, tool result or message can redirect it toward actions outside its intended task. Local and outbound controls must still hold when that happens; they cannot depend on the agent retaining its original goals. This is why the paper assumes a model that wants to escape: the assumption covers behavior induced by untrusted input, not only behavior originating in the model itself.
 
 ### 2.4 The axes at a glance
 
-| Axis | Enforcement point | Property to hold | The how-to lives in |
+| Axis | Enforcement point or surface | Required property | Implementation guidance |
 |---|---|---|---|
-| Local | OS boundary (kernel or its stand-in) | Every host-facing action mediated; policy outside agent's reach | MCP runtime isolation guide [8] |
-| Outbound | Egress boundary + tool/MCP gateway | Effective reach crosses an independent boundary before the effect commits | §3 of this paper; MCP Security paper [10] |
-| Inbound | Content entering the agent's context | Untrusted content never gains instruction authority | Input sanitization guide [15]; MCP paper [10] |
+| **Local** | OS boundary: kernel or its stand-in | Every host-facing action is mediated; policy is outside the agent's reach; enforcement is verifiable. | MCP runtime isolation guide [8] |
+| **Outbound** | Network egress boundary and tool/MCP gateway | Every path capable of producing an equivalent consequential effect MUST cross an independently enforced authorization boundary before the effect commits, or be explicitly excluded from the claimed assurance boundary. | §3; MCP Security paper [10] |
+| **Inbound** | Content entering the agent's context | Untrusted content never gains instruction authority. | Input sanitization guide [15]; MCP Security paper [10] |
 
-Sections 3 through 6 now work down this structure: §3 takes the outbound mediation surface, §4 the quantities no single axis sees, §5 the property every enforcement point must hold, §6 what remains reachable when an axis fails.
+Section 3 develops outbound mediation. Section 4 addresses consumption across agents sharing a principal. Section 5 explains reference-monitor properties and failure modes. Section 6 examines what remains reachable when a control fails.
 
 ---
 
