@@ -61,7 +61,7 @@ Secure development assumes five things that do not hold for an AI (artificial in
 - Testing approximates production behavior.
 - Retirement means deleting the deployment.
 
-[Section 1.1](#11-five-assumptions-secure-development-rests-on) states how each assumption fails. This paper defines an agent development lifecycle (ADLC) whose phases repair those failures. Each phase states what must be decided in advance, what must be verified through monitoring, and how to find the evidence. An agent's identity and access can change over time. An agent can also acquire access on its own. [Section 3.2](#32-supply-chain) covers components the agent acquires at runtime.
+[Section 1.1](#11-five-assumptions-secure-development-rests-on) states how each assumption fails. This paper defines an agent development lifecycle (ADLC) whose phases repair those failures. Each phase states what must be decided in advance, what must be verified through monitoring, and how to find the evidence. The identities and access an agent holds change over time. Reviewing the harness, the software that runs the agent, is not enough. Sometimes an agent finds access on its own, as in the Hugging Face incident. [Section 3.2](#32-supply-chain) covers components the agent acquires at runtime.
 
 A security team should be able to extend the controls it already runs. For any agent, the team should be able to say which obligations have been met and which gate is next. [Section 4.1](#41-adapting-controls-you-already-run) is that guidance.
 
@@ -79,7 +79,7 @@ A security team should be able to extend the controls it already runs. For any a
 - **Conventional package and dependency supply chain practice.** "Classic" software development lifecycle (SDLC) practice for ordinary packages is covered in other documents.
 - **The security of code or content an agent produces.** That is a property of the agent's output, and it belongs to the lifecycle of whatever consumes that output. This paper covers the security of the agent.
 - **Model development.** Training, tuning, and evaluation of foundation models. The agent takes the model as an input.
-- **How to deal with AI artifacts.** How to review a large volume of generated code, including the human review bottleneck, is out of scope. This paper covers how agents are released to production.
+- **How to deal with AI artifacts.** How to review a large volume of AI-written code, the human review bottleneck, and low-quality AI output is out of scope. This paper covers how agents are released to production.
 
 ### Target audience
 
@@ -165,7 +165,7 @@ Deleting the deployment retracts none of that residue. A kill switch does not re
 
 Each framework below is sound on its own. Together they leave a gap. They divide the problem along lines that do not treat the agent as a subject that persists through time.
 
-The table shortens several names. NIST is the National Institute of Standards and Technology, and SP is Special Publication. SSDF is the Secure Software Development Framework. OWASP is the Open Worldwide Application Security Project, and SAMM is its Software Assurance Maturity Model. An LLM is a large language model. CIS is the Center for Internet Security. ISO/IEC is the International Organization for Standardization and the International Electrotechnical Commission. IETF is the Internet Engineering Task Force. SPIFFE is the Secure Production Identity Framework for Everyone, and a JWT is a JSON Web Token.
+Short names in the table: NIST (National Institute of Standards and Technology), SP (Special Publication), SSDF (Secure Software Development Framework), OWASP (Open Worldwide Application Security Project), SAMM (Software Assurance Maturity Model), LLM (large language model), CIS (Center for Internet Security), ISO/IEC (International Organization for Standardization and the International Electrotechnical Commission), IETF (Internet Engineering Task Force), SPIFFE (Secure Production Identity Framework for Everyone), and JWT (JSON Web Token).
 
 | Framework | What it reaches | Where it stops for agents |
 |---|---|---|
@@ -306,7 +306,7 @@ This phase establishes provenance and trust for each external component the agen
 
 Most of these components can carry or emit content the agent could treat as instructions. Examples are tool descriptions, retrieved content, and the outputs of other agents. For such a component, ask two questions. Is the component authentic? And how much authority may its content exert over the behavior of the agent under development?
 
-Every such external component MUST be inventoried with, at a minimum, an accountable owner, its source, and its version identity. Record whether each version is pinned or floating, for example a model behind a provider-managed alias or a generic API endpoint. For any floating component, record who controls changes to it and what notice the supplier commits to give before a change. That notice is what triggers re-baselining in [maintenance](#37-maintenance).
+Every such external component MUST be inventoried with, at a minimum, an accountable owner, its source, and its version identity. Record whether each version is pinned or floating. A floating version can change without the deploying organization starting the change, for example a model behind a provider-managed alias or a generic API endpoint. For any floating component, record who controls changes to it and what notice the supplier commits to give before a change. That notice is what triggers re-baselining in [maintenance](#37-maintenance).
 
 Do three further things:
 
@@ -399,9 +399,9 @@ Reflection is not a step between runtime and maintenance. It is a gate on every 
 
 The governing principle is that a context which may have been influenced cannot authorize its own persistence. An instance that has just processed untrusted content is the party least able to judge whether that content should be remembered. The decision to promote is made outside the context that proposes it. It can be made by deterministic policy, by an evaluator that does not share the proposing context, or, for high-impact knowledge, by a human acting under conditions the owner has set (section 2.4). Where those conditions sit depends on what the agent does. An agent that supports clinical decisions, or that operates a regulated control, warrants human approval for far more of what it retains than an agent that drafts internal documents.
 
-Not all knowledge carries the same risk. A record of a past session informs later behavior. A learned fact shapes conclusions. A learned procedure, which says how to perform a task or use a tool, functions as an instruction. That makes it part of the policy surface, in the sense of assumption 2. Promote a procedure only through the review that section 3.3 requires for any other change to the policy surface.
+Not all knowledge carries the same risk. A record of a past session informs later behavior. A learned fact shapes conclusions. A learned procedure, which says how to perform a task or use a tool, functions as an instruction. That makes it part of the policy surface, in the sense of assumption 2. Procedural knowledge is promoted only through the review that section 3.3 requires of any other change to the policy surface.
 
-Writing a statement down does not raise its trust. Promoted content keeps the trust tier of its source. It does not take the tier of the store it lands in. A retrieval source assigned a high tier in section 3.2 cannot become a channel that presents low-trust content as authoritative knowledge. Promotion into a store that other instances or other agents read crosses a trust boundary. Hold that promotion to a stricter requirement than promotion into an instance's private memory.
+Writing a statement down does not raise its trust. Promoted content keeps the trust tier of its source. It does not take the tier of the store it lands in. A retrieval source assigned a high tier in section 3.2 cannot become a channel for laundering low-trust content into authoritative knowledge. Promotion into a store that other instances or other agents read crosses a trust boundary. Hold that promotion to a stricter requirement than promotion into an instance's private memory.
 
 Enforce the memory-write policy. For anything retained, capture provenance: its source, the source's trust tier, the instance that proposed it, and the decision that admitted it. Record that provenance when the promotion is decided. Do not reconstruct it later. At the moment of the write, attest a hash of the promoted content and a hash of the inputs and tool calls that produced it. Apply the data classification from scoping to what may be retained. Apply retention labels and rollback markers. Keep an audit link from a later decision back to the knowledge that informed it.
 
@@ -423,19 +423,19 @@ Upstream change is the harder half. A model updated behind an API, a patched fra
 
 *Repairs assumption 5.*
 
-Decommissioning ends the agent's authority to act. Whether the agent can return later is a policy choice. If it returns, it comes back through admission as a new entity. Pausing, suspending, or quarantining a live agent belongs to runtime or maintenance, not to this phase. An agent that can resume under the same admitted identity has not been decommissioned. The working group settled this definition in RFC [^10], after withdrawing a longer draft that had "soft" and "hard" modes. What looked like two modes was one phase, with parameters the organization sets.
+Decommissioning ends the agent's authority to act. Whether the agent can return later is a policy choice. If it returns, it re-enters through Admission as a new entity. Pausing, suspending, or quarantining a live agent belongs to runtime or maintenance, not to this phase. An agent that can resume under the same admitted identity has not been decommissioned. The working group settled this definition in RFC [^10], after withdrawing a longer draft that had "soft" and "hard" modes. What looked like two modes was one phase, with parameters the organization sets.
 
 Every decommissioning does the same things, whatever retention rules the organization uses:
 
 - Record who requested retirement, who approved it, and why.
 - Freeze inbound invocation.
-- Revoke authenticators, and tombstone the identifier. Do not delete the identifier. A deleted identifier breaks replay detection.
+- Revoke authenticators, and tombstone the identifier (mark it permanently retired). Do not delete the identifier. A deleted identifier breaks replay detection.
 - Revoke delegated authority on every sub-agent the agent created.
 - Enumerate its resources across every system it touched. Give each resource a disposition: revoked, deleted, cryptographically shredded, retained until a date, held for legal reasons, handed over to a successor, or an explicit exception with an owner and an expiry.
 - Publish the terminal state and its effective time, where a relying party can check both without the retiring organization's help.
 - Store the disposition receipt. The receipt names the retired identity, the authorizer, the effective time, each asset's disposition, the evidence references, and the exceptions.
 
-The organization sets what varies, in the way NIST SP 800-53 leaves parameters to the implementer [^9]:
+What varies is set by organization-defined parameters, in the way NIST SP 800-53 leaves parameters to the implementer [^9]:
 
 - who may authorize retirement
 - whether dual control or a legal-hold check is required
@@ -523,7 +523,9 @@ The group produces positions in two ways. Some come out of ordinary work, such a
 
 ## 7. Takeaways and conclusion
 
-The case for a separate lifecycle rests on the five assumptions in section 1.1. It does not rest on agents being new, important, or fast-moving. Section 4.2 maps each assumption to the phase that repairs it and to the phases that reinforce that repair. Section 4.1 asks which existing controls rest on an assumption that no longer holds.
+The case for a separate lifecycle rests on five assumptions that existing practice encodes and that agents break (section 1.1). It does not rest on agents being new, important, or fast-moving. The consequence of each broken assumption is when assurance must be established. Section 4.2 maps each assumption to the phase that repairs it and to the phases that reinforce that repair. Section 1.1 states what the lifecycle adds.
+
+An organization that already runs a mature secure development lifecycle is closer to this than it may expect. Section 4.1 asks which existing controls rest on an assumption that no longer holds.
 
 A reader who disagrees with a phase is invited to attack the assumption it derives from. That is the argument this structure is built to expose. A reader who disagrees with a position in section 6 is invited to reopen it, with a source.
 
