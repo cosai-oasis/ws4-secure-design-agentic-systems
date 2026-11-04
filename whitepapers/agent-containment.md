@@ -272,143 +272,129 @@ When the provider runs the service, require it to enforce the controls you canno
 
 ## 4. Composition: per-sandbox controls across a set of agents
 
-**Purpose.** Show how per-sandbox controls fail to constrain aggregate consumption across a set of agents sharing a principal, and take a position on aggregate accounting: budgets and egress accounted across the set rather than per container.
+A set of agents can exceed a shared budget even when every sandbox stays within its own limits.
 
-Aggregate accounting is a control the paper recommends, as a scoped requirement: where the deploying organization controls the principal's authority, a conformant model MUST account budgets and egress across the set of agents sharing a principal (and across a delegation subtree), not only per container; where it does not, the same requirement lands on the provider as procurement (§1.1). Per-container and per-edge invariants are named explicitly as *local invariants that do not compose*.
+Where the deploying organization controls the principal's authority, the deployment MUST account budgets and egress across the set of agents sharing that principal and across a delegation subtree, not only per container. Where the organization does not control that authority, require the same control from the provider through procurement (§1.1).
+
+Per-container and per-edge limits are **local invariants that do not compose**: on their own, they do not establish control over the aggregate total.
 
 ### 4.1 The failure shape
 
-Every control in §§2–3 is evaluated per container or per edge: an egress cap on a sandbox, a
-destination allowlist on a network policy, a scope that narrows at each delegation hop. Each is
-correct on its own terms and each is a **local invariant**: it bounds what one container or one
-edge may do. The quantities an operator actually cares about are not local. Bytes leaving the
-organisation, distinct destinations touched, money spent, side-effecting actions taken, agents
-spawned, subtree depth and fan-out are consumed **across the set of agents that share a
-principal**, and across the delegation subtree that principal roots. A set of N agents, each inside
-its cap, consumes N caps. Nothing in a per-container model fires, because nothing in it ever sees
-the sum.
+The per-container and per-edge controls in §§2–3 bound what one container or one delegation edge may do. An egress cap limits one sandbox, a destination allowlist limits its permitted destinations, and scope attenuation narrows authority at each delegation hop. Each is a **local invariant**: it can hold without establishing a bound across the whole set.
 
-The review of the blog post reached this from two directions. From the sandboxing side: a coordinator that
-fans work out to twelve workers, each in a compliant sandbox with a 10 MB/day egress limit, moves
-120 MB through twelve distinct destinations without a single local control tripping. From the
-authority side: the approved *Agentic Identity and Access Management* paper requires scope to
-narrow at each hop, and names the phenomenon in its threat themes: two or more agents can pass
-data or proxy calls so that, together, they perform an action neither could perform alone. But its
-controls stop at the edge. Per-hop attenuation is necessary. It is not sufficient, because
-attenuation is also a local invariant: it bounds the child relative to the parent, not the subtree
-relative to the principal. This section extends that paper on exactly that point.
+Operators need to look at the group, not just at each agent: how much data the agents send out, how many distinct destinations they contact, how much money they spend, and how many actions they take that change something outside themselves. The same group-wide view applies to how many agents are created, how many levels a delegation chain reaches, and how many other agents each agent delegates to. Both groups matter: all agents sharing a principal, and the agents within each delegation subtree rooted at that principal.
 
-**Worked example.** A principal holds a 100 MB/day egress budget and a 50-destination envelope. An
-orchestrating agent spawns twelve workers under the principal. Each worker's sandbox is capped at
-10 MB/day, and its network policy allows five destinations. Every worker stays inside both caps. At
-the end of the day 120 MB has left through up to sixty destinations. The principal's budget is
-exceeded by 20 % and its envelope by 20 %, and the audit trail shows twelve unremarkable sandboxes.
-Under subtree accounting the eleventh worker's first outbound request is evaluated against the
-principal's remaining budget, which is zero, and is refused or held. The refused attempt is the alert, and
-it carries the lineage that names the orchestrator.
+For a resource that adds up across agents, each agent can stay within its own allowance while the group uses more than the principal's budget. Per-container checks alone do not enforce a limit on the total.
+
+Consider a hypothetical coordinator that assigns work to twelve agents, each with a 10 MB/day egress limit. If each agent sends its full allowance to a different destination, the group sends 120 MB to twelve destinations without any agent exceeding its local limit.
+
+Delegation rules address a different part of the problem. The approved *Agentic Identity and Access Management* paper [9] says scope "SHOULD narrow at each hop and MUST NOT expand beyond the delegating principal's effective permissions." It also identifies agent collusion and proxy chaining: agents can pass data or proxy calls so that, together, they perform an action neither could perform alone.
+
+The per-hop scope rule does not by itself set a shared budget. It limits what authority a child agent receives from its parent agent, not how much the group may consume in total. This section adds accounting across the group to the IAM paper's delegation controls.
+
+**Worked example.** A principal has a 100 MB/day egress budget and a limit of 50 distinct destinations. An orchestrating agent creates twelve worker agents under that principal. Each worker's sandbox allows 10 MB/day, and its network policy permits five destinations. For this example, the workers' destination lists do not overlap, and each worker has enough work to send its full 10 MB across all five destinations.
+
+With only per-worker limits, all twelve workers can complete that work. Together, they send 120 MB to 60 distinct destinations: 20% above both of the principal's limits. Each worker stays within its own limits, so none of the local checks detects the group-wide excess.
+
+With accounting across the shared principal and its delegation subtree, the outcome is different. Suppose the first ten workers have each sent their full 10 MB across their five destinations. The group has now used the full 100 MB budget and contacted 50 distinct destinations. The eleventh worker's first outbound request, which would send more data to another destination, is refused or held before that consumption occurs. The attempted consumption is the alert; its record includes the delegation chain identifying the orchestrating agent.
 
 ### 4.2 The closing control: aggregate accounting at the consuming action
 
-The control that closes the gap is **aggregate accounting keyed on the shared principal and its
-delegation subtree, evaluated at the consuming action** — the point at which a unit of the
-quantity is about to be spent — over an enumerated set of quantities. The list SHOULD be explicit
-and small, because each quantity needs its own counter and its own budget:
+To close this gap, use **aggregate accounting** across the agents sharing a principal and across its delegation subtree. Check the relevant group-wide limit at the **consuming action**: the point just before an agent uses a resource or takes an action that counts against that limit.
 
-- egress volume (bytes), per principal and per subtree;
-- distinct external destinations;
-- spend (currency, tokens, compute) against the principal's budget;
-- rate of side-effecting actions (writes, sends, executions);
-- spawn count, subtree depth and fan-out.
+Name the measures being tracked. The list SHOULD be explicit and small, because each measure needs its own counter and budget:
 
-The decision at the consuming action is *allow only if the aggregate after this action remains
-within the principal's budget*. Two properties make it a control rather than a report:
+- data sent out (bytes), per principal and per delegation subtree;
+- number of distinct external destinations contacted;
+- spend against the principal's budget (currency, tokens or compute);
+- rate of actions that change something outside the agent, such as writes, sends or executions;
+- number of agents created, delegation depth (how many levels a delegation chain reaches), and fan-out (how many other agents each agent delegates to).
 
-- **Consume atomically.** A check that reads the aggregate and then commits the action separately
-  is a race: N concurrent consumers each observe headroom and all proceed. Conformant
-  implementations MUST consume by compare-and-consume (reserve, then commit or release) or serialise
-  consumption per principal. A reservation is released only when it is known that the action did
-  not happen. A reservation whose outcome is unknown, because the consumer timed out or failed between
-  reserve and commit or the downstream did not answer, MUST remain charged until non-consumption
-  is established authoritatively, or reconciled idempotently against the downstream's own record.
-  Expiry alone MUST NOT refund it: an action that did occur and a reservation that merely lapsed
-  are otherwise indistinguishable, and the budget could be spent repeatedly by letting
-  reservations lapse.
-- **Deny above the sum, not just above the slice.** A per-agent slice of the budget (budget/N) is
-  a local invariant in disguise; it fails the same way when N changes. The authority MUST be
-  consulted for the subtree aggregate. A local slice is acceptable only as a **lease**: a quantity
-  the authority has already consumed atomically on the agent's behalf, which the agent may then
-  spend locally down to zero. A slice that is merely cached is not a lease and authorises nothing.
+At the consuming action, allow the action only if the shared total, including this action, stays within the principal's budget. Two properties make this an enforcement control rather than a report:
+
+**Consume atomically.** Checking the remaining budget and reserving it in separate steps creates a race. Several agents can each see enough budget, then all proceed and exceed it together.
+
+The implementation MUST use compare-and-consume (reserve the budget atomically, then commit or release the reservation) or serialise consumption per principal. Serialisation means processing consumption for that principal one at a time.
+
+Release a reservation only when the action is known not to have happened. Its outcome may be unknown if the consumer times out, fails between reserve and commit, or receives no answer from the downstream service. A reservation with an unknown outcome MUST remain charged until non-consumption is established authoritatively, or it is reconciled idempotently against the downstream service's own record. Here, idempotently means that repeating the reconciliation does not charge or refund the same consumption twice.
+
+Expiry alone MUST NOT refund an unknown-outcome reservation. An expired reservation does not tell us whether the action happened. Refunding it on expiry could let the same budget be spent repeatedly.
+
+**Enforce the shared limit, not just each agent's allowance.** Dividing a budget among N agents gives each agent a local limit of budget/N. Those local limits do not by themselves preserve the shared budget when the number of agents changes. The accounting authority MUST be consulted for the delegation subtree's aggregate consumption.
+
+A local allowance is acceptable only as a **lease**: an amount the accounting authority has already charged atomically against the shared budget on the agent's behalf. The agent may then spend that allowance locally until it reaches zero. A locally cached allowance that has not already been charged this way is not a lease and does not authorise consumption.
 
 **Requirements.**
 
-- **R4.1** Where the deploying organisation controls the principal's authority, a conformant model
-  MUST account, at minimum, egress bytes, distinct egress destinations, spend, and agents spawned,
-  across the set of agents sharing that principal and across each delegation subtree, evaluated
-  at the consuming action. Further quantities that sum across agents, such as tool invocations,
-  tokens consumed, or records read from a shared store, SHOULD be accounted the same way; which of
-  them matter is a property of the deployment; the minimum above is not.
-- **R4.2** Per-container and per-edge limits MUST be documented as local invariants. A containment
-  claim MUST NOT rest on them alone for any quantity that sums across agents.
-- **R4.3** Consumption MUST be atomic (compare-and-consume or per-principal serialisation). A
-  reservation MUST be released only when the action is known not to have happened; a reservation
-  with an unknown outcome MUST remain charged until it is reconciled authoritatively.
-- **R4.4** Where the organisation does not control the principal's authority (the procured and
-  integrated agents of §1.1), R4.1 to R4.3 are procurement requirements on the provider, and MUST be
-  written as such.
+**R4.1** Where the deploying organisation controls the principal's authority, the deployment MUST account for at least the following, across all agents sharing that principal and across each delegation subtree, at the consuming action:
+
+- data sent out, measured in bytes;
+- number of distinct outbound destinations;
+- spend;
+- number of agents created.
+
+Other measures that add up across agents, such as tool invocations, tokens consumed or records read from a shared store, SHOULD be accounted for in the same way. Beyond these four required measures, the additional measures to account for depend on your deployment's needs.
+
+**R4.2** Per-container and per-edge limits MUST be documented as local invariants. A containment claim for any measure that adds up across agents, such as total bytes sent or money spent, MUST NOT rely on those local limits alone.
+
+**R4.3** Consumption MUST be atomic, using compare-and-consume or per-principal serialisation. A reservation MUST be released only when the action is known not to have happened. Failure to complete successfully is not enough. A reservation with an unknown outcome MUST remain charged until it is reconciled authoritatively.
+
+**R4.4** Where the organisation does not control the principal's authority, R4.1–R4.3 are procurement requirements on the provider and MUST be written that way (see the procured and integrated agents in §1.1).
 
 ### 4.3 The hard sub-problem: the accounting authority
 
-R4.1 presupposes something the per-container model never needed: a **shared accounting authority**
-that every consuming action in the subtree consults. Naming it is the honest part of this section,
-because it carries three problems a per-container design does not.
+R4.1 relies on a **shared accounting authority** for the principal and its delegation subtrees. Every consuming action is checked before consumption: either directly against the shared budget, or locally against a lease the authority has already charged atomically under §4.2.
 
-- **Consistency.** The aggregate is a read-modify-write per principal. Anything weaker than
-  serialised or compare-and-swap consumption re-opens the race in 4.2 as a window whose width is
-  the replication delay. Eventual consistency is acceptable for the *report*; it is not acceptable
-  for the *decision*.
-- **Latency budget.** The check sits on the hot path of every side-effecting action. The
-  implementation MUST bound it, and MUST define what happens when the bound is exceeded: the action
-  is refused or held for confirmation, never allowed. Continuous accounting without a fail-safe
-  default is allow-on-error (Saltzer and Schroeder, fail-safe defaults). A local cache MAY serve
-  reads for reporting; it MUST NOT authorise any consumption, however small. N stale caches each
-  authorising a small action is the race of 4.2 again. The only local authorisation is against a
-  lease the authority has already consumed atomically (4.2).
-- **Trust status.** The authority is a reference monitor in the §5 sense: it MUST be outside the
-  reach of the agents it accounts for, MUST be invoked for every consuming action of an enumerated
-  quantity (complete mediation, §3), and its decisions MUST be verifiable after the fact. In the
-  procured case the provider operates it, and the deploying organisation's assurance is whatever
-  the provider's evidence supports. That is why R4.4 is procurement.
+For the measures and budgets already covered by that lease, local spending does not require a new call to the shared accounting authority. All other applicable accounting and authorization checks still apply. This shared accounting system introduces three challenges.
 
-**Evidence.** Aggregate accounting is both the preventive control and the detection signal. When
-the control holds, the aggregate never crosses its threshold, so the alert is the *attempt*: a
-consumption refused or held because it would have crossed. The attempt MUST be recorded and raised
-with the same lineage as a successful consumption. An aggregate found above its threshold after
-the fact is a different alert: it means the control failed. Both depend on the record carrying
-the join key.
-Every consuming-action record MUST carry the principal and the **full** delegation lineage, not only
-the immediate parent, integrity-protected, so that the subtree aggregate can be reconstructed by
-someone who was not there (§7; this is the "accounting decision" row of the evidence contract,
-which has no OCSF home today).
+**Consistency.** Updating a principal's shared total involves reading the current total, changing it and saving the result. Consumption needs to be serialised or use compare-and-swap: an update succeeds only if the stored value still matches the value that was read. Otherwise, the race described in §4.2 reopens for a window as wide as the replication delay. Eventual consistency, where copies of the total catch up later, is acceptable for reporting. It is not acceptable for deciding whether to allow consumption.
+
+**Latency budget.** Each side-effecting action depends on the accounting check. The implementation MUST set a time limit for that check and MUST define what happens if the limit is exceeded: the action is refused or held for confirmation, never allowed. Letting a delay or failure become permission to proceed would be allow-on-error, not a fail-safe default (Saltzer and Schroeder).
+
+A local cache MAY serve reads for reporting; it MUST NOT authorise consumption from a cached view of the shared budget, however small the amount.
+
+A lease is different: the authority has already charged its allocation atomically. Local spending is permitted only within that lease's scope and remaining allowance, enforced at the consuming action.
+
+The latency bound and refuse-or-hold default apply to the accounting check used for that action, whether direct or local. An unavailable shared service supplies no new allowance. Locally covered consumption may proceed only if the protected local check and every other applicable check can complete within their bounds.
+
+**Trust status.** The shared accounting authority and any local enforcement point for its leases act as reference monitors in the §5 sense. Both MUST be outside the reach of the agents they account for, and their decisions MUST be verifiable after the fact.
+
+Every consuming action of an enumerated measure MUST pass an accounting enforcement point before consumption: either the shared authority directly or a local enforcement point spending an already-charged lease. The local point must enforce the remaining lease allowance atomically, so concurrent consumers or copied or replayed lease state cannot create extra allowance.
+
+A lease covers only its specified principal, applicable delegation subtrees, measures, budgets and accounting interval; each other applicable limit still needs its own accounting check. This does not replace the independently enforced action authorization required by §3.
+
+Where the provider operates these controls, the deploying organisation's assurance is limited to what the provider's evidence supports. That is why R4.4 is procurement.
+
+**Evidence.** Aggregate accounting both prevents over-budget consumption and provides a detection signal. When the control holds, consumption stays within the applicable limit. The alert is the attempt to exceed it: an action refused or held because it would cross that limit. The attempt MUST be recorded and raised as an alert with the same delegation lineage as a successful consumption.
+
+Finding an aggregate above its limit after the fact is a different alert: it means the control failed. Both alerts depend on shared identifiers that let the records be linked across agents.
+
+Every consuming-action record MUST carry the principal and the full delegation lineage, not just the immediate parent, with that information integrity-protected. This lets a reviewer who was not present reconstruct the subtree aggregate (§7.1, the accounting decision row of the evidence contract).
+
+For lease-based consumption, link each consuming-action accounting record to the authority's lease-allocation decision and record the local consumption and remaining allowance. Preserve the principal, full delegation lineage, applicable budget, decision and reason, action and reservation references, and integrity protection required by §7.1.
+
+Keep allocation-time shared totals separate from lease-local values, with each value's scope and accounting point identified; do not present an allocation-time or eventually reconciled total as the current shared total for a later spend. A spend within an already-charged lease is not a second charge against the shared budget.
+
+An unknown local outcome remains charged against the local allowance as well as the shared allocation until authoritative non-consumption or idempotent reconciliation against the downstream record resolves it. Timeout, process failure or expiry alone does not restore spendable allowance.
+
+The lease's protected enforcement state is the bounded allocation; its allocation record is evidence, not a replayable credential that bypasses an accounting or final-effect authorization check.
 
 ### 4.4 Prior art: colluding applications
 
-The problem is older than agents. The Android permission literature of 2011–2012 treated
-**colluding applications** — two apps whose individual permission sets are benign and whose
-combination exceeds the user's intent, via an inter-app channel — as an inter-application
-information-flow problem to be policed over the *combination*, not per grant. That literature
-also treated permission re-delegation, one application exercising authority on another's behalf,
-as the same class of problem: §3.1's confused deputy under an earlier name. The
-mapping onto agents is direct:
+Android security research provides an earlier example of why components need to be assessed together. In 2011, Felt et al. studied **permission re-delegation**: an application uses its permission to perform a privileged task for another application that lacks that permission. They identify this as a special case of the confused-deputy problem [21].
 
-| Android | Agent containment |
+In 2012, Bugiel et al. distinguished confused-deputy attacks from **collusion**, where malicious applications combine their permissions to gain a capability the user had not approved for them together. Their framework applies system-wide policies to communication paths between applications, including indirect paths, rather than relying only on each application's permissions in isolation [22].
+
+These studies provide a precedent for examining how authority combines across components. They do not by themselves establish the shared-budget controls described in §4.2. The following comparison is an analogy, not a direct equivalence between Android permissions and agent budgets:
+
+| Android research | Useful analogy for agents |
 |---|---|
-| an application's permission set | an agent's attenuated scope and sandbox caps |
-| the user's intent | the principal's authority and budgets |
-| an inter-app channel | a delegation edge or a shared principal |
-| system-wide policy over the transitive closure | subtree accounting at the accounting authority |
+| Permission sets held by applications | The permissions granted to each agent. |
+| An unapproved capability enabled by combining permissions | Check what collaborating agents can cause together. |
+| Direct and indirect communication paths between applications | Follow requests through agents and services, not just one hop. |
+| System-centric policies on paths and permission combinations | Enforce rules on the combined authority reachable through those interactions. |
 
-The lesson carried over is the same one the review arrived at independently: a per-grant model
-cannot express the constraint, because the constraint is over a set.
+The shared lesson is to check what components can do together, not just the permissions held by each one. The Android work provides that precedent; the principal-wide and subtree budget controls in §4.2 are a separate mechanism. Checks on communication paths or permission combinations do not, by themselves, enforce those budgets.
 
 ---
 
@@ -652,6 +638,12 @@ Where the accounting authority is also the enforcement point for an action, its
 accounting decision is that enforcement decision: one record can satisfy both
 rows. Where the authorities or decisions differ, preserve each decision and its
 relationship to the same action.
+
+Where consumption is covered by an already-charged lease, the accounting evidence may be a linked set: the authority's allocation decision records the applicable principal/subtree budgets and aggregate consumed and remaining at allocation; each consuming-action record identifies that allocation and records the local decision, amount consumed and allowance remaining.
+
+Identify the scope and accounting point of each value. Preserve decision reasons, action/reservation references, full integrity-protected lineage, outcomes, refused or held attempts, and all other applicable evidence fields. Do not claim that allocation-time or eventually reconciled totals are contemporaneous shared totals for each local action.
+
+Where a claimed current total or complete reconstruction is not established, state that limitation rather than substituting an old total or treating missing evidence as proof of enforcement.
 
 **Identity provenance and verification.** Each identity carries one of the closed provenance values
 `connection-credential`, `signed-request-claim`, `unsigned-request-claim`, or `absent`. The last means
@@ -960,6 +952,8 @@ An agent with bounded authority in the way a corporate laptop has it is not an a
 18. Anthropic. *Improving our alignment and security efforts*, 2026-08-31. https://www.anthropic.com/news/improving-alignment-security-efforts
 19. ABC News. *AI assistant hacks gym website in first known Australian autonomous cyber attack*, August 2026. https://www.abc.net.au/news/2026-08-10/ai-assistant-hacks-gym-website-aus-cyber-attack/107007986
 20. CoSAI. *Tool Design for Secure Agentic Systems*. https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/blob/main/practical-guides/mcp-secure-tool-design.md
+21. Adrienne Porter Felt, Helen J. Wang, Alexander Moshchuk, Steven Hanna, Erika Chin. *Permission Re-Delegation: Attacks and Defenses*. 20th USENIX Security Symposium, 2011. https://www.usenix.org/legacy/event/sec11/tech/full_papers/Felt.pdf
+22. Sven Bugiel, Lucas Davi, Alexandra Dmitrienko, Thomas Fischer, Ahmad-Reza Sadeghi, Bhargava Shastry. *Towards Taming Privilege-Escalation Attacks on Android*. NDSS Symposium, 2012. https://www.ndss-symposium.org/wp-content/uploads/2017/09/07_3.pdf
 
 ---
 
