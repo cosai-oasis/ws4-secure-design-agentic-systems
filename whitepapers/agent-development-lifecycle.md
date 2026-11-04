@@ -99,7 +99,7 @@ This paper is for:
 
 ## 1. Why agent development needs its own lifecycle
 
-Secure software development frameworks barely mention agents. Agents are new, and most frameworks were written before them. We began this work with real failures and built the lifecycle phases around them. Below are the assumptions from classic secure development that do not hold for agents.
+Agents need the same secure development practices as other software, plus checks for behavior that can change after deployment. Their permissions, tools, memory, and external data can affect what they do at runtime. Most secure development frameworks were not written with agents in mind, so we began this work with real failures and built the lifecycle phases around them. Below are the assumptions from classic secure development that do not hold for agents.
 
 ### 1.1 Five assumptions secure development rests on
 
@@ -117,11 +117,11 @@ An agent's behavior is set at runtime. It can differ from one run to the next, e
 
 The same artifact, deployed unchanged, can behave differently this week than last week. The content it retrieves may have changed, or the provider may have updated the model behind an API. Assurance you gain at build time does not carry over to runtime.
 
-**Consequence.** You must establish assurance at admission and maintain it continuously during operation. You cannot settle it once at build.
+**Consequence.** Security assurance, the ongoing verification that an agent still meets its security requirements, must extend beyond build and deployment into runtime, where the agent makes decisions, calls tools, and interacts with others. Enforceable security controls must govern, monitor, and constrain those activities continuously, starting at admission.
 
 #### 1.1.2 The reviewable artifact is the code
 
-Code review, static analysis, and dependency scanning assume two things: that security decisions are written in code, and that tools can read that code.
+Traditional security testing methods, such as code review, static analysis, and dependency scanning, focus mainly on the software artifacts where security decisions are implemented.
 
 For an agent, most security decisions are written in prose and configuration:
 
@@ -131,21 +131,21 @@ For an agent, most security decisions are written in prose and configuration:
 - the trust assigned to each retrieval source, and
 - the conditions under which a human must approve an action.
 
-Together these are the agent's real policy surface. Tools built for code cannot see it. A change to an instruction can greatly widen an agent's authority and still pass every gate that the same change in code would have failed.
+Together these are the agent's real policy surface. Tools built for code cannot see it. A change to an instruction can greatly widen an agent's authority and still pass every gate that the same change in code would have failed. Reviewing each part on its own is also not enough: the agent's behavior emerges from how the parts combine at runtime.
 
 **Consequence.** The policy surface needs its own authoring, review, versioning, and rollback discipline, equal to that for code.
 
 #### 1.1.3 Identity is a service account
 
-A conventional workload signs in as itself and acts for a caller whose identity travels with the request. Authorization is a question about the caller, and the resource answers it.
+In traditional software, applications and services are commonly authenticated and managed through service identities or service accounts. These service identities may be shared across workloads.
 
-Agents act with delegated authority along chains. A person delegates to an agent. That agent delegates to a sub-agent. The sub-agent calls a tool, and the tool applies its own authorization rules to whatever identity reached it. Authority builds up and blurs as it travels. Unless the lifecycle deliberately records the answer, no one can reliably say *who authorized this action, under what constraint, and against whose entitlement*.
+Agentic systems introduce a harder problem, because authority (identity and authorization) can be delegated across agents and tools at runtime. For example, a person delegates to an agent. That agent delegates to a sub-agent, and the sub-agent calls a tool against a resource. At each handoff, the system must be able to determine who is acting, on whose behalf, and with what delegated authority. A shared service account cannot reliably preserve this context across the delegation chain. To address this, agentic systems need first-class non-human identities [^22], explicit delegation [^23] and authorization boundaries, lifecycle management, and action-level traceability.
 
 **Consequence.** Establishing an agent's identity, binding it to constraints, and making it verifiable at each hop is a gated lifecycle event. It is not a deployment detail.
 
 #### 1.1.4 Testing approximates production behavior
 
-For conventional software, a passing test suite tells you about production. The system is predictable enough for that to hold: the same input takes the same path and gives the same result.
+Traditional software testing relies on the idea that the implementation stays steady under specified conditions, and that observed behavior gives enough insight into how the system will perform in production under similar circumstances. The same input takes the same path and gives the same result.
 
 An agent is not predictable in this way, and it reads untrusted input. For an agent, a passing test shows only that it behaved acceptably on the inputs you sampled. That shows a specific failure did not happen. It does not prove the system has a property. Attackers deliberately use inputs your test suite does not sample. And because the agent varies, the same input may not even follow the path you tested.
 
@@ -178,6 +178,8 @@ Each existing framework is sound on its own. Together they still leave a gap. Th
 | OWASP SAMM [^3] | A maturity model for assurance activities across an organization | Focused on the organization; offers no agent-specific assurance activities to mature |
 | OWASP LLM Top 10 and Agentic Security Initiative [^4] | Concrete agent failure modes, including prompt injection and excessive agency | A list of risks, not a lifecycle. Says what goes wrong, not which gate prevents it |
 | CIS AI Agent Companion Guide [^5] | Breaks an agent into architectural layers and maps controls to them | Describes structure, not time. Answers *what are the parts*, not *when is each obligation met* |
+| NIST SP 800-207A [^22] | Zero trust access control for cloud-native applications: unique, cryptographically verifiable identities for services and non-human workloads, such as SPIFFE IDs or JWTs, instead of network location | Takes the workload as subject. Gives an agent an identity, but not the delegation chain it acts through or the lifecycle of its grants |
+| IETF RFC 8693, OAuth 2.0 Token Exchange [^23] | A standard way to exchange tokens across a delegation, recording both the subject and the actor acting for it | A protocol rather than a lifecycle. Can carry delegated authority across hops, but not when an agent's grants are approved, reviewed, or retired |
 | ISO/IEC 42001 [^6] | Management system requirements for AI across an organization | Works at the governance level; does not reach engineering-phase gates |
 | Vendor AI-native development playbooks [^7] | The most practical material available: policy written as version-controlled configuration, an agent identity separate from the engineer who started it, and tiered autonomy with explicit human approval at the production gate | Treat the agent as a tool, not as the thing being shipped. No provenance or trust-tier gate on the models and tools the agent uses, and no coverage of retirement |
 
@@ -372,7 +374,9 @@ Admission checks that this approval came first.
 
 *Repairs assumptions 1 and 2.*
 
-Establish provenance and trust for every external component the agent uses:
+Supply chain is not usually treated as a lifecycle phase. We include it because it matters so much to a secure development lifecycle: supply chain attacks remain a primary attack surface for traditional, AI, and agentic development alike [^21].
+
+In this phase, establish provenance and trust for every external component the agent uses, including:
 
 - models
 - tools
@@ -383,13 +387,15 @@ Establish provenance and trust for every external component the agent uses:
 
 Most of these components can carry or produce content the agent might treat as instructions. Examples are tool descriptions, retrieved content, and output from other agents. So for such a component, it is not enough to ask whether it is authentic. You must also decide how much its content may influence the agent's behavior.
 
-You MUST inventory every such component with at least its accountable owner, its source, and its version identity. Record whether each version is pinned or floating. (A floating component can change under you, for example a model behind a provider-managed alias or a generic API endpoint.) For any floating component, record who controls changes to it and how much notice the supplier commits to give before a change. That notice matters, because it triggers re-baselining in [the maintenance phase](#37-maintenance).
+You MUST inventory every such external component with at least its accountable owner, its source, and its version identity. Record whether each version is pinned or floating. (A floating component can change under you, for example a model behind a provider-managed alias or a generic API endpoint.) For any floating component, record who controls changes to it and how much notice the supplier commits to give before a change. That notice matters, because it triggers re-baselining in [the maintenance phase](#37-maintenance).
 
-Verify each component's origin and integrity as far as its supplier makes possible, and record the evidence. If you cannot inspect a component, get and record the supplier's evidence and [platform verification](#23-the-agent-instance-is-the-unit-of-scope). Record this gap in the exit gate documentation.
+Specifically:
 
-Assign each component a **trust tier**. A named owner assigns the tier, and the tier states how much authority the component's content may influence. If you could not verify a component's provenance, its tier must reflect that. Re-evaluate tiers when the supplier, the version, or the evidence changes.
+- Verify each component's origin and integrity as far as its supplier makes possible, and record the evidence. If you cannot inspect a component, get and record the supplier's evidence and [platform verification](#23-the-agent-instance-is-the-unit-of-scope). Record this gap in the exit gate documentation.
 
-Test how each component behaves in your specific use, and record the results. They become evidence for the behavioral baseline you record at [admission](#34-admission-and-deployment). This matters because whether a component is suitable depends on your use case. It is not a general property of the component.
+- Assign each component a **trust tier**. A named owner assigns the tier, and the tier states how much authority the component's content may influence. If you could not verify a component's provenance, its tier must reflect that. Re-evaluate tiers when the supplier, the version, or the evidence changes.
+
+- Test how each component behaves in your specific use, and record the results. They become evidence for the behavioral baseline you record at [admission](#34-admission-and-deployment). This matters because whether a component is suitable depends on your use case. It is not a general property of the component.
 
 If an agent can acquire tools or other components at runtime, the design must either forbid that or apply this same process at the moment the agent acquires them.
 
@@ -420,7 +426,9 @@ For each limit on the agent's authority, record whether a control outside the mo
 
 Add the instrumentation that [decommissioning](#38-decommissioning) will later need to list everything the agent created. Emit a signal whenever the agent creates a resource, such as a webhook, a subscription, a sub-agent, or a durable memory write.
 
-Each of these parts must be versioned, reviewed by someone other than its author, and revertible separately from the code around it.
+Each of these parts, not just the code, MUST be versioned, ideally in an auditable version control system, and revertible separately from the code around it. Changes SHOULD be reviewed by someone other than their author. Each organization sets how much review a change needs, based on its maturity and risk tolerance. For example, it decides whether a change that widens the agent's authority needs a dedicated security review.
+
+The reviewed policy surface, handling logic, and instrumentation MUST carry a single version identity that can be verified at [admission](#34-admission-and-deployment). Development and test environments MUST use non-production data and credentials. The policy surface MUST NOT embed credentials.
 
 **Gate.** The policy surface is under change control equal to code. A reviewer can read it and answer what authority the agent holds, and why. Each reviewed revision can be identified at [admission](#34-admission-and-deployment).
 
@@ -678,6 +686,9 @@ If you disagree with a phase, challenge the assumption it comes from. This struc
 [^18]: CoSAI WS4. *Agent Containment: From Sandboxing to Bounded Authority.* Working draft, tracks issue #172. https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/172
 [^19]: CoSAI. *Control: Fail-Closed Agent Authorization.* Proposed Risk Map control, secure-ai-tooling issue #603, 19 October 2026. https://github.com/cosai-oasis/secure-ai-tooling/issues/603
 [^20]: CoSAI WS4. *ODIS: Open Delegation and Identity Standard*, contributor draft, section 3, the three layers. https://github.com/cosai-oasis/ws4-odis/blob/main/RFCs/ODIS.md#3-architectural-model--the-three-layers
+[^21]: Dan Lisichkin. *My Agentic Trust Issues: From Prompt Injection to Supply-Chain Compromise on gemini-cli*, 5 May 2026. https://www.pillar.security/blog/my-agentic-trust-issues-from-prompt-injection-to-supply-chain-compromise-on-gemini-cli
+[^22]: NIST. *A Zero Trust Architecture Model for Access Control in Cloud-Native Applications in Multi-Cloud Environments, SP 800-207A.* https://csrc.nist.gov/pubs/sp/800/207/a/final
+[^23]: IETF. *OAuth 2.0 Token Exchange, RFC 8693.* https://www.rfc-editor.org/info/rfc8693/
 
 ---
 
@@ -725,7 +736,7 @@ Participants in the lifecycle work from which this paper is drawn, listed alphab
 - Victor Lu
 - Mike McPhee
 - Alan Messer
-- Nicolai Nielsen
+- Nicolai Nielsen, Thomson Reuters
 - Karttik Panda
 - Swapnil Pawar, Apex Fintech Solutions
 - David Pierce
