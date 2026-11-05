@@ -155,7 +155,35 @@ flowchart TD
 
 To see the tuple in action before the detailed definitions, consider the Trail of Bits disclosure against Google Gemini CLI (Morozova & Hussain, 2025). A developer uses Gemini CLI with a Zapier MCP server configured with `trust=True` (tool calls execute automatically). The model can read the developer's Google Calendar, and the CLI downscales every uploaded image before the model sees it.
 
-An attacker publishes an image that looks ordinary at full resolution. Specific pixels are arranged so that after the CLI's aliasing downscaler shrinks the image, legible text appears — instructions to read the calendar and send it to an external address. The developer views the image, sees nothing suspicious, uploads it, and the model exfiltrates their calendar. Three things went wrong:
+An attacker publishes an image that looks ordinary at full resolution. Specific pixels are arranged so that after the CLI's aliasing downscaler shrinks the image, legible text appears — instructions to read the calendar and send it to an external address. The developer views the image, sees nothing suspicious, uploads it, and the model exfiltrates their calendar. Three things went wrong (**Figure 1c**):
+
+```mermaid
+flowchart LR
+    IMG["📷 Uploaded Image<br/><i>looks benign at full res</i>"]:::src
+    DEV["👤 Developer<br/><i>views full-res image</i>"]:::guard
+    DSC["🔻 Aliasing Downscaler<br/><i>hidden text appears</i>"]:::xform
+    LLM["🤖 CLI Model<br/><i>reads injected prompt</i>"]:::follower
+    CAL[("📅 Google Calendar<br/><i>(secret)</i>")]:::store
+    MCP["⚡ Zapier MCP<br/><i>trust=True, no confirmation</i>"]:::executor
+    EXT["🌐 External Host<br/><i>(attacker-controlled)</i>"]:::receiver
+
+    IMG -- "ordinary-looking image" --> DEV
+    DEV -- "approved upload" --> DSC
+    DSC -- "① Meaning × Artifact State<br/>Steganographic → Overt Semantic" --> LLM
+    CAL -- "secret calendar data" --> LLM
+    LLM -- "② Authority × Position<br/>tool call (auto-approved)" --> MCP
+    MCP -- "③ Confidentiality × Position<br/>calendar entries exfiltrated" --> EXT
+
+    classDef src fill:#fee2e2,stroke:#dc2626,stroke-width:1.5px,color:#7f1d1d
+    classDef guard fill:#e5e7eb,stroke:#6b7280,stroke-width:1.5px,color:#1f2937
+    classDef xform fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#1e3a5f
+    classDef follower fill:#fef3c7,stroke:#d97706,stroke-width:1.5px,color:#78350f
+    classDef executor fill:#ede9fe,stroke:#7c3aed,stroke-width:1.5px,color:#3b0764
+    classDef store fill:#f3e8ff,stroke:#7c3aed,stroke-width:1.5px,color:#3b0764
+    classDef receiver fill:#fee2e2,stroke:#dc2626,stroke-width:2px,color:#7f1d1d
+```
+
+*Figure 1c. Trail of Bits / Gemini CLI attack chain. The three numbered edges correspond to the three mechanism tuples in the table below: ① the downscaler reveals hidden instructions, ② the model drives an auto-approved tool call, and ③ calendar data reaches an attacker-controlled host. Section 4 derives the same three records systematically from an annotated DFD.*
 
 | Step | What Happened | Mechanism Tuple | Matrix Cell | Fix |
 | :---- | :---- | :---- | :---- | :---- |
