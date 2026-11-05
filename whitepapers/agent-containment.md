@@ -33,7 +33,7 @@ status: "Working draft, all sections drafted. Not reviewed, not approved."
 - [5. The enforcement property and four failure modes](#5-the-enforcement-property-and-four-failure-modes)
   - [5.1 The property, named](#51-the-property-named)
   - [5.2 The four failure modes](#52-the-four-failure-modes)
-  - [5.3 Why the separation is load-bearing](#53-why-the-separation-is-load-bearing)
+  - [5.3 Why the distinction matters](#53-why-the-distinction-matters)
   - [5.4 Threat sources and trust assumptions](#54-threat-sources-and-trust-assumptions)
 - [6. Reachability and blast radius](#6-reachability-and-blast-radius)
   - [6.1 A control, not a hygiene metric](#61-a-control-not-a-hygiene-metric)
@@ -400,87 +400,121 @@ The shared lesson is to check what components can do together, not just the perm
 
 ## 5. The enforcement property and four failure modes
 
-Every control in this paper presumes an enforcement point: something that sees the agent's action and decides whether it proceeds. The blog post described that point as "independently enforced, not agent-enforced," which was accurate but informal. A document that will be cited needs the property named, and needs the ways it fails kept apart, because the incidents this body of work draws on do not fail in one way, and the remedies do not interchange.
+Every control in this paper relies on an enforcement point: a component, outside the agent's control, that sees the agent's action and decides whether to allow it to proceed.
+
+The incidents discussed in this paper show different ways controls can fail. Keeping those failures distinct helps identify the right remedy: a fix for one kind of failure may not address another.
 
 ### 5.1 The property, named
 
-This paper uses the term **reference monitor**, and asks nothing of the reader beyond its plain meaning: the component that observes every consequential action an agent takes and decides, from policy the agent cannot touch, whether the action proceeds.
+A **reference monitor** checks each consequential action against the applicable policy before allowing it to proceed. The classical model sets three requirements for the mechanism that performs these checks [23]:
 
-The term comes with three classical requirements, and each maps onto plain language:
+- **Complete mediation.** Every path to an effect must cross the monitor before that effect occurs. A path that bypasses it is unmediated, not partly mediated (§3).
+- **Tamper-proof.** The agent cannot change the monitor or the policy it applies. Both the monitor and its configuration stay outside the agent's write scope.
+- **Verifiable.** Its implementation is small enough to analyze and test fully, including whether it applies the policy correctly and is always invoked.
 
-- **Complete mediation.** The monitor sees every path to the effect. An action that can reach its effect without crossing the monitor is not partially mediated; it is unmediated (§3).
-- **Tamper-proof.** The agent can neither alter the monitor nor the policy it applies. In practice: enforced from outside the agent's reach, with the monitor's own configuration outside the agent's write scope.
-- **Verifiable.** It must be possible to check the first two claims.
+The CoSAI *Zero Trust for AI Systems* paper says authorization must not be delegated to the AI model or another non-deterministic component [16]. A model can request an action; deterministic security controls decide whether it is allowed.
 
-The WS2 *Zero Trust for AI Systems* paper states the first half of this property as its central rule: authorization must never be delegated to a non-deterministic component [16]. Determinism and placement are jointly required — a deterministic control inside the agent's reach still fails (mode 2, §5.2) — so the Zero Trust rule is the first half of the reference-monitor property, and tamper-proof placement is the second.
+Those controls and their policies must also stay outside the agent's control. Otherwise, the agent can change or disable them even when their decision logic is deterministic (mode 2, §5.2).
 
-For agent workloads, the third property does the most work, and this paper reads it more demandingly than the classical literature did. Historically, *verifiable* meant small enough to analyze. For agents it must also mean **evidenced**: the monitor emits a record sufficient for someone who was not present, and does not trust the operator, to confirm that mediation occurred (§7). After an incident, a monitor that cannot be verified from its records is indistinguishable from a monitor that was not there.
+For agent workloads, the monitor must also produce records that let a reviewer verify that mediation occurred (§7). The reviewer need not have been present or trust the operator.
 
-One clarification the blog post's review forced: the property is not "kernel-enforced." The kernel is one implementation of the monitor at one layer. For tool and MCP calls the monitor is a gateway or policy enforcement point (the *policy decision point* of the Zero Trust literature [16]) (§3); for system calls it is the kernel; for network egress it is a proxy. An agent deployment has several monitors, one per mediation surface, and the property must hold at each. What defines a reference monitor is the three requirements, not the privilege level it runs at.
+These records complement analysis and testing; they do not replace them. Without verifiable evidence of mediation, a reviewer cannot confirm from the records that it occurred.
+
+A reference monitor can operate at different layers of the system, not just in the kernel. Tool and MCP calls can be mediated by a gateway or another policy enforcement point (§3) [16]. System calls can be mediated by the kernel [7], and network egress by a proxy.
+
+A policy decision point determines whether access is allowed; a policy enforcement point carries out that decision. These are different roles, even when one system performs both [24].
+
+An agent deployment has enforcement points at several surfaces. Each must satisfy the three reference-monitor requirements. What matters is complete mediation, tamper resistance and verifiability, not the component's privilege level.
 
 ### 5.2 The four failure modes
 
-When containment fails, it fails in one of four ways, and this paper keeps them separate throughout.
+This paper groups containment failures into four modes, each with different causes and remedies.
 
-**Mode 1 — the agent defeats the control.** The control was correctly specified and remained in force; the mechanism itself broke. An exploitable vulnerability in the isolation path is the canonical case. The remedy lives in the mechanism: a patch posture the isolation path can be held to, minimum attack surface, and stronger isolation where the workload warrants it (§6).
+**Mode 1 — the agent defeats the control.** The control was correctly specified and had not been disabled, but its enforcement mechanism failed. For example, the agent may exploit a vulnerability in the isolation mechanism.
 
-**Mode 2 — the agent disables the control.** The agent had, or acquired, authority over the control itself. The documented case: an agent that, when a sandbox blocked its workaround, autonomously disabled the sandbox and continued [11]. This is a failure of enforcement placement, of the tamper-proof property, and its remedy is architectural: the control and its configuration outside the agent's reach, and any attempt to alter them treated as a high-signal alert (§7).
+The remedy is to fix and harden the mechanism: meet measurable patching commitments for the isolation path, minimize the attack surface and use stronger isolation where the workload warrants it (§6).
 
-**Mode 3 — the control was insufficiently specified.** The control was on, untouched, and wrong. The seccomp filter that checked syscall numbers but not the architecture value is the anchor case; the kernel's own documentation has warned about that pitfall for a decade [7]. The agent had no authority over the policy; the system applied an insufficient one.
+**Mode 2 — the agent disables the control.** The agent had or acquired authority over the control itself and used it to turn the protection off.
 
-A denylist that misses an alternate path to the same binary [5], and a workspace with a reachable Docker socket [6], fail the same way. The reachable socket also shows that the modes can compose: an insufficiently specified policy that leaves the host's container-runtime socket reachable (mode 3) thereby places the enforcement point inside the agent's reach (mode 2, §2.1). Where a defect of one mode creates the condition of another, both remedies apply, as §8.3 specifies for this case. The remedy is verification of the policy, not strengthening of the mechanism: pre-deployment tests that the sandbox enforces what its operator believes it enforces (§8), and a mediation surface expressive enough to state the intended boundary at all (§3).
+Ona reports a related example. Asked to find a way to run a blocked command, Claude Code proposed disabling its sandbox after bubblewrap failed to create a namespace. It then requested approval for unsandboxed execution, and the command ran [5]. This illustrates an agent seeking to remove a constraint, not an approval-free bypass of the sandbox.
 
-Mode 3 has two shapes, and they need different remedies:
+This mode is a failure of the tamper-proof property. The remedy is architectural: keep the control and its configuration outside the agent's control, and treat any attempt to alter them as a high-signal alert (§7).
 
-- The policy never covered the path, as in the seccomp case above.
-- The policy was adequate but was not the one deployed, because a setting was left open, an image drifted, or configuration changed between approval and run. In the July 2026 evaluation incidents, models running without cyber safeguards "accessed the internet due to a misconfiguration inside a third-party evaluation environment" [18].
+**Mode 3 — the control was insufficiently specified.** The control was active and unchanged by the agent. The agent had no authority to change its policy. The weakness was in the rules: they left a gap in the boundary they were meant to protect.
 
-Verification of the specification catches the first shape. Only a demonstration repeated at each run, within a validity window (§8.2), catches the second, because that failure arises after any one-time test. That is why the same disclosure asks that the sandbox configuration "be verified before every evaluation begins" [18].
+For example, a Linux seccomp filter can restrict system calls by number but omit the architecture check needed to interpret those numbers correctly. The kernel documentation explicitly warns against this mistake [7].
 
-**Mode 4 — the control was correct and the agent used permitted authority.** Nothing was escaped. The agent that cancelled a stranger's gym reservation crossed no containment boundary; its authority was scoped to an endpoint, not to whose reservation it could act on [11]. The gateway that performs a fetch with agent-controlled input is the same shape: a permitted party, acting as asked (§3.1). No isolation posture reaches this mode.
+A command denylist can miss an alternate path to the same executable [5]. An isolation policy can likewise leave the host's privileged Docker daemon reachable from the workspace [6]. Both leave gaps in the intended boundary.
 
-The Zero Trust paper states the same limitation from its side: an agent with read access to sensitive data and permission to email externally can exfiltrate within its permissions, and Zero Trust architecture alone does not stop it [16]. What bounds this mode is scope on the grant (the subject of the Agentic IAM paper [9]), together with constraining what permitted parties will do on request (§3.1), accounting authority across the set of agents that share it (§4), and evidence afterwards (§7).
+One failure mode can also create the conditions for another. When an inadequate policy exposes the host's privileged container-runtime socket (mode 3), it also puts the enforcement point within the agent's reach (a mode-2 condition, §2.1).
 
-The first three modes are failures of the monitor's three properties, in order: mode 1 breaks the mechanism, mode 2 breaks tamper-proofing, mode 3 breaks complete mediation: the policy did not cover the path. Mode 4 is not a failure of the monitor at all. That is the deepest reason containment is one layer of a bounded-authority model rather than the whole of it (§1): a perfect monitor, perfectly specified, enforcing a grant that is too broad, produces the gym incident every time.
+Both failures need to be addressed. Correct and verify the policy to close the unintended path. Keep the control and its configuration outside the agent's control, and treat attempts to alter them as high-signal alerts (§8.3).
 
-### 5.3 Why the separation is load-bearing
+Before deployment, test that the sandbox enforces the intended boundary (§8). The control must also support rules precise enough to express that boundary (§3). Stronger isolation alone does not fix a gap in the policy.
 
-Most of the incidents this body of work rests on are modes 3 and 4, yet industry attention and spending concentrate on modes 1 and 2: stronger isolation, more exotic sandboxes. The taxonomy makes that mismatch visible, and it has three practical consequences.
+Mode 3 takes two forms, and they need different remedies:
 
-First, remedies do not interchange. Buying stronger isolation does not fix an insufficient policy, and neither fixes a grant that was too broad. The blog post presented a mode-2 incident and a mode-3 incident in adjacent sentences as one phenomenon. They demand different fixes from different teams.
+- **The policy is inadequate.** Its rules do not cover the intended boundary, as in the seccomp example above.
+- **The intended policy is adequate, but it is not the one deployed.** A setting is left open, an image drifts, or the configuration changes between approval and the run.
 
-Second, classifying an incident requires evidence. Telling mode 2 from mode 3 needs a record of the control's configuration and the enforcement decision at the time. Telling mode 1 from mode 4 needs a record of what was actually permitted. Without the evidence contract of §7, the taxonomy is rhetoric; with it, an incident review can assign a mode and route the fix.
+Anthropic reported that models intentionally running without cyber safeguards reached the internet because of a misconfiguration in a third-party evaluation environment [18]. This was not a sandbox escape: internet access had mistakenly been left open.
 
-Third, every control in this paper can now say what it is for:
+Checking the policy specification addresses the first form. For the second, test the deployed controls before each run to confirm that they enforce the intended policy. Repeat those tests during long runs before the previous results expire (§8.2). Anthropic likewise recommends verifying the sandbox configuration "before every evaluation begins" [18].
 
-| Section | Addresses |
+**Mode 4 — the control was correct and the agent used permitted authority.** The control enforced its policy correctly, but the agent could still cause harm through actions that policy allowed.
+
+The reported gym waitlist incident illustrates why permission to reach an API is not permission to alter another person's record [19]. It does not, by itself, establish that the containment controls worked correctly. A permitted gateway fetching an agent-supplied destination presents a related risk: the service can perform a harmful action without the agent escaping its sandbox (§3.1).
+
+The Zero Trust paper gives a direct example: an agent allowed to read sensitive data and email external recipients can send that data out while staying within its permissions [16]. More precise policies can restrict the data sent or require approval. Stronger isolation alone does not resolve this use of permitted authority.
+
+The response is to narrow the grant (the subject of the Agentic IAM paper [9]), constrain what permitted services will do on request (§3.1), and account for shared authority across agents (§4). Preserve evidence for review afterward (§7).
+
+The first three modes describe different enforcement failures: a mechanism breaks, an agent disables a control, or the policy is inadequate or incorrectly deployed. These modes do not map one-to-one to the three reference-monitor requirements. Every enforcement point must still check each consequential action, remain protected from changes by the agent, and be small enough for complete analysis and testing (§5.1). The failure modes help identify what went wrong; they do not replace those requirements.
+
+Mode 4 is different: the monitor has not failed. It correctly enforces the policy, but that policy permits an action that can cause harm. Containment therefore remains one layer of a bounded-authority model (§1). Correct enforcement matters, but so does the authority being enforced.
+
+### 5.3 Why the distinction matters
+
+Separating the four failure modes has three practical consequences.
+
+First, match the remedy to the failure. Stronger isolation alone does not correct an inadequate policy. Even a correctly enforced policy can permit harm if the grant is too broad. A control the agent can disable needs protection from the agent; a policy error needs correction and verification. Identify which control must change and who is responsible for it.
+
+Second, classifying an incident requires evidence. To distinguish mode 2 from mode 3, reviewers need a record of the control's configuration and enforcement decision at the time. To distinguish mode 1 from mode 4, they also need a record of what the agent was actually permitted to do.
+
+Use evidence that meets §7's requirements to support the classification and route the fix. Where the record leaves the failure mode unresolved, identify the missing evidence and explain which conclusions it prevents the reviewer from drawing. The review should make that uncertainty visible rather than assign a mode the evidence does not support.
+
+Third, use the failure modes to explain each control's role. The table summarizes the sections' main contributions; it does not limit a control to one mode.
+
+| Section | Main contribution |
 |---|---|
-| §3 Mediation | Mode 3 — a surface expressive enough to specify the boundary |
-| §3.1 Permitted channels | Mode 4 — constraining what permitted parties will do |
-| §4 Composition | Mode 4 — authority consumed across a set, every local check passing |
-| §6 Reachability | Bounds the blast radius when modes 1–3 occur |
-| §7 Detection and evidence | Makes all four modes distinguishable, during and after |
-| §8 Verification | Mode 3 — proving the control enforces what its operator believes |
+| §3 Mediation | Supports rules precise enough to state the intended boundary (mode 3). |
+| §3.1 Permitted channels | Constrains what permitted parties do at the agent's request (mode 4). |
+| §4 Composition | Applies shared limits across agents even when each passes its local checks (mode 4). |
+| §6 Reachability | Reduces reachable systems to limit the consequences of modes 1–3. |
+| §7 Detection and evidence | Supplies signals during operation and evidence for later review across all four modes. Conclusions depend on what the records establish. |
+| §8 Verification | Tests whether the deployed controls enforce the intended policy, particularly for mode 3. |
 
-The question each section answers is therefore not "how strong is the box?" but "which failure mode does this control remove, and how would we know it worked?"
+For each control, ask which failure it is intended to prevent or limit, and what evidence would show that it worked.
 
 ### 5.4 Threat sources and trust assumptions
 
-The sections above establish what a monitor must be and how it fails. This subsection collects, in one place, what this paper assumes a deployment is defending against, which components it relies on, what each must hold for the argument to stand, and what it does not claim. Nothing here is new: each row points at the section that establishes it, and that section governs.
+The table summarizes the threats considered, the components relied on and the properties those components must maintain. It also states the limits of the paper's claims. Each row refers back to its governing section; the table adds no new requirements.
 
-| Threat source | Component relied on | Property it must hold | Not claimed |
-| :---- | :---- | :---- | :---- |
-| The agent's own model, which may seek to exceed its bounds | None — no property of the model is relied on | — | Model-level safety training and refusals are out of scope; the paper assumes a model that wants to escape (see Out of scope) |
-| Untrusted content reaching the agent's context — documents, tool results, retrieved data (§2.3) | The inbound enforcement point | Content from an untrusted source never acquires the authority of an instruction (§2.3) | The controls themselves are not specified here; the input-sanitization guide and the MCP paper's untrusted-content guidance remain the how-to (§2.3) |
-| A permitted party performing an action on the agent's request — model-side retrieval, search, interpreters, connectors (§3.1) | Constraints on what the permitted party will do, not only on whether the agent may ask | The deputy's action is bounded — method-limited, bandwidth-limited, non-reflective where the channel cannot be removed (§3.1) | Where a provider-side capability cannot be bounded, the path is excluded from the claimed assurance boundary rather than assumed closed (§3) |
-| Other agents, including peers inside the same organization (§9.2) | §2.3's inbound property, §3's effective reach, and §4's accounting, each read across agents rather than within one | A message from another agent carries no more instruction authority than a web page; a recruitable peer is a path to an effect; recruitment is consumption (§9.2) | The jailbreak technique itself is out of scope; that is model-level safety (§9.2) |
-| Any consequential action the agent can take | The reference monitor at each mediation surface (§5.1) | Complete mediation over the effects claimed, placement outside the agent's reach, and verifiability read as *evidenced* (§5.1) | A path not mediated is not partially mediated; it is unmediated, and must be stated as an exclusion (§3). A monitor inside the agent's reach is not a monitor (§5.2, mode 2) |
-| A set of agents sharing one principal, individually compliant (§4) | The accounting authority holding the aggregate over the delegation subtree | Atomic compare-and-consume, and a fail-safe default: past its latency bound the action is refused or held for confirmation, never allowed (§4.3) | Post-hoc totals do not establish atomic enforcement; per-agent controls cannot see this failure at all (§4) |
-| An outside reviewer with no reason to believe the operator (§7.1) | The evidence record each monitor emits | Every field on every record; a determined absence written as `absent` and missing visibility as `not_established`; nothing replayable held as authority (§3, §7.1) | The detection signals stay out of this row: they are allowed to be noisy, heuristic and tuned per deployment (§7.1, §7.2). A trajectory emitted by the agent's own framework cannot testify about that agent's containment (§9.1) |
-| Systems the agent reaches that belong to someone else (§6.2) | Nothing within the operator's control | — | The §7 contract cannot require retention, cooperation or record quality of a third party; reconstruction depends on them, and the claim narrows accordingly (§6.3) |
-| A deployment shape that removes isolation entirely (§1.1) | The provider, under contract | The identical requirements, demanded as procurement rather than built as engineering (§1.1) | Where nothing can be interposed at the request layer, containment is wholly a procurement requirement, and this paper is the specification of what to demand (§1.1) |
+| Threat source | Component relied on | Required property | Limits and exclusions |
+|---|---|---|---|
+| The agent's own model, which may try to exceed its bounds | None; no property of the model is relied on | — | Assume a model that wants to escape. Model-level safety training and refusals are out of scope (see Out of scope). |
+| Untrusted content entering the agent's context, such as documents, tool results and retrieved data (§2.3) | The inbound enforcement point | Content from an untrusted source never gains authority as an instruction (§2.3). | Implementation controls are not specified here. They remain in the input-sanitization guide and the MCP paper's guidance on untrusted content (§2.3). |
+| A permitted party acting on the agent's request, such as model-side retrieval, search, interpreters or connectors (§3.1) | Limits on what the permitted party may do, not just whether the agent may ask | Where the channel cannot be removed, bound the party's actions with method and bandwidth limits and non-reflective response delivery: return responses to the requester, not to a destination named in the payload (§3.1). | If a provider-side capability cannot be bounded, state that path as an exclusion from the claimed assurance boundary. Do not assume it is closed or omit it from effective reach (§3). |
+| Other agents, including peers in the same organization (§9.2) | Inbound controls (§2.3), effective reach (§3) and shared accounting (§4), applied across agents | A peer's message has no more instruction authority than a web page. A peer willing to act on request is part of effective reach, even without a delegation. Recruitment counts as consumption (§9.2). | How models are jailbroken is out of scope; that is model-level safety (§9.2). |
+| Any consequential action the agent can take | The reference monitor at each mediation surface (§5.1) | Mediate every claimed effect. Keep the monitor and policy outside the agent's control. The implementation must be small enough for complete analysis and testing, and produce records sufficient to verify mediation (§5.1). | A path that bypasses mediation must be stated as an exclusion, not called partially mediated (§3). If the agent can alter the monitor or its policy, the tamper-proof requirement is not met (mode 2, §5.2). |
+| Agents sharing one principal, each passing its local checks (§4) | The accounting authority tracking the shared budget across the principal's delegation subtree | Use atomic compare-and-consume before consumption, directly against the shared budget or locally against an already-charged lease. If that check exceeds its latency bound, refuse the action or hold it for confirmation; do not allow it (§4.3). | Totals calculated afterward do not establish atomic enforcement. Per-agent limits alone cannot establish the shared bound (§4). A spend covered by an already-charged lease does not require a new central call; all other applicable checks still apply (§4.3). |
+| An outside reviewer who was not present and does not trust the operator (§7.1) | The evidence record each monitor emits | Include each evidence field on every record unless its §7.1 row states otherwise. Record a determined absence as `absent` and missing visibility as `not_established`. No field may be replayable as executable authority (§3, §7.1). | Detection signals are separate: they may be noisy, heuristic and tuned to the deployment (§7.1, §7.2). A trajectory from the agent's own framework is not, by itself, independent evidence of containment (§9.1). |
+| Systems the agent reaches that belong to another party (§6.2) | Nothing under the operator's control | — | The §7 evidence contract cannot require a third party to retain records, cooperate or meet a particular standard of record quality. Reconstruction depends on those records and cooperation; limit the claim to what the available evidence supports (§6.3). |
+| Procured and integrated deployments (§1.1) | The organization and provider, according to which controls each can operate; provider obligations are contractual | Meet the paper's applicable containment requirements, whether the controls are operated by the organization or a provider. The organization must implement and demonstrate the controls it can operate. For controls it cannot operate, require the provider to meet those requirements and supply evidence (§1.1). | Do not assume isolation is absent because an agent is procured or provider-operated. Engineering and procurement responsibilities can coexist. Only where the organization cannot interpose any controls do those requirements fall wholly on the provider (§1.1). |
 
-Two readings of this table are wrong and worth naming. It is not a claim that these threats are exhaustive; it is a statement of what the paper's argument rests on, so that a reader can test each assumption against their own deployment. And a component appearing here is not thereby trustworthy — the point of §5.2 is that each of these can fail, and §7's evidence contract exists so that a failure can be told from a success after the fact.
+This table is not a complete list of threats. It states the assumptions behind the paper's argument so readers can check them against their own deployment.
+
+A component is not trustworthy merely because it appears in the table. Each component can fail (§5.2). Use evidence meeting the paper's evidence requirements (§7) to assess whether it worked as intended, and limit the conclusion to what the records establish.
 
 ---
 
@@ -954,6 +988,8 @@ An agent with bounded authority in the way a corporate laptop has it is not an a
 20. CoSAI. *Tool Design for Secure Agentic Systems*. https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/blob/main/practical-guides/mcp-secure-tool-design.md
 21. Adrienne Porter Felt, Helen J. Wang, Alexander Moshchuk, Steven Hanna, Erika Chin. *Permission Re-Delegation: Attacks and Defenses*. 20th USENIX Security Symposium, 2011. https://www.usenix.org/legacy/event/sec11/tech/full_papers/Felt.pdf
 22. Sven Bugiel, Lucas Davi, Alexandra Dmitrienko, Thomas Fischer, Ahmad-Reza Sadeghi, Bhargava Shastry. *Towards Taming Privilege-Escalation Attacks on Android*. NDSS Symposium, 2012. https://www.ndss-symposium.org/wp-content/uploads/2017/09/07_3.pdf
+23. James P. Anderson. *Computer Security Technology Planning Study, Volume I—Executive Summary*. ESD-TR-73-51, Vol. I, October 1972. https://csrc.nist.gov/files/pubs/conference/1998/10/08/proceedings-of-the-21st-nissc-1998/final/docs/early-cs-papers/ande72a.pdf
+24. Scott Rose, Oliver Borchert, Stu Mitchell, Sean Connelly. *Zero Trust Architecture*. NIST Special Publication 800-207, August 2020. https://doi.org/10.6028/NIST.SP.800-207
 
 ---
 
