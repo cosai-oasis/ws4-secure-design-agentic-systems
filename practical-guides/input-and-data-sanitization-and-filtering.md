@@ -58,7 +58,7 @@ There are many different guardrails which have been developed to strengthen a de
 
 __Examples__ 
 
-1. *[Threat 11. Prompt Injection](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/blob/main/model-context-protocol-security.md#prompt-injection)*: Direct Guardrail Deployment.
+1. *[Threat 11. Prompt Injection](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/blob/main/whitepapers/model-context-protocol-security.md#prompt-injection)*: Direct Guardrail Deployment.
 <br><br>
 *Example notebook: [direct_guardrail_deployment
 ](https://github.com/GiulioZizzo/ws4-secure-design-agentic-systems/blob/input_filtering/practical-guides/examples/direct_guardrails/direct_guardrails.ipynb)*
@@ -99,7 +99,7 @@ __Examples__
   Now, the guardrail is effective at blocking this manipulation attempt.
 
   
-2. *[Threat 2. Tool Poisoning](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/blob/main/model-context-protocol-security.md#tool-poisoning):* MCP Tool Hijacking.<br><br>
+2. *[Threat 2. Tool Poisoning](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/blob/main/whitepapers/model-context-protocol-security.md#tool-poisoning):* MCP Tool Hijacking.<br><br>
 *Example notebook: [function_hijacking
 ](https://github.com/GiulioZizzo/ws4-secure-design-agentic-systems/blob/input_filtering/practical-guides/examples/function_hijacking/function_hijacking.ipynb)*
 <br><br>Within MCP the function name, signature, and description are returned to the LLM. There can be several manipulations performed. Potential tool manipulations can induce the LLM with tasks such as: always (or never!) selecting the manipulated tool regardless of user input, perform orthogonal tasks to the original tool call request, or in more subtle cases, the LLM may be coerced into chaining tools together in unintended sequences, passing malformed parameters, or escalating privileges by requesting tools that the user never authorized.
@@ -142,7 +142,7 @@ __Examples__
 
     Thus, we need to be acutely aware of the various contact points between an LLM and a user which could be manipulated, and that is extends beyond the direct prompt.
   
-3. [Threat 21. Command Injection](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/blob/main/model-context-protocol-security.md#command-injection) Obfuscated SQL Injection.
+3. [Threat 21. Command Injection](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/blob/main/whitepapers/model-context-protocol-security.md#command-injection) Obfuscated SQL Injection.
     
     *Example notebook: [command_obfuscation](https://github.com/GiulioZizzo/ws4-secure-design-agentic-systems/blob/input_filtering/practical-guides/examples/command_obfuscation/command_obfuscation.ipynb)*
 
@@ -187,7 +187,7 @@ The disadvantage is that there are additional overheads for blocking malicious p
 
 __Examples__ 
 
-1. *[Threat 11. Prompt Injection](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/blob/main/model-context-protocol-security.md#prompt-injection)*: Adaptive Prompt Injection. 
+1. *[Threat 11. Prompt Injection](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/blob/main/whitepapers/model-context-protocol-security.md#prompt-injection)*: Adaptive Prompt Injection. 
 
     *Example notebook: [output_filtering](https://github.com/GiulioZizzo/ws4-secure-design-agentic-systems/blob/input_filtering/practical-guides/examples/output_filtering/output_filtering.ipynb)*
 
@@ -241,7 +241,7 @@ Attackers are able to react to deployed defences. A strong attacker will adapt a
 
 __Example__ 
 
-1. *[Threat 2. Tool Poisoning](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/blob/main/model-context-protocol-security.md#tool-poisoning)*: Re-writing Defence
+1. *[Threat 2. Tool Poisoning](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/blob/main/whitepapers/model-context-protocol-security.md#tool-poisoning)*: Re-writing Defence
 
     *Example notebook: [detached_defence](https://github.com/GiulioZizzo/ws4-secure-design-agentic-systems/blob/input_filtering/practical-guides/examples/detached_defence/detached_defence.ipynb)*
 
