@@ -6,7 +6,9 @@ Multimodal AI agents read documents and screenshots, transcribe calls, sample vi
 
 ## 1. Introduction
 
-Enterprise AI systems have moved rapidly beyond text-only chat interfaces into multimodal agents that inspect documents and screenshots, transcribe voice calls, monitor video streams, invoke external tools, and render rich outputs across connected services. Whether built around a single unified multimodal model or a pipeline of specialized extractors and orchestrators, production deployments routinely put preprocessing steps (resizers, codecs, parsers, OCR or speech extractors) upstream of the model, and attach tool executors and active client renderers downstream.
+AI agents increasingly process images, audio, video, and structured data alongside text, and act on what they perceive — calling tools, sending messages, and executing workflows. Platforms such as OpenAI's ChatGPT, Google's Gemini, Microsoft's Copilot Studio, and Salesforce Agentforce integrate multimodal understanding with tool use and task execution (OpenAI, 2024; Microsoft, 2026; Salesforce, 2026), and the global multimodal AI market is projected to grow from USD 1.7 billion in 2024 to USD 10.9 billion by 2030 [Grand View Research, 2024]. Whether built around a single unified model or a pipeline of specialized extractors and orchestrators, production deployments routinely put preprocessing steps (resizers, codecs, parsers, OCR or speech extractors) upstream of the model, and attach tool executors and active client renderers downstream.
+
+**This architectural diversity creates security challenges that extend beyond any individual modality.** Even where text-based defenses are mature, attackers may exploit images, audio, video, or intermediate representations to introduce malicious instructions that those defenses do not adequately inspect. Such instructions may be concealed within non-text inputs, exposed during preprocessing, propagated between components, or translated into unauthorized tool calls. Security risks therefore arise not only from the properties of individual modalities but also from their interactions with processing pipelines, models, tools, and output-rendering mechanisms.
 
 ### 1.1 Background: Limitations of Current Security Practices
 
@@ -20,10 +22,15 @@ Recent disclosures and research demonstrations show the gaps between these separ
 * **Image preprocessing.** Trail of Bits (Morozova & Hussain, 2025) demonstrated an end-to-end attack against Google Gemini CLI in which an uploaded image looked benign at original resolution, revealed an injected prompt only after downscaling, and exfiltrated Google Calendar entries through auto-approved Zapier MCP tool calls.
 * **Audio perception.** AudioHijack (Chen et al., 2026) demonstrated that reverberation-disguised audio perturbations imperceptible to human listeners can steer audio-language voice agents into unauthorized actions, while physical-world adversarial patches (Eykholt et al., 2018; Tencent Keen Lab, 2019) mislead vision-driven vehicles through the patch alone.
 * **Output rendering.** In Cursor (`CVE-2025-54132`; GitHub, 2025) and M365 Copilot EchoLeak (`CVE-2025-32711`; National Vulnerability Database, 2025a), prompt injection induced the model to emit active Markdown or Mermaid markup whose preview renderer automatically fetched attacker-controlled URLs, exfiltrating sensitive context before user action.
+* **Cross-modal composition.** NVIDIA's AI Red Team (Teixeira, 2026) demonstrated three-modal prompt injection against a multimodal model using jointly optimized image and audio assets alongside text. The adversarial behavior emerged only when all three modalities were present simultaneously — no single modality or pair triggered the attack, and per-modality input guardrails blocked none of the payloads. With M modalities, per-channel defenses inspect M of the 2^M - 1 non-empty subsets; the gap is the space an attacker can hide in.
 
-Treating these as separate "image attacks," "audio attacks," and "rendering bugs" does not scale. Every new input channel or output surface needs its own threat catalog and test suite, and cross-modal attacks that combine two individually benign inputs are not detected by single-modality checks. Organizations also cannot wait for extensive production incident data in every modality before standardizing architectural review. As of October 2026, public vulnerability disclosures and incident trackers (NVD/CVE, the AI Incident Database (AIID), and MITRE ATLAS case studies) record widespread text-borne indirect prompt injections in deployed agents. Non-text agentic compromises, by contrast, appear mostly as researcher demonstrations and disclosed CVEs against production tools, with no confirmed criminal campaigns observed outside research settings. Organizations deploying multimodal agents therefore need an architectural method that works before incident data is available.
+Treating these as separate "image attacks," "audio attacks," and "rendering bugs" does not scale. Every new input channel or output surface needs its own threat catalog and test suite, cross-modal attacks that combine two individually benign inputs are not detected by single-modality checks, and systems with similar observable capabilities may exhibit different security properties depending on whether their processing is unified, fragmented, or orchestrated through multiple agents and tools. Organizations need a method that identifies shared failure modes across modalities rather than duplicating analysis for each one.
 
-### 1.2 Core Thesis: Shared Mechanisms on an Annotated Data-Flow Diagram
+### 1.2 The Case for a Proactive Method
+
+**The available evidence highlights the importance of establishing assessment methods before waiting for a larger incident record.** As of October 2026, public vulnerability disclosures and incident trackers (NVD/CVE, the AI Incident Database (AIID), and MITRE ATLAS case studies) record widespread text-borne indirect prompt injections in deployed agents. Non-text agentic compromises, by contrast, appear mostly as researcher demonstrations and disclosed CVEs against production tools, with no confirmed criminal campaigns observed outside research settings. The research demonstrations cited above prove the mechanisms work; production incidents will follow as multimodal agent deployment widens. Organizations deploying multimodal agents therefore need an architectural method that works before incident data is available. The next section presents the method this paper proposes.
+
+### 1.3 Core Thesis: Shared Mechanisms on an Annotated Data-Flow Diagram
 
 **This paper argues that multimodal agentic attacks across text, images, audio, video, and physical sensors are instances of a small set of modality-independent failure mechanisms determined by pipeline topology.** In the Trail of Bits exploit, the human user inspected the image at one resolution while the model consumed it at another. That exact structural divergence recurs when a stateless guardrail scans stream chunks while the model reads the assembled stream, when a video moderation model checks sparsely sampled frames while viewers receive every frame, or (as a testable prediction) when an audio front end decimates a high-sample-rate waveform through an aliasing resampler before speech recognition. The carrier modality is different in each case, but the broken architectural assumption is the same.
 
@@ -35,7 +42,7 @@ To enumerate those mechanisms systematically instead of brainstorming them case 
 
 The method adds three lightweight annotations to the standard DFDs architects already draw for STRIDE — the role each component plays in the pipeline, how much each data flow preserves of its raw input, and security rules on consequential components — and from the annotated diagram, candidate crossings, multi-step attack chains, high-leverage structural cut points, and falsifiable security tests can be derived systematically.
 
-### 1.3 Ecosystem Positioning
+### 1.4 Ecosystem Positioning
 
 Each framework answers a different question about the same attack (**Figure 1**). An ATLAS technique describes what the attacker does, and one technique can be realized through several mechanisms that need different controls. NIST AI 100-2e2025's attacker capability and knowledge determine which of those mechanisms the adversary can actually reach. Each constraint exists to prevent a hazard, and STRIDE classifies that hazard, so a mechanism inherits the STRIDE category of the constraint it breaks (e.g., the same mechanism can lead to Elevation of Privilege on one path and Information Disclosure on another).
 
@@ -54,7 +61,7 @@ flowchart LR
 
 MITRE ATLAS (`AML.T0129`, `AML.T0068`), OWASP (`LLM01:2025`), and CoSAI's Risk Map already name multimodal prompt injection and payload obfuscation. This paper adds the violated pipeline invariant and the preprocessing, perception, and rendering steps where payloads activate. Section 6 compares the method with those frameworks, neighboring academic taxonomies, and classical security precedents, and **Appendix C** holds the crosswalk tables.
 
-### 1.4 Practitioner Workflows and Paper Roadmap
+### 1.5 Practitioner Workflows and Paper Roadmap
 
 The vocabulary and DFD method support three concrete workflows demonstrated in Section 5:
 
@@ -68,11 +75,9 @@ Section 2 defines the multimodal system model and inference-time perimeter scope
 
 ### 2.1 Modalities and Architectures
 
-A **modality** is a category of information an AI system represents or processes, such as text, images, audio, or video (Baltrušaitis et al., 2019). Structured data (JSON, CSV, API responses) and composite sources (PDFs, web pages, GUIs, tool responses) are information representations that can carry one or several modalities. A system is **unimodal** at a given boundary when one modality crosses it and **multimodal** when two or more are processed together: a screenshot containing written instructions is image input, and the same screenshot sent with a separate text question is multimodal input. **Cross-modal** describes an operation between modalities, such as captioning an image or retrieving images with text (Baltrušaitis et al., 2019). Security literature also uses *cross-modal* for attacks that combine inputs from two or more modalities, as in cross-modal prompt injection (Wang et al., 2025); this paper uses the operation sense and records combined-modality attacks with structural modifiers that distinguish whether the pieces are incomplete fragments requiring reassembly or complete artifacts whose pairing produces the effect (**Section 3.4.2** formalizes these).
+A **modality** is a category of information an AI system represents or processes, such as text, images, audio, or video (Baltrušaitis et al., 2019). Structured data (JSON, CSV, API responses) and composite sources (PDFs, web pages, GUIs, tool responses) can carry one or several modalities. A system is **unimodal** at a given boundary when one modality crosses it and **multimodal** when two or more are processed together: a screenshot containing written instructions is image input, and the same screenshot sent with a separate text question is multimodal input. **Cross-modal** describes an operation between modalities, such as captioning an image or retrieving images with text (Baltrušaitis et al., 2019). Security literature also uses *cross-modal* for attacks that combine inputs from two or more modalities, as in cross-modal prompt injection (Wang et al., 2025); this paper uses the operation sense and records combined-modality attacks with structural modifiers that distinguish whether the pieces are incomplete fragments requiring reassembly or complete artifacts whose pairing produces the effect (**Section 3.4.2** formalizes these).
 
-Multimodal capability follows two architectural patterns. A **unified** architecture integrates several modalities in one model, as GPT-4o does for text, vision, and audio; a **fragmented** architecture chains specialized components, as earlier ChatGPT Voice Mode did with separate speech recognition, language, and speech generation models (OpenAI, 2024). Unified models still sit behind modality-specific encoders and preprocessing. An **AI agent** adds orchestration: it uses models to pursue goals through tools, APIs, applications, or other agents, as on platforms such as Microsoft Copilot Studio and Salesforce Agentforce (Microsoft, 2026; Salesforce, 2026). An agent may run on a unified model, coordinate fragmented components, or work with other agents in a multi-agent system.
-
-Modality, processing architecture, and agentic orchestration vary independently, and security outcomes depend on how information moves between components. Adversarial content can enter through different modalities and pass through different transforms and components before it influences a model or triggers an action, so attacks on very different implementations can exploit the same underlying failure. That observation is why this paper describes mechanisms on the data-flow diagram itself.
+A **unified** architecture integrates several modalities in one model (e.g., GPT-4o); a **fragmented** architecture chains specialized components (e.g., separate speech recognition, language, and speech generation models). Unified models still sit behind modality-specific encoders and preprocessing. An **AI agent** adds orchestration: it uses models to pursue goals through tools, APIs, applications, or other agents, and may run on either architecture or combine both. Modality, architecture, and orchestration vary independently, and security outcomes depend on how information moves between components — which is why this paper describes mechanisms on the data-flow diagram itself.
 
 ### 2.2 In Scope
 
@@ -379,6 +384,8 @@ A **modifier** is a structural or temporal condition the adversarial effect requ
 * **Classification distinctions:** Use *Fragmented / Distributed* when each piece is incomplete and reassembly rebuilds one payload, *Composition-Dependent* when each artifact is complete and pairing them produces the effect, and *Sequence-Dependent* when ordering or timing is essential. *Encoded / Obfuscated* payloads are recovered with decoding conventions; *Steganographic* payloads sit in a sub-channel behind an ordinary-looking carrier. Transformation-activated payloads are covered by two existing parts of the record: the `Meaning × Artifact State` crossing at the transform, and the representation recorded at each artifact state.
 
 *Example:* An attacker sends benign ticket text (*"Please apply the goodwill credit we agreed on"*) and a benign-looking chat screenshot (*"Agent: agreed, \$25 credit to 48213"*). Each passes review on its own. Together they give the model the action and the target account, and it issues the credit. The fault: each input is checked alone, while the model acts on the pair (*Composition-Dependent*).
+
+The combinatorial surface grows with modality count. Teixeira (2026) demonstrated *three-modal prompt injection* against a multimodal model: jointly optimized image and audio assets produced adversarial behavior only when all three modalities (text, image, audio) were present simultaneously — every proper subset (each single modality and each pair) produced benign output, and per-modality input guardrails blocked none of the payloads. With M input modalities, a model reasons over 2^M - 1 non-empty subsets, but per-channel inspection covers only M of them. The *Composition-Dependent* modifier records this combinatorial dependency; the minimum subset that activates the effect is part of the record so that defenders know which ablation tests to run.
 
 #### 3.4.3 Resource-Amplification Characteristics
 
@@ -1191,6 +1198,8 @@ GitHub. (2025). *Security advisory GHSA-43wj-mwcc-x93p: Cursor Mermaid remote im
 
 Glukhov, D., Shumailov, I., Gal, Y., Papernot, N., & Papyan, V. (2023). LLM censorship: A machine learning challenge or a computer security problem? arXiv:2307.10719. https://arxiv.org/abs/2307.10719
 
+Grand View Research. (2024). *Multimodal AI market size, share & trends analysis report, 2024–2030*. https://www.grandviewresearch.com/industry-analysis/multimodal-ai-market-report
+
 Google. (n.d.). *Secure AI Framework (SAIF): Risks*. https://saif.google/secure-ai-framework/risks
 
 Greshake, K., Abdelnabi, S., Mishra, S., Endres, C., Holz, T., & Fritz, M. (2023). Not what you've signed up for: Compromising real-world LLM-integrated applications with indirect prompt injection. *Proceedings of AISec 2023*. https://arxiv.org/abs/2302.12173
@@ -1274,6 +1283,8 @@ Shi, et al. (2025). SoK: Trust–authorization mismatch in LLM agents. arXiv:251
 Shostack, A. (2014). *Threat modeling: Designing for security*. Wiley.
 
 STPA-Sec data-flow extension. (2020). arXiv:2006.02930. https://arxiv.org/abs/2006.02930
+
+Teixeira, D. (2026, September 21). *When modalities combine: The combinatorial blind spot in AI security*. NVIDIA AI Security. https://research.nvidia.com/ai-security/when-modalities-combine-combinatorial-blind-spot-ai-security
 
 Tencent Keen Security Lab. (2019). *Experimental security research of Tesla Autopilot*. https://keenlab.tencent.com/en/whitepapers/Experimental_Security_Research_of_Tesla_Autopilot.pdf
 
