@@ -1,0 +1,42 @@
+{
+ "accept": {
+  "consumer_result": {
+   "result": "pass",
+   "unmet_obligation": null
+  },
+  "corpus": "vectors-agent-audit-record",
+  "member": "v0d65a70ec5288821",
+  "reader_expected": {
+   "codes": [],
+   "tier": "authoritative",
+   "verdict": "valid"
+  },
+  "sha256": "0d65a70ec528882170927d08c9396a7efa7cef211d047626be7dc0736a6fc09b"
+ },
+ "differs_in": "serialized in declaration order, not RFC 8785 order",
+ "id": "RR-09-NOT-THE-NAMED-CANONICAL-PROFILE",
+ "note": "The record names rfc8785. Evidence under any other serialization fails verification.",
+ "reader": "auditrecord",
+ "record": {
+  "pointer": "/extensions/agentrust-composition-v0/canonicalization/canonical_profile"
+ },
+ "reject": {
+  "consumer_result": {
+   "result": "processing_failure",
+   "unmet_obligation": null
+  },
+  "corpus": "vectors-agent-audit-record",
+  "member": "v18153024f1acd938",
+  "reader_expected": {
+   "codes": [
+    "signature-invalid"
+   ],
+   "verdict": "malformed"
+  },
+  "sha256": "18153024f1acd938fb3394b7ef09845f49ac020d22cfd5b23635d7b154e14bf7"
+ },
+ "relationship": "integrity",
+ "rfc_scope": "typed-references",
+ "source": "agent-evidence-vectors==0.17.5",
+ "status": "candidate"
+}
