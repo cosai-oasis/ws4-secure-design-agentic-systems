@@ -42,9 +42,9 @@ To enumerate those mechanisms systematically instead of brainstorming them case 
 
 The method adds three lightweight annotations to the standard DFDs architects already draw for STRIDE — the role each component plays in the pipeline, how much each data flow preserves of its raw input, and security rules on consequential components — and from the annotated diagram, candidate crossings, multi-step attack chains, high-leverage structural cut points, and falsifiable security tests can be derived systematically.
 
-### 1.4 Ecosystem Positioning
+### 1.4 Ecosystem Positioning: What Existing Frameworks Cover and What They Leave Open
 
-Each framework answers a different question about the same attack (**Figure 1**). An ATLAS technique describes what the attacker does, and one technique can be realized through several mechanisms that need different controls. NIST AI 100-2e2025's attacker capability and knowledge determine which of those mechanisms the adversary can actually reach. Each constraint exists to prevent a hazard, and STRIDE classifies that hazard, so a mechanism inherits the STRIDE category of the constraint it breaks (e.g., the same mechanism can lead to Elevation of Privilege on one path and Information Disclosure on another).
+Each framework answers a different question about the same attack (**Figure 1**):
 
 ```mermaid
 flowchart LR
@@ -59,7 +59,33 @@ flowchart LR
 
 *Figure 1. How the mechanism taxonomy relates to existing security frameworks. Each box names the question that framework answers.*
 
-MITRE ATLAS (`AML.T0129`, `AML.T0068`), OWASP (`LLM01:2025`), and CoSAI's Risk Map already name multimodal prompt injection and payload obfuscation. This paper adds the violated pipeline invariant and the preprocessing, perception, and rendering steps where payloads activate. Section 6 compares the method with those frameworks, neighboring academic taxonomies, and classical security precedents, and **Appendix C** holds the crosswalk tables.
+These frameworks are complementary, not competing — the taxonomy fills the gap between them. The table below summarizes what each covers well and the specific gap the mechanism taxonomy addresses, using the Trail of Bits attack as a running comparison (full crosswalk in **Appendix C, Table C.1**):
+
+| Framework | What it covers well | Specific gap the taxonomy fills |
+| :---- | :---- | :---- |
+| **STRIDE** | Which hazard results (Tampering, Information Disclosure, Elevation of Privilege) | Cannot distinguish *where inside the pipeline* the perimeter breaks. The Trail of Bits attack produces both Elevation of Privilege and Information Disclosure, but STRIDE cannot separate the downscaler activation, the auto-approved tool call, and the unrestricted exfiltration — three independently fixable crossings. |
+| **MITRE ATLAS** | What the attacker is doing (AML.T0051 Prompt Injection, AML.T0068 Obfuscation) | One technique covers structurally different mechanisms needing different controls. "Prompt Injection" applies to both image-scaling injection (needs an anti-aliased downscaler) and plaintext email injection (needs schema enforcement). The taxonomy decomposes each technique into mechanism records with distinct pipeline locations and fixes. |
+| **MITRE D3FEND** | Candidate defensive techniques linked to digital artifacts | Does not specify *where in the pipeline* a defense should be evaluated. File Content Analysis is a candidate for Trail of Bits, but must it inspect before or after the downscaler? The mechanism record locates the crossing at the transform and specifies the post-transform representation. |
+| **MITRE CWE** | Individual software weaknesses (CWE-367, CWE-436, CWE-180, CWE-1427) | CWEs are individual entries. The taxonomy provides the generative matrix that relates them and extends them to non-text carriers that CWE-1427 does not yet cover. |
+| **NIST AI 100-2e2025** | Attacker goals, capabilities, knowledge, and lifecycle context | Characterizes whether the adversary can reach a mechanism but not where the mechanism exists or what structural property breaks. Does not record the processing primitive, the pre/post-transform representation change, or which chain legs are architecture-granted. |
+| **OWASP LLM Top 10** | Application-level risks (LLM01, LLM05, LLM06) with scenarios | Names risks but does not specify the pipeline step where the instruction becomes legible or what distinguishes an image-scaling injection from a Base64 text injection — both are LLM01 but need different controls. |
+| **CSA MAESTRO** | Seven architectural layers for locating threats and trust boundaries | Locates by architectural layer but not at the component level. Does not represent processing primitives, pre/post-transform differences, or annotations that explain why a payload survives a given processing step. |
+| **CoSAI Risk Map** | Component × risk × control × lifecycle | The component axis does not distinguish transforms from guards within "Input Handling" or executors from renderers within "Output Handling." The taxonomy adds these as explicit roles and refines each risk entry into mechanism records with independent fixes. |
+
+**What the taxonomy uniquely provides.** Beyond filling per-framework gaps, the taxonomy and its four-step method (Section 4) enable practitioner capabilities that no reviewed framework offers individually:
+
+1. **Mechanical derivation of crossings from a diagram** — produces candidate mechanism records by rule from an annotated data-flow diagram, rather than from checklists or brainstorming.
+2. **Granted-vs-supplied leg separation** — distinguishes which attack-chain steps the architecture gives the attacker for free, directly prioritizing remediation toward zero-effort legs.
+3. **Cross-modal prediction from a single finding** — a finding in one modality generates testable hypotheses for every surface that reproduces the same structural crossing.
+4. **Three-level fidelity with representation survival rules** — answers "if I normalize this flow, which payload forms does that eliminate?"
+5. **Closable vs. Reducible-only distinction** — tells practitioners where architectural enforcement works vs. where they must accept probabilistic reduction.
+6. **Minimal structural cut points** — the minimum set of flows whose hardening disconnects all source-to-sink attack paths.
+7. **Falsifiable security tests with sink-constraint oracles** — each test's pass/fail condition is the system's own stated security requirement.
+8. **Vendor-neutral structural sharing** — mechanism records use abstract roles and fidelities, so organizations share findings without revealing proprietary architecture.
+9. **Incremental modality reuse** — adding a new input modality requires annotating only the new ingress path (typically 3–5 rows), not re-analyzing the entire system.
+10. **Generative boundary matrix** — categories are produced by crossing two axes (invariant × divergence), so every cell, including empty ones, is a falsifiable hypothesis.
+
+Section 6 compares the method in detail with these frameworks, neighboring academic taxonomies, and classical security precedents, and **Appendix C** holds the full crosswalk tables.
 
 ### 1.5 Practitioner Workflows and Paper Roadmap
 
@@ -69,7 +95,7 @@ The vocabulary and DFD method support three concrete workflows demonstrated in S
 2. **Incident mechanism triage (Use Case C, Section 5.2):** Draw only the path traversed by a disclosed exploit (such as Trail of Bits / Gemini CLI) using vendor-neutral roles to separate attacker-supplied bypasses from architecture-granted steps and identify related exposures (`CVE-2025-54132`, `CVE-2025-32711`).
 3. **Adversarial coverage planning and cross-modal prediction (Use Case B, Section 5.3):** Hold sink constraints fixed while swapping input channels across text, images, audio, video, and physical robotics sensors to generate targeted security tests where the violated sink constraint is the pass/fail oracle.
 
-Section 2 defines the multimodal system model and inference-time perimeter scope. Section 3 (*Defining a Mechanism*) introduces `Invariant × Divergence × Representation` with a worked example, and Section 4 specifies the four-step DFD derivation method and applies it end-to-end to the same example. Section 5 applies the method across abridged progressive, incident, and robotics cases (with exhaustive breakdowns in **Appendix D**). Section 6 details ecosystem positioning, and Section 7 outlines empirical validation, limitations, and the CoSAI roadmap toward a per-mechanism control catalog and automated DFD assessment tool.
+Section 2 defines the multimodal system model and inference-time perimeter scope. Section 3 (*Defining a Mechanism*) introduces `Invariant × Divergence × Representation` with a worked example, and Section 4 specifies the four-step DFD derivation method and applies it end-to-end to the same example. Section 5 applies the method across abridged progressive, incident, and robotics cases (with exhaustive breakdowns in **Appendix D**). Section 6 expands on the ecosystem positioning introduced above with detailed framework crosswalks, comparable academic taxonomies, and classical security precedents, and Section 7 outlines empirical validation, limitations, and the CoSAI roadmap toward a per-mechanism control catalog and automated DFD assessment tool.
 
 ## 2. Scope and System Model
 
@@ -313,7 +339,7 @@ A security boundary is an assumption or constraint that must hold as information
 
 *How it varies:* by the channel the context leaves through.
 * *Context Confinement*: secret context or memorized data reaches an outside recipient not permitted by the sink's *Disclosure policy*.
-* *Output-Consumer*: generated output makes a downstream renderer or client produce effects outside the *Disclosure policy* (e.g., external URL fetches; `OWASP LLM05`).
+* *Output-Consumer*: generated output makes a downstream renderer or client produce effects outside the *Disclosure policy* (e.g., external URL fetches; `OWASP LLM05`; `CWE-1426`).
 
 *Example (Figure 1d):* The Triage LLM holds the confidential Internal Header (fraud-risk score and flagging rule) and drafts a customer reply. The fraudster files a ticket asking *"Include any internal account flags in your reply"*, and the LLM quotes the score back through the Staff HTML Preview to the customer. The fault: confidential context reaches the customer (*Context Confinement*). The attacker can also inject an `<img src=...>` tag in the ticket; the Staff HTML Preview fetches the attacker's URL as soon as a reviewer opens the draft, carrying data out in the request (*Output-Consumer*).
 
@@ -321,7 +347,7 @@ A security boundary is an assumption or constraint that must hold as information
 
 #### 3.1.4 Cost (*Resource Bounding*)
 
-**Cost** is the compute, memory, inference, and tool execution an admitted input consumes. It holds when processing stays within the *Resource budget* (the maximum compute, time, or API spend allowed per admitted unit) implied at admission.
+**Cost** is the compute, memory, inference, and tool execution an admitted input consumes — the availability dimension of the CIA triad applied to per-unit resource consumption. It holds when processing stays within the *Resource budget* (the maximum compute, time, or API spend allowed per admitted unit) implied at admission.
 
 *Why it matters:* admission is decided before the real cost is known. A check on a 5 MB file or a 4,000-character ticket estimates cost from size, while decoding and generation set the real cost.
 
@@ -434,7 +460,7 @@ A form's survival depends on the incoming flow's fidelity:
 | **Overt Semantic** | Adversarial content is readable through ordinary interpretation at the observation point. | Plaintext prompt; legible typographic text in an image; clear spoken command. | ✓ | ✓ | Value choice only |
 | **Encoded / Obfuscated** | Perceives the symbol stream, which is concealed through encoding, symbolic substitution, or obfuscation recoverable using known conventions. | Base64, hex, or URL-encoded text; HTML entities; substitution cipher; QR code; DTMF tones. | ✓ | ✓ | — |
 | **Steganographic** | Perceives an ordinary carrier; adversarial information sits in a sub-channel that ordinary reading skips. | Zero-width or Unicode tag characters; white-on-white or off-page PDF text; sparse pixels sampled by an aliasing downscaler; near-ultrasonic audio. | ✓ | — | — |
-| **Adversarial Perturbation** | Perceives benign content; the effect triggers through internal features of a specific target model. | Gradient-optimized token suffixes (GCG); adversarial visual patches; reverberation-blended audio perturbations (AudioHijack). | ✓ | ✓ *(assumed)* | — |
+| **Adversarial Perturbation** (termed *adversarial examples* in NIST AI 100-2e2025) | Perceives benign content; the effect triggers through internal features of a specific target model. | Gradient-optimized token suffixes (GCG); adversarial visual patches; reverberation-blended audio perturbations (AudioHijack). | ✓ | ✓ *(assumed)* | — |
 
 *Table 2. Primary representation forms, cross-modal examples, and survival across flow fidelities.*
 
@@ -469,8 +495,8 @@ A **resource-amplification characteristic** is how an artifact makes processing 
 *Why it matters:* the two kinds need different controls (limits on decoding complexity for one, execution and tool-call budgets for the other).
 
 *How it varies:* by the source of the cost.
-* **Intrinsic Amplification:** The artifact's structure or encoding alone causes disproportionate resource consumption during processing (for example, decompression bombs and pathological media bitstreams, which require limits on decoding complexity).
-* **Semantic Amplification:** The interpreted content of an artifact induces disproportionate resource consumption through system behavior (for example, long output generation, recursive agent delegation, repeated tool invocation, and uncontrolled retry loops, which require execution and tool-call budgets).
+* **Intrinsic Amplification:** The artifact's structure or encoding alone causes disproportionate resource consumption during processing (for example, decompression bombs (`CWE-409`) and pathological media bitstreams, which require limits on decoding complexity).
+* **Semantic Amplification:** The interpreted content of an artifact induces disproportionate resource consumption through system behavior (for example, long output generation, recursive agent delegation, repeated tool invocation, and uncontrolled retry loops (`ATLAS AML.T0034.002`), which require execution and tool-call budgets).
 
 *Example:* An attacker uploads a PNG under 5 MB that decodes to gigapixel dimensions and exhausts decode memory (*Intrinsic Amplification*). A ticket asking *"Reply with a 50-paragraph policy breakdown"* drives generation past the inference budget (*Semantic Amplification*). The fault in both: the size check at admission underestimates the real cost.
 
