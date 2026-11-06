@@ -1,5 +1,11 @@
 # A Modality-Independent Taxonomy for Multimodal Agentic Security
 
+## OASIS Open Project: [Coalition for Secure AI (CoSAI)](https://github.com/cosai-oasis) Workstream 4 — Secure Design of Agentic Systems
+
+## Additional artifacts: None
+
+## Status: Working Draft
+
 ## Abstract
 
 Multimodal AI agents read documents and screenshots, transcribe calls, sample video, call tools, and render rich output, and each new input channel or output surface tends to get its own threat catalog and point guardrail. This paper presents an architectural analysis method that scales across modalities. Architects add three lightweight annotations to the data-flow diagrams they already draw for STRIDE — security rules on consequential components, the role each component plays in the pipeline, and how much each data flow preserves of its raw input. Candidate failure mechanisms, attack chains, structural cut points, and security tests then follow by rule. Each mechanism is a tuple `⟨Invariant, Divergence, Representation⟩`: the security property that breaks, why two evaluations that should agree actually differ, and the form the adversarial payload takes. Because the record names a structural crossing and carries modality on the data flow, an exploit demonstrated in one modality predicts testable variants in others. Three practitioner workflows demonstrate the method: design-time threat analysis of a growing support-ticket agent, incident triage of the Trail of Bits Gemini CLI image-scaling disclosure, and cross-modal coverage planning across text, image, audio, video, streaming, structured data, and a physical delivery robot.
@@ -1290,6 +1296,10 @@ Against this background, the paper contributes three things:
 
 By explicitly representing how adversarial content becomes effective within an AI processing pipeline, the taxonomy supports systematic attack analysis, identification of vulnerable processing stages, and location of the structural cut points where targeted defensive controls apply. **Section 7** lays out how to measure its value over existing frameworks through broader attack coverage and reproducible classification studies.
 
+## 7. Takeaways, Limitations, and Future Work
+
+*[Section planned — to include empirical validation, limitations, and the CoSAI roadmap toward a per-mechanism control catalog and automated DFD assessment tool.]*
+
 ## References
 
 Alpern, B., & Schneider, F. B. (1985). Defining liveness. *Information Processing Letters*, 21(4), 181–185. https://doi.org/10.1016/0020-0190(85)90056-0
@@ -2122,4 +2132,51 @@ The attacker can tailor the pair to exploit whichever arbitration bias the model
 **Why the `Composition-Dependent` modifier applies:** Each artifact classifies as `Overt Semantic`, and the modifier records that the adversarial effect requires their co-processing. Two complete, independent artifacts produce the failure through combined interpretation, which is the `Composition-Dependent` case (one payload split into incomplete pieces is the `Fragmented / Distributed` case). In **Completion** (`EX-IMAGE.4` in **Section 5.1**), both modalities cooperate to supply complementary parts of an operation. In **Contradiction**, the modalities deliberately conflict, and the attack exploits whichever one the model treats as authoritative over the ground-truth observation (`C1`).
 
 **Comparison with adversarial audio contradiction:** An audio contradiction attack can also set two channels in conflict, but with an `Adversarial Perturbation` representation (an adversarially optimized audio waveform). In Scenarios A and B above, both modalities are `Overt Semantic`, so the contradiction is between two plainly readable or viewable inputs. The boundary (`Meaning × Evaluator`, *Semantic Stability*) and modifier (`Composition-Dependent`) are the same, and only the representation form differs, which is enough for the taxonomy to tell them apart: the audio perturbation requires mitigating a model-specific perturbation, while Scenarios A and B require enforcing cross-modal conflict rejection against `C1` (which Step 4 tests using paired claim-vs.-observation fixtures such as `probityai/agent-evidence-vectors`).
+
+---
+
+## Acknowledgements
+
+*[To be added.]*
+
+## Workstream Leads
+
+*[To be added — WS Lead Chair Name (email), Organization.]*
+
+## Editors
+
+*[To be added — Editor Name (email), Organization.]*
+
+## Contributors
+
+*[List of active contributors to be added.]*
+
+---
+
+## CoSAI Focus
+
+CoSAI is an OASIS Open Project, bringing together an open ecosystem of AI and security experts from industry-leading organizations. The project is dedicated to sharing best practices for secure AI deployment and collaborating on AI security research and product development. The scope of CoSAI is specifically focused on the secure building, integration, deployment, and operation of AI systems, with an emphasis on mitigating security risks unique to AI technologies. Other aspects of Trustworthy AI are deemed important but beyond the scope of the project including, ethics, fairness, explainability, bias detection, safety, consumer privacy, misinformation, hallucinations, deep fakes, or content safety concerns like hateful or abusive content, malware, or phishing generation. By concentrating on developing robust measures, best practices, and guidelines to safeguard AI systems against unauthorized access, tampering, or misuse, CoSAI aims to contribute to the responsible development and deployment of resilient, secure AI technologies.
+
+## Guidelines on Usage of AI Systems for Drafting Documents for OASIS CoSAI
+
+tl;dr: CoSAI contributions are actions performed by humans, who are responsible for the content of those contributions, based on their signed OASIS iCLA (and eCLA, if applicable). Each contributor must confirm whether they are entitled to donate that material under the applicable open source license; OASIS and the CoSAI Project do not separately confirm that. Each contributor is responsible for ensuring that all contributions comply with these AI use guidelines, including disclosure of any use of AI in contributions.
+
+* Selection of AI systems: CoSAI recommends the use of reputable AI systems (lowering the risk of inadvertently incorporating infringing material).
+* Model constraints: Currently, CoSAI or OASIS are not required to have a contract or financial agreement for using AI systems from specific vendors. However, CoSAI editors should consider employing varying tools to avoid potential fairness concerns among vendors.
+* IP infringement: It is the responsibility of the individual who subscribes/prompts and receives a response from an AI system to confirm they have the right to repost and donate the content to OASIS under our rules.
+* Transparency: CoSAI's goal will be to maintain transparency throughout the process by documenting substantial use of AI systems whenever possible (e.g., the prompts and the AI system used), and to ensure that all content, regardless of production by human or AI systems, was reviewed and edited by human experts. This helps build trust in the standards development process and ensures accountability.
+* Human-edited content and quality control: CoSAI mandates human-reviewed or -edited results for any final outputs. A robust quality control process should be in place, involving careful review of the generated content for accuracy, relevance, and alignment with CoSAI's goals and principles. Human experts should scrutinize the output of AI systems to identify any errors, inconsistencies, or potential biases.
+* Iterative refinement: The use of AI systems in drafting standards should be seen as an iterative process, with the generated content serving as a starting point for further refinement and improvement by human experts. Multiple rounds of review and editing may be necessary to ensure the final standards meet the required quality and reliability thresholds.
+
+## Disclaimer
+
+The views represented in this paper do not necessarily represent the views of all CoSAI members, including reviewers and their organizations.
+
+## Copyright Notice
+
+Copyright © OASIS Open 2025. All Rights Reserved. This document has been produced under the process and license terms stated in the OASIS Open Project rules: https://www.oasis-open.org/policies-guidelines/open-projects-process.
+
+This document and translations of it may be copied and furnished to others, and derivative works that comment on or otherwise explain it or assist in its implementation may be prepared, copied, published, and distributed, in whole or in part, without restriction of any kind, provided that the above copyright notice and this section are included on all such copies and derivative works. The limited permissions granted above are perpetual and will not be revoked by OASIS or its successors or assigns. This document and the information contained herein is provided on an "AS IS" basis and OASIS DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE INFORMATION HEREIN WILL NOT INFRINGE ANY OWNERSHIP RIGHTS OR ANY IMPLIED WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE. OASIS AND ITS MEMBERS WILL NOT BE LIABLE FOR ANY DIRECT, INDIRECT, SPECIAL OR CONSEQUENTIAL DAMAGES ARISING OUT OF ANY USE OF THIS DOCUMENT OR ANY PART THEREOF. The name "OASIS" is a trademark of OASIS, the owner and developer of this document, and should be used only to refer to the organization and its official outputs. OASIS welcomes reference to, and implementation and use of, documents, while reserving the right to enforce its marks against misleading uses. Please see https://www.oasis-open.org/policies-guidelines/trademark/ for above guidance.
+
+This is a Non-Standards Track Work Product. The patent provisions of the OASIS IPR Policy do not apply.
 
