@@ -799,6 +799,11 @@ Section 4.1 used two constraint types: *Authority policy* (C1 on Zapier MCP) and
 | **Resource budget** | "Processing this input must not exceed these limits" | Cost | — (not in this system) | At most 4,000 characters and 5 seconds per support ticket; at most 5 tool calls per invoice |
 | **Safeguard obligation** | "This intervention must happen within this time/scope bound" | Meaning / Authority / Cost | — (not in this system) | Every abuse or threat ticket must page on-call responders within 1 hour |
 
+**Three rules for writing good constraints:**
+* **Every safeguard needs a liveness bound.** Some attacks work by suppressing an alert rather than executing an unauthorized action — a fraud flag that never fires, a malicious message omitted from a summary. These break no authorization rule. They only become a violation if the safeguard has an explicit timing requirement (e.g., the *Safeguard obligation* constraint type: *"page on-call within 1 hour"*). Without that bound, suppression is invisible to the analysis.
+* **An unconstrained sink is itself a finding.** If no policy restricts which hosts a client previewer can fetch images from, then exfiltration via rendered Markdown breaks no stated rule — but that missing rule is the finding. Record it so it gets addressed.
+* **Tag each constraint with its STRIDE category.** Each sink constraint should carry the STRIDE category of the threat it prevents (Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Elevation of Privilege; see Section 1.1 for background), so the same underlying mechanism can be traced to different business impacts depending on which sink it reaches.
+
 #### 4.2.2 Functional Roles
 
 Section 4.1 defined six roles (`«source»`, `«guard»`, `«transform»`, `«follower»`, `«executor»`, `«receiver»`). The complete set has nine. On a DFD, each component gets exactly one role — label it with the `«guillemet»` notation (e.g., `«guard»`) so that components sharing the same DFD shape (several roles use rounded rectangles) are visually distinguishable.
@@ -844,71 +849,6 @@ Section 4.1 showed `Untrusted · Full` and `Secret · Full` on the Trail of Bits
 - Only **schema validation** grants `Typed`. An output is `Typed` only when it is checked against a fixed schema like an enum or numeric range — not when the model merely tends to produce structured output.
 
 > **Key takeaway for Section 4.2:** These tables are the complete vocabulary. If you can label every box on your DFD with a role, every arrow with a trust label and fidelity, and every consequential component with a sink constraint, you have enough information to run the derivation in Section 4.3.
-
-    M1 -. "representation<br/>→ setup" .-> T1
-    M2 -. "representation<br/>→ setup" .-> T2
-    M3 -. "representation<br/>→ setup" .-> T3
-    C1 -. "oracle" .-> T1
-    C1 -. "oracle" .-> T2
-    C2 -. "oracle" .-> T1
-    C2 -. "oracle" .-> T3
-
-    classDef supplied fill:#fee2e2,stroke:#dc2626,stroke-width:2px,color:#7f1d1d
-    classDef granted fill:#fef3c7,stroke:#d97706,stroke-width:2px,stroke-dasharray:5 3,color:#78350f
-    classDef constraint fill:#dbeafe,stroke:#2563eb,stroke-width:1.5px,color:#1e3a5f
-    classDef test fill:#f0fdf4,stroke:#16a34a,stroke-width:2px,color:#14532d
-```
-
-*Readers evaluating whether to adopt the method can skip to Section 4.4 (cross-modal reuse) or 4.5 (operational integration) — Section 4.1's walkthrough demonstrates the method end-to-end. This section is for practitioners applying the method to their own architecture: it provides the formal rules, the complete structural-pattern lookup table, and the governance guidance that Section 4.1's single example could not cover.*
-
-Section 4.1 showed the method working on a simple system. This subsection provides the rules and guidance a practitioner needs to apply each step to their own, potentially much larger, architecture. Where a step was already illustrated on the Trail of Bits example, this section adds the formal rules and cross-references the walkthrough rather than repeating it.
-
-| Test | Setup | Fails If... |
-| :---- | :---- | :---- |
-| T1 | Upload an image whose downscaled form carries a tool directive | Tool call executes (C1 violated) OR calendar data reaches external host (C2 violated) |
-| T2 | Assume M1 succeeded — does the tool call require confirmation? | Tool call executes without confirmation (C1 violated) |
-| T3 | Assume M1+M2 succeeded — can calendar data reach an arbitrary host? | Calendar data reaches a host outside the allowlist (C2 violated) |
-
-The goal of Step 1 is to answer: *"What must never go wrong, and where on the diagram would it go wrong?"* Following STPA-Sec's top-down sequence (Young & Leveson, 2013), work from business outcomes down to per-component rules in three substeps:
-
-1. **Stakeholder losses** — List unacceptable business, operational, or physical outcomes. Ask: "If this system were compromised, what would we not be able to tolerate?" Examples: *unauthorized wire transfers, leaked confidential records, unreviewed fraud or abuse reports, physical collision with a pedestrian.*
-2. **System hazards** — For each loss, identify the system state or output that would cause it. Examples: *a payment executes with terms differing from an approved invoice, sensitive context reaches an unapproved recipient, a high-risk item bypasses human review.*
-3. **Per-sink constraints** — Attach one or more constraints from the sink-constraint table (Section 4.2.1, Table above) to each sink on the DFD. This is the step that turns business language into architectural requirements. Because agents often exist specifically to process untrusted inputs (such as supplier invoices or support tickets), the **Authority policy** on an authority sink must state *which choices* stay reserved for trusted principals and *through which narrowed types* untrusted input may legitimately act, while its **Reference specification** defines the ground-truth source that acted-on values must match.
-
-After applying the four steps to the Trail of Bits / Gemini CLI system, the security practitioner has:
-
-* **Every safeguard needs a liveness bound.** Some attacks work by suppressing an alert rather than executing an unauthorized action — a fraud flag that never fires, a malicious message omitted from a summary. These break no authorization rule. They only become a violation if the safeguard has an explicit timing requirement (e.g., the *Safeguard obligation* constraint type in Section 4.2.1: *"page on-call within 1 hour"*). Without that bound, suppression is invisible to the analysis.
-* **An unconstrained sink is itself a finding.** If no policy restricts which hosts a client previewer can fetch images from, then exfiltration via rendered Markdown breaks no stated rule — but that missing rule is the finding. Record it so it gets addressed.
-* **Tag each hazard with STRIDE.** Each sink constraint should carry the STRIDE category of the threat it prevents (Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Elevation of Privilege; see Section 1.1 for background), so the same underlying mechanism can be traced to different business impacts depending on which sink it reaches.
-
-None of this required brainstorming what could go wrong. The losses came from stakeholders, the constraints came from the losses, the annotations came from the DFD, and the findings, chains, cut points, and tests all followed mechanically from the structural patterns. The walkthrough used two sink constraint types (Authority policy and Disclosure policy), seven functional roles, three trust labels, and three fidelity levels. Section 4.2 below provides the complete reference tables — including three additional constraint types and the DFD shape conventions — that a practitioner needs when applying the method to their own system.
-
-Starting from the system's DFD, label every component with a functional role from the roles table (Section 4.2.2) and every arrow with a trust label and fidelity from the flow-labels tables (Section 4.2.3). The result should look like **Figure 3** in the walkthrough — every box named, every arrow labeled.
-
-**Assigning roles — key guidance** (see the roles table in Section 4.2.2 for full definitions):
-* An LLM that only blocks unsafe inputs carries the `«guard»` role; an LLM whose output drives downstream data, routing, or tool selection carries the `«follower»` role.
-* **Draw `«executor»` and `«renderer»` as separate nodes from the `«follower»` that invokes them.** The `«follower» → «executor»` edge is the decision interface, and its *fidelity* (Section 4.2.3) is often the most consequential annotation: if the model emits only a schema-validated enum (`Typed`), the attacker is limited to selecting an incorrect value (a `Meaning` violation, Section 3.1), which closes `Authority`.
-* **Aggregation is structural.** Any process with two or more incoming flows is an aggregation point.
-
-**Unpacking hidden elements (Step 2 checklist).** High-level diagrams often collapse many components into a single "AI service" box. The Trail of Bits attack succeeded precisely because the image downscaler was hidden inside such a box. Before moving to Step 3, verify that your DFD explicitly shows:
-1. **Hidden transforms** — Image downscalers, audio resamplers, video frame samplers, Unicode normalizers, decoders, document splitters. *If something changes the data between input and the model, draw it as a separate box.*
-2. **Perceptual extractors** — OCR, ASR, captioning, or object-detection components that convert one format into another before reasoning. *These stay `Full` fidelity because their output can be steered by adversarial input.*
-3. **Guard placement** — Does human review or content filtering inspect the artifact *before* or *after* a transform? The order matters: a guard that checks the original image is useless against a payload that appears only after downscaling.
-4. **Decision-to-action interfaces** — Every tool connector, query runner, or actuator must be drawn as a separate `«executor»` node, distinct from the `«follower»` (model) that invokes it. This edge is often the single most important annotation.
-5. **Active output consumers** — Any UI, preview console, Markdown renderer, or link unfurler that interprets markup or fetches remote URLs. These can be exploited to exfiltrate data.
-6. **Single-session feedback loops** — Any path where tool outputs, retrieved records, or captured screenshots re-enter the model's ongoing execution cycle.
-
-**Sink constraint types.** The walkthrough used Authority policy (C1) and Disclosure policy (C2). The full set of five types, mapping to the four invariants from Section 3:
-
-| Constraint Type | What It Specifies | Invariant It Protects | Example |
-| :---- | :---- | :---- | :---- |
-| **Authority policy** | Allowed trust labels and permitted actions at an authority sink | Authority | Tool selection comes from trusted principals only; supplier content may influence tools solely via typed invoice fields |
-| **Disclosure policy** | Allowed sensitivity labels and permitted recipients at an egress sink | Confidentiality | Internal records may reach only the ERP system and finance channel; rendered notifications fetch only from allowlisted hosts |
-| **Reference specification** | Ground-truth reference that acted-on values must match | Meaning | Executed payee and amount must match the invoice as read by a human reviewer |
-| **Resource budget** | Maximum operational expenditure per admitted unit | Cost | At most 4,000 characters and 5 seconds per support ticket; at most 50 pages, 60 seconds, and 5 tool calls per invoice |
-| **Safeguard obligation** | Mandatory intervention with an explicit timing or scope bound | Meaning / Authority / Cost | Every abuse or threat ticket must page on-call responders within 1 hour |
-
-**Functional roles and DFD shapes.** The walkthrough defined each role's behavior; the table below adds the standard DFD shape convention for diagramming and broader examples across modalities:
 
 This is the core analytical step. "Walking the diagram" means: find every `«source»` node (the entry points where attacker-controlled input enters the system — identified in Step 2 by asking "which inputs come from outside the trust boundary?") and every constrained sink (the components with sink constraints from Step 1 — where data has consequential effect). Then, for each source-to-sink path, follow every directed arrow and at each node along the path, compare its functional role and the trust/fidelity labels on its flows against the crossing lookup table below. When the annotations match a row in the table — for example, a `«transform»` sits between a `«guard»` and a downstream consumer, or an `Untrusted · Full` flow reaches an `«executor»` — record the crossing. The process follows seven rules (lookup tables and formal rules appear in **Appendix A**).
 
