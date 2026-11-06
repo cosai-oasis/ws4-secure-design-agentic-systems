@@ -627,7 +627,28 @@ flowchart LR
 
 #### End-to-End Walkthrough: Trail of Bits / Gemini CLI
 
-**Step 1 — What must never go wrong.** The developer's private calendar must not leak (L1), and tools must not execute unrequested operations (L2). Two sink constraints follow: `C1` (*Authority policy* on Zapier MCP — tools execute only operations the authenticated user requested) and `C2` (*Disclosure policy* on External Host — calendar entries may reach only the authenticated user).
+**What the practitioner starts with.** Before the method begins, the practitioner needs two things:
+
+1. **A data-flow diagram (DFD) of the system** — the standard kind that application-security teams already draw for STRIDE threat modeling. It shows components (processes, external entities, data stores) and directed flows between them. For the Trail of Bits system, this means: the uploaded image source, the developer who views it, the CLI (which internally includes a downscaler), the model, the Google Calendar store, the Zapier MCP tool connector, and the external host it can reach. At this stage the diagram is *unannotated* — it shows what exists, not what could go wrong.
+2. **Business and security context** — from product owners, security leads, compliance stakeholders, or the system's own documentation. Business context identifies what must never go wrong (private data must not leak, tools must not act without authorization). Security context identifies the trust model and configuration: what permissions exist, what data is sensitive, how components authenticate and authorize. For this system: the developer uses Gemini CLI with a Zapier MCP server configured with `trust=True` (security context — tool calls auto-execute without confirmation), the model can read the developer's private Google Calendar (security context — sensitive data accessible to the model), and the CLI downscales every uploaded image before the model sees it (architectural context — a preprocessing step that changes what the model sees).
+
+The method then transforms these two inputs — a plain architecture diagram and business/security context — into prioritized, testable security findings through four steps.
+
+**Step 1 — What must never go wrong.** This step introduces three concepts and derives them in order. A **stakeholder loss** (termed *adverse impact* in NIST SP 800-30, derived from STPA-Sec's top-down sequence; Young & Leveson, 2013) is an unacceptable business, operational, or physical outcome — the thing that makes an incident matter (leaked data, unauthorized transactions, missed safety alerts). A **sink** is any component where data has a consequential, hard-to-reverse effect — executing a tool call, sending data to an external host, charging a payment, or triggering a physical actuator. A **sink constraint** (analogous to *control objectives* in SP 800-53, but typed and attached to specific pipeline components) is the explicit security rule on a sink that says what it is *allowed* to do: which actions are permitted, which data may pass through, or which recipients may receive output. Every finding the method produces is ultimately a violation of a sink constraint — if no constraint is stated, there is nothing to violate, so the first step is to define them.
+
+The practitioner works through these in order, drawing on the inputs gathered above:
+
+1. **Identify stakeholder losses (from business and security context).** The practitioner asks: *"What outcomes would make this system's operation unacceptable?"* Losses can be business-driven (leaked customer data, unauthorized transactions), security-driven (tools executing unrequested operations, privilege escalation), compliance-driven (regulatory violations), or safety-driven (physical harm). Here, the business context tells us the developer's private calendar is accessible to the model — leaking it is unacceptable (Loss **L1**, a business and compliance concern). The security context tells us the MCP tool can act on the developer's behalf with `trust=True` — tools executing unrequested operations is unacceptable (Loss **L2**, a security concern).
+2. **Find the sinks (from the DFD and architectural context).** The practitioner scans the data-flow diagram for components where data has consequential, hard-to-reverse effect. The architectural context shows that the Zapier MCP connector executes tool calls and that the External Host receives outbound data — both are sinks.
+3. **Write a constraint per sink (from security context + losses).** For each sink, the practitioner writes a rule that prevents one or more losses, informed by the security context (what permissions exist, what trust model is in place). The security context tells us `trust=True` means tool calls auto-execute and there is no outbound recipient restriction — so the practitioner writes: `C1` (*Authority policy* on Zapier MCP — tools execute only operations the authenticated user requested, preventing L2) and `C2` (*Disclosure policy* on External Host — calendar entries may reach only the authenticated user, preventing L1).
+
+**Three rules for writing good constraints.** The Trail of Bits example needed only Authority policy and Disclosure policy, but in complex systems the practitioner should also check:
+
+* **State a safeguard obligation for every safeguard whose job is to intervene.** Attacks that suppress a fraud flag or omit a malicious message from a summary execute no unauthorized tool call — without a liveness bound (e.g. *"within 1 hour"*), a suppressed alert is not a constraint violation and the method cannot detect it.
+* **Record an unconstrained sink as a finding.** If a sink has no constraint, the finding is the missing security requirement itself. For example, if policy lets a client previewer fetch images from any external host, exfiltration via rendered Markdown breaks no stated rule — the missing constraint is the problem.
+* **Tag each constraint with its STRIDE category.** This bridges the method to existing threat modeling: the same `Meaning` divergence can cause Elevation of Privilege, Information Disclosure, or Tampering depending on which sink its path reaches.
+
+**Output of Step 1:** A list of stakeholder losses (L1, L2) and a sink constraint attached to each consequential component on the DFD (C1 on Zapier MCP, C2 on External Host). These constraints are what the rest of the method tests against — every mechanism record in Step 3 names the constraint it violates, and every security test in Step 4 uses a constraint as its pass/fail oracle.
 
 ```mermaid
 %%{init: {"flowchart": {"nodeSpacing": 24, "rankSpacing": 35}}}%%
@@ -646,7 +667,53 @@ flowchart LR
 
 *Figure 2b. The system before annotation — components, data flows, and sink constraints only.*
 
-**Step 2 — Annotate the DFD.** Assign functional roles to each component, and label each flow with a trust label and fidelity. The Aliasing Downscaler — hidden inside a high-level "CLI" box — is unpacked as a separate node:
+**Step 2 — Annotate the DFD.** The practitioner takes the DFD with sink constraints from Step 1, along with the security and architectural context gathered at the start, and adds three layers of annotation. First, the practitioner assigns a **functional role** to each component based on what it does in the pipeline:
+
+- `«source»` — an external entity supplying potentially attacker-controlled inputs
+- `«guard»` — evaluates content and gates downstream flow (a filter, a human reviewer, a threshold check)
+- `«transform»` — deterministically converts an input artifact into a new form (a resizer, normalizer, resampler)
+- `«follower»` — an instruction-following or model-driven process whose output can be steered by input semantics
+- `«executor»` — deterministically executes structured arguments under system authority (a tool runner, API connector, SQL executor)
+- `«receiver»` — an external entity receiving outbound messages or data
+- `«renderer»` — evaluates active output markup or fetches external references in a client or UI
+
+**Edge cases when assigning roles.** The Trail of Bits system had a clean one-role-per-component mapping, but complex systems require additional judgment:
+
+* **LLMs can carry different roles.** An LLM that only blocks unsafe inputs is a `«guard»`; an LLM whose output drives downstream data, routing, or tool selection is a `«follower»`. The same LLM can carry both roles if it both filters and acts — annotate both on the diagram.
+* **Always separate `«executor»` and `«renderer»` from the `«follower»` that invokes them.** The `«follower» → «executor»` edge is the decision interface, and its *fidelity* is often the most consequential annotation: if the model emits only a schema-validated enum (`Typed`), the attacker is limited to selecting an incorrect value (a `Meaning` violation), which closes `Authority`. The Trail of Bits walkthrough showed this with CLI Model → Zapier MCP; in complex systems, apply this separation to every tool connector, query runner, and actuator.
+* **Aggregation is structural.** Any process with two or more incoming flows is an aggregation point — in complex systems, these are where fragmented or composition-dependent attacks converge.
+
+**Unpacking hidden elements.** High-level diagrams often collapse preprocessing, extraction, and rendering into a single "AI service" box. The walkthrough unpacked one hidden component (the Aliasing Downscaler from inside the CLI box). Before moving to Step 3, verify the DFD unpacks all six categories:
+
+1. **Hidden transforms** — Image downscalers, audio resamplers, video frame samplers, Unicode normalizers, decoders, document splitters.
+2. **Perceptual extractors** — OCR, ASR, captioning, or object-detection components that convert one carrier into another before reasoning.
+3. **Guard placement** — Whether human review, content filtering, or schema validation inspects the artifact *before* or *after* a transform.
+4. **Decision-to-action interfaces** — Every tool connector, query runner, router, or actuator, separated from the model that invokes it.
+5. **Active output consumers** — Any UI, preview console, Markdown renderer, or link unfurler that interprets markup or fetches remote URLs.
+6. **Single-session feedback loops** — Any path where tool outputs, retrieved records, or captured screenshots re-enter the ongoing execution cycle.
+
+**Deriving trust boundaries.** A trust boundary falls automatically across every flow whose propagated label changes or violates the receiving sink's policy; any mismatch with an architect's intuition highlights an unexamined trust assumption.
+
+Second, for each directed flow between components, the practitioner assigns two labels:
+
+- **Trust label** — *who controls this data?* The practitioner asks: "Could an attacker influence this flow?" If yes, it is `Untrusted` (e.g. user-uploaded content, external API responses). If it is verified system configuration or an authenticated user instruction, it is `Trusted`. If it carries confidential data that must not leave its permitted scope, it is `Secret`. When a component has multiple inputs, the practitioner propagates the least-trusted and most-secret labels to its output — this is a mechanical rule, not a judgment call.
+- **Fidelity** — *how much of the raw artifact does this flow preserve?* The practitioner asks: "Has a deterministic transform stripped hidden channels from this flow?" If no, it is `Full` (the raw carrier passes through intact, including hidden channels like zero-width characters or image metadata). If a deterministic transform has stripped hidden channels (e.g. anti-aliased resampling), it is `Normalized`. If schema validation narrows the output to a fixed set of values (e.g. an enum), it is `Typed`. Fidelity determines which attack representations can survive to the next component.
+
+This labeling is **static information flow analysis at the architecture level** — the practitioner reasons about what *could* flow where based on the system's design topology, not by instrumenting running code. The propagation rule (least-trusted and most-secret labels flow forward through the graph) resembles runtime taint tracking, but the mechanism is different: taint tracking tags values in memory and propagates tags dynamically as code executes, whereas here the practitioner walks a DFD and assigns labels by hand before anything runs. No tooling or runtime instrumentation is required — a whiteboard and the rules above are sufficient. What *can* strip a label is also determined statically from the diagram: a `«guard»` that blocks untrusted content strips the `Untrusted` label from downstream flows, a deterministic normalizing `«transform»` downgrades fidelity from `Full` to `Normalized`, and schema validation downgrades it to `Typed`.
+
+Applying these rules to the Trail of Bits system, the practitioner first assigns roles. The architectural context tells us what each component does — the practitioner matches that behavior to the role definitions:
+
+- **Uploaded Image** → `«source»` (external entity supplying attacker-controlled input)
+- **Developer** → `«guard»` (evaluates the image visually before it enters the pipeline — a human reviewer gating downstream flow)
+- **Aliasing Downscaler** → `«transform»` (deterministically converts the image to a lower resolution — the architectural context reveals this was hidden inside a "CLI" box and must be unpacked as a separate node)
+- **CLI Model** → `«follower»` (instruction-following model whose output can be steered by input semantics)
+- **Zapier MCP** → `«executor»` (deterministically executes tool calls under system authority)
+- **External Host** → `«receiver»` (external entity receiving outbound data)
+- **Google Calendar** → data store (persists state read across execution steps)
+
+Next, the practitioner labels each flow. The uploaded image flow is `Untrusted` (attacker-controlled) and `Full` (raw pixels, including any hidden content). The Google Calendar store flow is `Secret` (private data) and `Full` (complete calendar entries). After the CLI Model processes both inputs, its output to Zapier MCP carries both labels — `Untrusted, Secret · Full` — because the model's output is influenced by untrusted input and contains secret data, and neither label has been stripped by a guard or transform.
+
+The resulting annotated diagram, with the Aliasing Downscaler unpacked as a separate node:
 
 ```mermaid
 %%{init: {"flowchart": {"nodeSpacing": 24, "rankSpacing": 35}}}%%
@@ -668,7 +735,73 @@ flowchart LR
 
 *Figure 3. The same system, fully annotated — each node has a functional role, each flow has a trust label and fidelity.*
 
-**Step 3 — Derive findings.** Walk the annotated diagram, match structural patterns, and emit mechanism records:
+**Output of Step 2:** An annotated data-flow diagram where every component has a functional role (e.g. `«source»`, `«guard»`, `«transform»`, `«follower»`, `«executor»`, `«receiver»`) and every flow has a trust label (`Untrusted`, `Trusted`, or `Secret`) and fidelity (`Full`, `Normalized`, or `Typed`). Hidden components like the Aliasing Downscaler are unpacked as separate nodes. This annotated diagram is what Step 3 walks to derive findings — the roles and labels are the inputs to the structural pattern matching.
+
+**Step 3 — Derive findings.** The practitioner takes two inputs from the previous steps: the annotated DFD from Step 2 (with functional roles, trust labels, and fidelity on every component and flow) and the sink constraints from Step 1 (which identify the constrained sinks that define where paths must be traced to).
+
+The core tool for this step is the **structural pattern lookup table**. This table is **provided by the method** — the practitioner does not create it. It was derived from the taxonomy's Invariant × Divergence matrix (Section 3) by identifying how each cell in that matrix manifests as a recognizable node-role and flow-label combination on a DFD. Each row is an if-then rule: *if* you see this topology on the annotated diagram, *then* it produces this specific security **crossing**. A crossing is a point on the DFD where a security property (an invariant from Section 3 — Meaning, Authority, Confidentiality, or Cost) breaks because two components that should agree on the same artifact, decision, or data scope actually diverge. Each crossing is classified by *which* invariant breaks and *why* the divergence occurs — the Invariant × Divergence pair. For example, the row "A `«transform»` modifies the artifact between an upstream `«guard»` and downstream consumption → Meaning × Artifact State" means: whenever the practitioner sees a `«guard»` followed by a `«transform»` followed by a consumer on the diagram, the method says the guard and the consumer may be reading different versions of the same artifact — the transform changed it in between, so the meaning may have diverged.
+
+The practitioner does not brainstorm what could go wrong; instead, they walk the diagram and check each node against the table. If the topology around a node matches a row, that row tells the practitioner exactly which crossing it produces. The full table (twelve patterns covering all four invariants) appears in Section 4.3.3; the three patterns relevant to the Trail of Bits system are:
+
+| Structural Pattern on the Path | Derived Crossing |
+| :---- | :---- |
+| A `«transform»` modifies the artifact between an upstream `«guard»` and downstream consumption | Meaning × Artifact State |
+| An `Untrusted · Full` flow reaches an `«executor»` with an authority policy | Authority × Position |
+| A `Secret` flow reaches a `«receiver»` outside its disclosure policy | Confidentiality × Position |
+
+The practitioner walks the annotated diagram from each source to each constrained sink, and at every node checks whether its role and the surrounding flow labels match one of these patterns. Each match emits one mechanism record. In this system there is one path — `Uploaded Image → Developer → Aliasing Downscaler → CLI Model → Zapier MCP [C1] → External Host [C2]` — plus one secret store feeding into it (`Google Calendar → CLI Model`). The diagram below shows where each pattern fires along the path:
+
+```mermaid
+%%{init: {"flowchart": {"nodeSpacing": 30, "rankSpacing": 40}}}%%
+flowchart LR
+    SRC["Uploaded Image<br/>«source»"]:::src
+    USR{{"Developer<br/>«guard»"}}:::guard
+    DSC(["Aliasing Downscaler<br/>«transform»"]):::xform
+    LLM(["CLI Model<br/>«follower»"]):::follower
+    CAL[("Google Calendar<br/>(secret)")]:::store
+    MCP(["Zapier MCP<br/>«executor» [C1]"]):::executor
+    EXT["External Host<br/>«receiver» [C2]"]:::receiver
+
+    SRC -- "untrusted · full" --> USR
+    USR -- "untrusted · full" --> DSC
+    DSC -- "untrusted · full" --> LLM
+    CAL -- "secret · full" --> LLM
+    LLM -- "untrusted, secret · full" --> MCP
+    MCP -- "secret · full" --> EXT
+
+    DSC -.- M1["⚡ M1: Pattern match<br/>«guard» → «transform» → consumer<br/>= Meaning × Artifact State<br/><i>Supplied</i>"]:::finding_s
+    MCP -.- M2["⚡ M2: Pattern match<br/>Untrusted·Full → «executor» with policy<br/>= Authority × Position<br/><i>Granted</i>"]:::finding_g
+    EXT -.- M3["⚡ M3: Pattern match<br/>Secret → «receiver» outside policy<br/>= Confidentiality × Position<br/><i>Granted</i>"]:::finding_g
+
+    classDef src fill:#fee2e2,stroke:#dc2626,stroke-width:1.5px,color:#7f1d1d
+    classDef guard fill:#e5e7eb,stroke:#6b7280,stroke-width:1.5px,color:#1f2937
+    classDef xform fill:#dbeafe,stroke:#2563eb,stroke-width:1.5px,color:#1e3a5f
+    classDef follower fill:#fef3c7,stroke:#d97706,stroke-width:1.5px,color:#78350f
+    classDef executor fill:#ede9fe,stroke:#7c3aed,stroke-width:1.5px,color:#3b0764
+    classDef store fill:#f3e8ff,stroke:#7c3aed,stroke-width:1.5px,color:#3b0764
+    classDef receiver fill:#fee2e2,stroke:#dc2626,stroke-width:1.5px,color:#7f1d1d
+    classDef finding_s fill:#fef2f2,stroke:#dc2626,stroke-width:2px,stroke-dasharray:4 2,color:#7f1d1d
+    classDef finding_g fill:#fffbeb,stroke:#d97706,stroke-width:2px,stroke-dasharray:4 2,color:#78350f
+```
+
+*Figure 3a. Step 3 pattern matching. Each dashed callout shows the structural pattern that fires at that node, the derived crossing, and whether the leg is Supplied (crimson — attacker must do work) or Granted (amber — architecture permits it for free).*
+
+Walking that path node by node:
+
+1. **At the Aliasing Downscaler (`«transform»`):** The Developer (`«guard»`) inspects the image *before* the downscaler, but the CLI Model (`«follower»`) consumes the image *after* it. This matches the structural pattern *"a `«transform»` modifies the artifact between an upstream `«guard»` and downstream consumption"* → **Meaning × Artifact State** (Transform Consistency). Next, the practitioner checks which **representation forms survive** to this crossing by looking at the flow's fidelity. The flow is `Untrusted · Full`, meaning the raw carrier passes through intact — so steganographic content (hidden pixels) survives the transform and becomes an overt prompt after downscaling. (If the flow were `Normalized`, steganographic forms would have been stripped; if `Typed`, only overt semantic payloads limited to the schema's values could survive. The full representation survival table is in **Section 3.4.1, Table 2**.) The Developer's visual check is a deployed `«guard»`, so the attacker must actively craft an image that evades it — this crossing is **Supplied** (the attacker does real work to get past a defense). That gives record **M1**.
+
+2. **At the CLI Model → Zapier MCP edge (`«follower»` → `«executor»`):** The flow arriving at the `«executor»` carries the `Untrusted` label (propagated from the image) and `Full` fidelity (the model emits free-form tool calls, not a schema-validated enum). The executor has authority policy C1. This matches *"an `Untrusted · Full` flow reaches an `«executor»` with an authority policy"* → **Authority × Position** (Decision-Action). Is there any `«guard»` between the `«follower»` and the `«executor»` that the attacker must bypass? No — `trust=True` means tool calls execute automatically with no confirmation step. The architecture permits this crossing unconditionally, so the leg is **Granted** (the attacker gets it for free). That gives record **M2**.
+
+3. **At the External Host (`«receiver»`):** The flow arriving here carries the `Secret` label (propagated from the Google Calendar store through the CLI Model and Zapier MCP) and reaches a receiver outside C2's disclosure policy. This matches *"a `Secret` flow reaches a `«receiver»` outside its disclosure policy"* → **Confidentiality × Position** (Context Confinement). Is there any `«guard»` restricting which recipients the MCP tool can send to? No — there is no outbound allowlist or DLP filter. Again, the architecture permits this crossing unconditionally, so the leg is **Granted**. That gives record **M3**.
+
+After identifying each crossing, the practitioner classifies it as **Supplied** or **Granted**. This classification answers a specific question: *"Does the attacker have to do any work to get past this point, or does the architecture let them through for free?"* The practitioner determines this by checking whether a deployed `«guard»` exists at the crossing that the attacker must actively bypass:
+
+- **Supplied** — a `«guard»` is present and the attacker must do real work to evade it (e.g. crafting a steganographic image to fool a human reviewer). The defense may be imperfect, but it raises the cost of attack.
+- **Granted** — no `«guard»` exists at this crossing, so the architecture permits it unconditionally (e.g. `trust=True` auto-approves tool calls with no confirmation step). The attacker gets this leg for free.
+
+This classification exists to **drive remediation priority**. Granted legs are the highest-value fixes because the architecture is giving the attacker something for nothing — adding a guard at a granted leg converts it to supplied, forcing the attacker to do work where they previously had a free pass. In a chain where most legs are granted, the system is doing most of the work for the attacker.
+
+The practitioner emits **one mechanism record per crossing** — even when a single payload triggers multiple crossings, each gets its own record. This keeps chain lengths comparable across architectures and ensures each crossing maps to its own cut point and test. The resulting mechanism records:
 
 | ID | What Broke | Why | How Payload Travels | Where | Sink | Attacker Effort | Fixable? |
 | :---- | :---- | :---- | :---- | :---- | :---- | :---- | :---- |
@@ -676,7 +809,17 @@ flowchart LR
 | M2 | Authority | Position | Overt Semantic | CLI Model → Zapier MCP | C1 | **Granted** (trust=True) | Yes |
 | M3 | Confidentiality | Position | Overt Semantic | External Host | C2 | **Granted** (no outbound restriction) | Yes |
 
-The three records form one attack chain: `M1 (Supplied) → M2 (Granted) → M3 (Granted)`. Each step in the chain is a **leg** — one required crossing that must hold for the full attack to succeed. A leg is **granted** when the architecture permits it unconditionally (the attacker gets it for free), and **supplied** when the attacker must actively bypass a defense. In this chain, the attacker supplies one leg (M1: crafting the hidden-pixel image) and the architecture grants two for free (M2: `trust=True` auto-approves tool calls; M3: no outbound recipient restriction). **Fix granted legs first** — they cost zero attacker effort. Now identify the **cut points** — the places in the pipeline where one change breaks the chain. Think of it as asking: "Where can I cut the path between the attacker and the sink?" Each row below is one such place:
+The practitioner now assembles the individual records into **attack chains**. Records link into a chain when one crossing's postcondition enables the next — here, M1's postcondition (the model receives an injected instruction) is the precondition for M2 (the model issues an unauthorized tool call), and M2's postcondition (the tool call executes) is the precondition for M3 (secret data reaches the external host). The three records form one attack chain: `M1 (Supplied) → M2 (Granted) → M3 (Granted)`. The full attack succeeds only when *every* leg holds. Reading the chain's supplied-vs-granted ratio: the attacker supplies one leg (M1) and the architecture grants two for free (M2, M3) — so the system is doing most of the work for the attacker. This tells the practitioner to prioritize M2 and M3 for remediation.
+
+Finally, the practitioner identifies **cut points**. A cut point is a place in the pipeline where a single architectural change breaks an attack chain — it "cuts" the path so the attack can no longer flow from source to sink. Because the full attack succeeds only when *every* leg holds, breaking *any one* leg is sufficient to stop the chain.
+
+To find the cut points, the practitioner looks at each mechanism record in the chain and asks: *"What change at this crossing would prevent it from holding?"* The answer comes directly from the crossing's type and the flow annotations:
+
+- **M1 (Meaning × Artifact State at the Downscaler):** The crossing holds because the aliasing downscaler preserves the steganographic channel — the flow stays `Full`. What would prevent it? Replacing the downscaler with an anti-aliased one that strips hidden channels, downgrading the flow fidelity from `Full` to `Normalized`. That removes the steganographic representation the attacker depends on.
+- **M2 (Authority × Position at Zapier MCP):** The crossing holds because no `«guard»` exists between the `«follower»` and the `«executor»` — `trust=True` auto-approves. What would prevent it? Adding a user confirmation step that binds approval to specific tool arguments, inserting a `«guard»` where none exists today.
+- **M3 (Confidentiality × Position at External Host):** The crossing holds because no restriction limits which recipients the MCP tool can send to. What would prevent it? Adding an outbound recipient allowlist that enforces the disclosure policy (C2).
+
+Each answer is a cut point:
 
 | Cut Point | What to Change | Effect |
 | :---- | :---- | :---- |
@@ -684,7 +827,68 @@ The three records form one attack chain: `M1 (Supplied) → M2 (Granted) → M3 
 | User confirmation on tool calls | Bind confirmation to specific arguments | Breaks M2 |
 | Outbound recipient allowlist | Restrict who MCP can send to | Breaks M3 |
 
-**Step 4 — Security tests.** Each chain maps to a test whose pass/fail oracle is the sink constraint:
+The practitioner uses cut points to **decide what to fix and in what order**. The supplied-vs-granted classification from earlier directly informs this: granted cut points (M2, M3) are the highest-priority fixes because they require zero attacker effort today — the architecture is giving the attacker a free pass. Adding user confirmation on tool calls (breaking M2) or an outbound recipient allowlist (breaking M3) each independently stops the full chain, and either one is a configuration change rather than a complex engineering effort. The supplied cut point (M1 — replacing the downscaler) is lower priority because the attacker already has to do real work there. In practice, the practitioner would present this table to engineering and security leadership as: *"Any one of these three changes stops the attack. Two of them are configuration-level fixes for legs the architecture currently gives away for free — start there."*
+
+As a final check, the practitioner **verifies annotation coverage**: every process, flow, and sink on the DFD should be annotated and accounted for. Any element that produces zero crossings should be flagged with a structural reason (*`relay` node, trusted and unreachable, within sink constraint, or out of scope*). An unannotated element is a specification gap — and an omitted flow means an omitted chain. In this system: every node has a role, every flow has a trust label and fidelity, both sinks have constraints, three crossings were derived, and all three are realizable.
+
+**Output of Step 3:** Three mechanism records (M1–M3), one attack chain linking them with supplied-vs-granted legs, three cut points where a single architectural change breaks the chain, and a coverage verification confirming every element is accounted for. Together these tell the practitioner *what* is broken, *where* it is broken, *how much work* the attacker needs, and *where to fix it* — all derived from the annotated diagram rather than brainstormed.
+
+**Step 4 — Security tests.** Step 3 produced an analysis of what *could* go wrong based on the diagram — but the diagram is a model of the system, not the system itself. The architecture could behave differently than drawn, a defense that looks absent on paper might exist in the implementation, or the practitioner could have annotated a flow incorrectly. Step 4 bridges the gap from theoretical analysis to empirical verification: it turns each attack chain into a **falsifiable security test** — a test with a binary, unambiguous outcome (pass or fail) determined by a concrete criterion, not subjective judgment. Unlike a finding that says "this looks risky," a falsifiable test can be run against the real system and the result speaks for itself: either the sink constraint was violated or it was not. Without Step 4, the practitioner has findings on paper; with Step 4, they have a test plan they can hand to a red team, run in CI, or use to verify that a cut-point fix actually works.
+
+The practitioner takes two inputs from the previous steps: the attack chains with their mechanism records from Step 3, and the sink constraints from Step 1. The goal is to produce tests that either pass or fail against the running system, with no ambiguity about the verdict.
+
+For each test, the practitioner needs two things: a **setup** (what to do) and a **pass/fail oracle** (how to judge the result). Both come directly from the chain and the constraints:
+
+- The **setup** comes from the mechanism record's representation — it tells the practitioner what kind of payload to construct. M1's representation is `Steganographic → Overt Semantic`, so the setup is: upload an image whose downscaled form carries a hidden tool directive.
+- The **pass/fail oracle** comes from the sink constraint — the test fails if the constraint is violated. C1 says tools execute only operations the user requested; C2 says calendar entries reach only the authenticated user. If either is violated, the test fails.
+
+The practitioner also **decomposes the chain** so each leg can be tested independently. Rather than only testing the full chain end-to-end (which could mask which specific defense failed), the practitioner creates one test per leg. For legs that depend on earlier legs in the chain, the test *assumes the prior legs succeeded* and tests only whether the current leg holds. This isolates exactly which defenses work and which do not:
+
+- **T1 (full chain):** Tests whether M1 alone can trigger the full attack — does a crafted image lead all the way to data exfiltration?
+- **T2 (M2 in isolation):** Assumes M1 succeeded (the model has already received an injected instruction) — does the tool call require confirmation, or does `trust=True` let it execute automatically?
+- **T3 (M3 in isolation):** Assumes M1 and M2 succeeded (the tool call has executed) — can calendar data reach an arbitrary external host, or does an allowlist restrict recipients?
+
+The diagram below shows how the attack chain from Step 3 decomposes into independent tests, and where each test's setup and oracle come from:
+
+```mermaid
+%%{init: {"flowchart": {"nodeSpacing": 20, "rankSpacing": 50}}}%%
+flowchart TD
+    subgraph STEP3["From Step 3: Attack Chain"]
+        direction LR
+        M1["M1: Meaning ×<br/>Artifact State<br/><i>Supplied</i>"]:::supplied
+        M2["M2: Authority ×<br/>Position<br/><i>Granted</i>"]:::granted
+        M3["M3: Confidentiality ×<br/>Position<br/><i>Granted</i>"]:::granted
+        M1 --> M2 --> M3
+    end
+
+    subgraph STEP1["From Step 1: Sink Constraints"]
+        direction LR
+        C1["C1: Authority policy<br/>on Zapier MCP"]:::constraint
+        C2["C2: Disclosure policy<br/>on External Host"]:::constraint
+    end
+
+    subgraph TESTS["Step 4: Decomposed Tests"]
+        direction LR
+        T1["<b>T1: Full chain</b><br/>Setup: craft steganographic image<br/>Oracle: C1 or C2 violated?"]:::test
+        T2["<b>T2: M2 in isolation</b><br/>Setup: assume injected instruction<br/>Oracle: C1 violated?"]:::test
+        T3["<b>T3: M3 in isolation</b><br/>Setup: assume tool call executed<br/>Oracle: C2 violated?"]:::test
+    end
+
+    M1 -. "representation<br/>→ setup" .-> T1
+    M2 -. "representation<br/>→ setup" .-> T2
+    M3 -. "representation<br/>→ setup" .-> T3
+    C1 -. "oracle" .-> T1
+    C1 -. "oracle" .-> T2
+    C2 -. "oracle" .-> T1
+    C2 -. "oracle" .-> T3
+
+    classDef supplied fill:#fee2e2,stroke:#dc2626,stroke-width:2px,color:#7f1d1d
+    classDef granted fill:#fef3c7,stroke:#d97706,stroke-width:2px,stroke-dasharray:5 3,color:#78350f
+    classDef constraint fill:#dbeafe,stroke:#2563eb,stroke-width:1.5px,color:#1e3a5f
+    classDef test fill:#f0fdf4,stroke:#16a34a,stroke-width:2px,color:#14532d
+```
+
+*Figure 3c. Step 4 test derivation. Each mechanism record's representation determines the test setup (dashed lines from the chain). Each sink constraint provides the pass/fail oracle (dashed lines from Step 1). T1 tests the full chain; T2 and T3 isolate individual legs by assuming prior legs succeeded.*
 
 | Test | Setup | Fails If... |
 | :---- | :---- | :---- |
@@ -692,15 +896,26 @@ The three records form one attack chain: `M1 (Supplied) → M2 (Granted) → M3 
 | T2 | Assume M1 succeeded — does the tool call require confirmation? | Tool call executes without confirmation (C1 violated) |
 | T3 | Assume M1+M2 succeeded — can calendar data reach an arbitrary host? | Calendar data reaches a host outside the allowlist (C2 violated) |
 
-**That is the complete method applied end-to-end.** Three mechanism records, one chain with granted-vs-supplied legs, three cut points, three tests — all derived systematically from the annotated diagram. The subsections that follow define each component of the method in detail.
+**Output of Step 4:** A set of falsifiable security tests (T1–T3), each with a concrete setup derived from the mechanism record's representation and a pass/fail oracle tied directly to a sink constraint. The tests decompose the chain so each leg is tested independently — if T1 fails but T2 passes after a fix, the practitioner knows the confirmation gate (M2's cut point) is working. This gives the practitioner not just a yes/no on the full attack, but a leg-by-leg diagnostic of which defenses hold and which do not.
+
+**What the practitioner walks away with.** After applying the four steps to the Trail of Bits / Gemini CLI system, the security practitioner has:
+
+1. **Two stakeholder losses** (L1, L2) and **two sink constraints** (C1, C2) — the system's security requirements, stated explicitly and attached to specific components.
+2. **An annotated data-flow diagram** (Figure 3) — every component has a functional role, every flow has trust and fidelity labels, and hidden components (the downscaler) are unpacked.
+3. **Three mechanism records** (M1–M3) — each one names what broke, why, where on the diagram, and how much attacker effort it requires.
+4. **One attack chain** with a supplied-vs-granted breakdown — showing that two of three legs are free for the attacker, so the system is doing most of the work.
+5. **Three cut points** — the minimum set of architectural changes that break the chain, prioritized by attacker effort (fix granted legs first).
+6. **Three security tests** (T1–T3) — falsifiable, with concrete setups and pass/fail oracles tied to sink constraints, decomposed so each leg can be tested independently.
+
+None of this required brainstorming what could go wrong. The losses came from stakeholders, the constraints came from the losses, the annotations came from the DFD, and the findings, chains, cut points, and tests all followed mechanically from the structural patterns. The walkthrough used two sink constraint types (Authority policy and Disclosure policy), seven functional roles, three trust labels, and three fidelity levels. Section 4.2 below provides the complete reference tables — including three additional constraint types and the DFD shape conventions — that a practitioner needs when applying the method to their own system.
 
 ---
 
-### 4.2 The Annotation Vocabulary
+### 4.2 Annotation Vocabulary Reference
 
-Application-security architects already model systems with standard data-flow diagrams (DFDs) composed of external entities, processes, data stores, and data flows (Shostack, 2014). This method keeps the standard DFD and adds three lightweight annotations. The end-to-end walkthrough above used all of them; the tables below define them formally.
+The walkthrough above introduced sink constraints, functional roles, trust labels, and flow fidelity in the context of one system. This section provides the complete vocabulary as reference tables for practitioners annotating their own architectures. Definitions that appeared in the walkthrough are not repeated; the tables below extend them with the full set of options, DFD shape conventions, and broader examples across modalities.
 
-**Sink constraints** are explicit security rules on components where data has consequential effect. Five types map to the four invariants from Section 3:
+**Sink constraint types.** The walkthrough used Authority policy (C1) and Disclosure policy (C2). The full set of five types, mapping to the four invariants from Section 3:
 
 | Constraint Type | What It Specifies | Invariant It Protects | Example |
 | :---- | :---- | :---- | :---- |
@@ -710,117 +925,53 @@ Application-security architects already model systems with standard data-flow di
 | **Resource budget** | Maximum operational expenditure per admitted unit | Cost | At most 4,000 characters and 5 seconds per support ticket; at most 50 pages, 60 seconds, and 5 tool calls per invoice |
 | **Safeguard obligation** | Mandatory intervention with an explicit timing or scope bound | Meaning / Authority / Cost | Every abuse or threat ticket must page on-call responders within 1 hour |
 
-**Functional roles** describe how each component behaves in the pipeline. Standard DFDs distinguish processes, external entities, and data stores; this method refines them for AI pipelines because security-critical failures happen *between* components (downscalers, guardrails, tool executors, renderers) that standard process types do not differentiate:
+**Functional roles and DFD shapes.** The walkthrough defined each role's behavior; the table below adds the standard DFD shape convention for diagramming and broader examples across modalities:
 
-| Role | DFD Shape | What It Does | Example | Trail of Bits (Figure 3) |
-| :---- | :---- | :---- | :---- | :---- |
-| **`«source»`** | Rectangle `[ ]` | External entity supplying potentially attacker-controlled inputs | Email sender, uploaded screenshot, telephony caller, physical camera scene | Uploaded Image |
-| **`«receiver»`** | Rectangle `[ ]` | External entity receiving outbound messages or physical side effects | Customer email recipient, external webhook host, brake actuator | External Host |
-| **Data store** | Cylinder `[( )]` | Persists state read or mutated across execution steps | CRM database, calendar store, internal ticket header | Google Calendar |
-| **`«guard»`** | Hexagon `{{ }}` | Evaluates content and gates downstream flow or triggers a required alert | Text prompt filter, human approver, threshold gate, on-call abuse pager | Developer (views full-res image) |
-| **`«transform»`** | Rounded `([ ])` | Deterministically converts an input artifact into a new form | Image resizer, Unicode normalizer, audio resampler, OCR or ASR extractor | Aliasing Downscaler |
-| **`«follower»`** | Rounded `([ ])` | Instruction-following or model-driven process whose output can be steered by input semantics | Agent orchestrator, triage classifier, field extractor, VLM planner | CLI Model |
-| **`«executor»`** | Rounded `([ ])` | Deterministically executes structured arguments under system authority | Queue router, payment API connector, MCP tool runner, SQL executor | Zapier MCP |
-| **`«renderer»`** | Rounded `([ ])` | Evaluates active output markup or fetches external references in a client or UI | Staff HTML previewer, Markdown renderer, link unfurler | — (not in this system) |
-| **`«relay»`** | Rounded `([ ])` | Passes raw bytes or typed values through unchanged | Audit log archive, encrypted transport passthrough | — (not in this system) |
+| Role | DFD Shape | Example Beyond Trail of Bits |
+| :---- | :---- | :---- |
+| **`«source»`** | Rectangle `[ ]` | Email sender, telephony caller, physical camera scene |
+| **`«receiver»`** | Rectangle `[ ]` | Customer email recipient, brake actuator |
+| **Data store** | Cylinder `[( )]` | CRM database, internal ticket header |
+| **`«guard»`** | Hexagon `{{ }}` | Text prompt filter, threshold gate, on-call abuse pager |
+| **`«transform»`** | Rounded `([ ])` | Unicode normalizer, audio resampler, OCR or ASR extractor |
+| **`«follower»`** | Rounded `([ ])` | Agent orchestrator, triage classifier, VLM planner |
+| **`«executor»`** | Rounded `([ ])` | Payment API connector, SQL executor |
+| **`«renderer»`** | Rounded `([ ])` | Staff HTML previewer, Markdown renderer, link unfurler |
+| **`«relay»`** | Rounded `([ ])` | Audit log archive, encrypted transport passthrough |
 
-**Trust labels** record who controls each data flow:
+**Trust labels and flow fidelity.** The walkthrough defined all three trust labels (`Untrusted`, `Trusted`, `Secret`) and all three fidelity levels (`Full`, `Normalized`, `Typed`) with their assignment rules and propagation logic. Two additional precision rules for fidelity:
 
-| Label | Meaning | Example | Trail of Bits (Figure 3) |
-| :---- | :---- | :---- | :---- |
-| **`Untrusted`** | Potentially attacker-controlled | Customer ticket, fetched web page, uploaded screenshot | Uploaded Image → Developer → Downscaler → CLI Model |
-| **`Trusted`** | Verified system configuration or authenticated user instruction | System prompt, admin configuration | — (no trusted flow in this system) |
-| **`Secret`** | Confidential data that must not leave its permitted scope | Internal fraud header, private calendar, vendor financials | Google Calendar → CLI Model |
-
-A process with multiple inputs propagates the *least-trusted* (`Untrusted`) and *most-secret* (`Secret`) labels among its inputs.
-
-**Flow fidelity** records how much of the raw artifact a flow preserves (defined in Section 3.4.1, applied here as a DFD annotation):
-
-| Fidelity | What It Preserves | Example | Trail of Bits (Figure 3) |
-| :---- | :---- | :---- | :---- |
-| **`Full`** | The raw carrier, including hidden channels an ordinary viewer skips; also outputs of model-based extractors (OCR, ASR) | Raw Unicode with zero-width chars; raw pixels with EXIF; full audio spectrum | Every flow in this system (Downscaler output stays `Full` — aliasing, not anti-aliasing) |
-| **`Normalized`** | Only features an ordinary human perceives, after a deterministic transform strips hidden channels | Canonicalized Unicode; anti-aliased resampled image; band-limited audio | — (would apply if the downscaler used anti-aliasing) |
-| **`Typed`** | A narrow schema-enforced value | Fixed enum (`{billing, technical, abuse, ...}`), bounded number, allowlisted ID | — (no schema-enforced output in this system) |
-
-Only a **deterministic** transform grants `Normalized` fidelity (aliasing downscalers stay `Full`; model-based extractors like OCR stay `Full`). Only **schema validation** grants `Typed`.
+- Only a **deterministic** transform grants `Normalized` fidelity — aliasing downscalers stay `Full` because they introduce artifacts rather than stripping hidden channels; model-based extractors like OCR also stay `Full` because their output can be steered by adversarial input.
+- Only **schema validation** grants `Typed` fidelity — the output must be constrained to a fixed enum, bounded number, or allowlisted identifier.
 
 ---
 
-### 4.3 The Four Steps in Detail
+### 4.3 Advanced Guidance and Complete Reference
 
-The end-to-end walkthrough in Section 4.1 showed the method's input, process, and output on a simple system. This subsection defines each step's rules, guidance, and governance — the detail a practitioner needs to apply the method to their own architecture.
+The walkthrough in Section 4.1 taught the method end-to-end on a simple pipeline. This section collects the rules, edge-case guidance, formal tables, and additional procedures that a practitioner needs when applying the method to more complex architectures. It is organized by topic rather than by step.
 
-#### 4.3.1 Step 1: Sink Constraints
+#### 4.3.1 Complete Structural Pattern Lookup Table
 
-Following STPA-Sec's top-down sequence (Young & Leveson, 2013), the analyst derives the sink constraints defined above in three substeps:
+The walkthrough introduced the lookup table concept and used three patterns. The complete table covers twelve patterns across all four invariants (full formal rules in **Appendix A, Table A.1**). A sink's *Reference specification* is the evaluation baseline and generates crossings for `Meaning` reference constraints (**Appendix A.2**).
 
-1. **Stakeholder losses** (termed *adverse impacts* or *business consequences* in risk-management frameworks)**:** Unacceptable business, operational, or physical outcomes (for example, *unauthorized wire transfers, leaked confidential records, unreviewed fraud or abuse reports, or physical collision with a pedestrian*).
-2. **System hazards** (termed *threat scenarios* or *risk scenarios* in traditional threat modeling)**:** System-level states or outputs that precipitate a loss (for example, *a payment executes with terms differing from an approved invoice, sensitive context reaches an unapproved recipient, or a high-risk item bypasses human review*).
-3. **Per-sink constraints** (analogous to *security requirements* or *control objectives* in SP 800-53, but typed and attached to specific pipeline components)**:** Attach one or more constraints from the sink-constraint table above to each authority, egress, susceptible, and safeguard sink on the DFD. Because agents often exist specifically to process untrusted inputs (such as supplier invoices or support tickets), the **Authority policy** on an authority sink states *which choices* stay reserved for trusted principals and *through which narrowed types* it may legitimately act, while its **Reference specification** defines the ground-truth source that acted-on values must match.
+| Structural Pattern on the Path | Derived Crossing | Named Subclass |
+| :---- | :---- | :---- |
+| A `«transform»` modifies the artifact between an upstream `«guard»` and downstream consumption | Meaning × Artifact State | Transform Consistency |
+| A `«guard»` inspects fewer modalities than the downstream `«follower»` processes | Meaning × Evaluator | Guard-Model Capability |
+| A `«guard»` and a downstream consumer inspect different parallel parses of the same artifact | Meaning × Evaluator | Parser/Interpreter Differential |
+| Guards inspect individual flows separately before a downstream process aggregates them | Meaning × Artifact State | Transform Consistency (aggregation) |
+| An upstream `«guard»` validates a data store at time *t*; a downstream consumer re-reads it at *t+Δ* | Meaning × Time | Check-Use Consistency |
+| A permission grant remains active after its task window or revocation | Authority × Time | Grant Persistence |
+| An `Untrusted · Full` flow reaches an `«executor»` with an authority policy | Authority × Position | Data-Control / Decision-Action |
+| A `Secret` flow reaches a `«receiver»` outside its disclosure policy | Confidentiality × Position | Context Confinement |
+| A `«renderer»` auto-fetches external URLs from generated content | Confidentiality × Position | Output-Consumer |
+| A `«follower»` controls whether a safeguard fires | Authority × Position | Safeguard obligation breach |
+| A susceptible sink's resource expenditure is unbounded by its admission check | Cost × Evaluator | Resource Accounting |
+| Two evaluators read the same artifact differently where a sink's reference specification relies on agreement | Meaning × Evaluator | Human-Machine Perception |
 
-Three rules govern Step 1:
+#### 4.3.2 Mechanism Record Format and Evidence Maturity
 
-* **State an explicit safeguard obligation for every safeguard whose job is to intervene.** Attacks that suppress a fraud flag or omit a malicious message from a summary execute no unauthorized tool call. A liveness bound on the safeguard sink (for example, *"within 1 hour"*) is what makes a suppressed alert a violation.
-* **Record an unconstrained sink as an architectural finding.** If policy lets a client previewer fetch images from any external host, exfiltration via rendered Markdown breaks no stated rule; the finding is the missing security requirement.
-* **Classify each hazard with STRIDE.** Each sink constraint carries the STRIDE category of the hazard it prevents, so the same `Meaning` divergence can cause Elevation of Privilege, Information Disclosure, or Tampering depending on which sink its path reaches.
-
-#### 4.3.2 Step 2: Annotated Data-Flow Diagram
-
-Starting from the system's DFD, the analyst assigns a functional role from the roles table above to each process and external entity, and annotates each directed flow with a trust label and fidelity.
-
-**Assigning roles — key guidance:**
-* An LLM that only blocks unsafe inputs carries the `«guard»` role; an LLM whose output drives downstream data, routing, or tool selection carries the `«follower»` role.
-* **Draw `«executor»` and `«renderer»` as separate nodes from the `«follower»` that invokes them.** The `«follower» → «executor»` edge is the decision interface, and its *fidelity* is often the most consequential annotation: if the model emits only a schema-validated enum (`Typed`), the attacker is limited to selecting an incorrect value (a `Meaning` violation), which closes `Authority`.
-* **Aggregation is structural.** Any process with two or more incoming flows is an aggregation point.
-
-**Unpacking hidden elements (Step 2 checklist).** High-level diagrams often collapse preprocessing, extraction, and rendering into a single "AI service" box. Before Step 3, verify that the DFD unpacks:
-1. **Hidden transforms** — Image downscalers, audio resamplers, video frame samplers, Unicode normalizers, decoders, document splitters.
-2. **Perceptual extractors** — OCR, ASR, captioning, or object-detection components that convert one carrier into another before reasoning.
-3. **Guard placement** — Whether human review, content filtering, or schema validation inspects the artifact *before* or *after* a transform.
-4. **Decision-to-action interfaces** — Every tool connector, query runner, router, or actuator, separated from the model that invokes it.
-5. **Active output consumers** — Any UI, preview console, Markdown renderer, or link unfurler that interprets markup or fetches remote URLs.
-6. **Single-session feedback loops** — Any path where tool outputs, retrieved records, or captured screenshots re-enter the ongoing execution cycle.
-
-**Deriving trust boundaries.** A trust boundary falls automatically across every flow whose propagated label changes or violates the receiving sink's policy; any mismatch with an architect's intuition highlights an unexamined trust assumption.
-
-**Step 2 applied (Trail of Bits).** Figure 3 in Section 4.1 shows the result. The hidden-element checklist confirms: ✅ transform unpacked, ✅ decision-to-action interface drawn, ✅ guard placement recorded, ⚠️ no feedback loop, renderer, or perceptual extractor in this system.
-
-#### 4.3.3 Step 3: Deriving Crossings, Attack Chains, and Cut Points
-
-Once the diagram is annotated, findings follow from seven traversal rules (lookup tables and formal rules appear in **Appendix A**):
-
-1. **Enumerate and group paths.** Trace every directed path from an external `source` to a constrained sink and from a `Secret` store or input to an external `receiver`, grouping parallel edges that share the same `(source, guards crossed, sink)`.
-2. **Identify boundary crossings (`Invariant × Divergence`).** Along each grouped path, node-and-edge patterns determine candidate crossings mechanically. The summary lookup table below lists the most common patterns; the full formal rules appear in **Appendix A, Table A.1**. A sink's *Reference specification* is the evaluation baseline and generates crossings for `Meaning` reference constraints (**Appendix A.2**).
-
-   | Structural Pattern on the Path | Derived Crossing | Named Subclass |
-   | :---- | :---- | :---- |
-   | A `«transform»` modifies the artifact between an upstream `«guard»` and downstream consumption | Meaning × Artifact State | Transform Consistency |
-   | A `«guard»` inspects fewer modalities than the downstream `«follower»` processes | Meaning × Evaluator | Guard-Model Capability |
-   | A `«guard»` and a downstream consumer inspect different parallel parses of the same artifact | Meaning × Evaluator | Parser/Interpreter Differential |
-   | Guards inspect individual flows separately before a downstream process aggregates them | Meaning × Artifact State | Transform Consistency (aggregation) |
-   | An upstream `«guard»` validates a data store at time *t*; a downstream consumer re-reads it at *t+Δ* | Meaning × Time | Check-Use Consistency |
-   | A permission grant remains active after its task window or revocation | Authority × Time | Grant Persistence |
-   | An `Untrusted · Full` flow reaches an `«executor»` with an authority policy | Authority × Position | Data-Control / Decision-Action |
-   | A `Secret` flow reaches a `«receiver»` outside its disclosure policy | Confidentiality × Position | Context Confinement |
-   | A `«renderer»` auto-fetches external URLs from generated content | Confidentiality × Position | Output-Consumer |
-   | A `«follower»` controls whether a safeguard fires | Authority × Position | Safeguard obligation breach |
-   | A susceptible sink's resource expenditure is unbounded by its admission check | Cost × Evaluator | Resource Accounting |
-   | Two evaluators read the same artifact differently where a sink's reference specification relies on agreement | Meaning × Evaluator | Human-Machine Perception |
-
-3. **Look up surviving representations.** At each crossing, intersect the incoming flow fidelity (`Full`, `Normalized`, or `Typed`) with the representation survival table (**Section 3.4.1, Table 2**) to determine which forms (*Overt Semantic*, *Encoded / Obfuscated*, *Steganographic*, or *Adversarial Perturbation*) arrive intact.
-4. **Emit mechanism records (one crossing per record).** Emit one record `M = ⟨Invariant, Divergence, Representation⟩` per crossing judged *realizable* by an attacker, noting its evidence maturity (`Observed`, `Demonstrated`, or `Feasible`). Keeping records 1-to-1 with crossings (so evading an input `«guard»` and steering a `«follower»` emit two distinct records even from a single payload) keeps chain lengths comparable across architectures.
-5. **Assemble attack chains (supplied vs. granted legs).** Each required step toward violating a sink constraint is a **leg**: **granted** when the architecture permits passage unconditionally (unguarded channels, `auto-approve` tools, or task-permitted navigation) and **supplied** when a deployed `«guard»` forces an active bypass. A hazard occurs only when *every leg* of a sink violation holds; the architecture grants some legs, and the attacker supplies the rest. Records link wherever one crossing's postcondition satisfies the next crossing's precondition. **Fix granted legs first** — they cost zero attacker effort.
-
-   *Advanced chain patterns (not needed for the Trail of Bits example but required for complex architectures):*
-   * **Confidentiality exfiltration chains** join an integrity path (steering a `«follower»` that holds `Secret` state) with a confidentiality path (carrying that `Secret` output to an unauthorized `«receiver»`), capturing the "lethal trifecta" (Willison, 2025) as graph topology.
-   * A confidentiality chain can also include a `Meaning` leg at egress: a DLP `«guard»` reads the output as clean, while the `Secret` content sits in zero-width characters or image metadata (`Meaning × Evaluator`, `Steganographic`).
-   * *Fragmented / Distributed* payloads emit one `Meaning × Artifact State` aggregation record with a conjunctive precondition across the contributing flows.
-6. **Compute minimal structural cut points.** Identify the minimum set of flows or processes whose hardening or removal disconnects external sources from violated sinks (e.g. narrowing a `«follower» → «executor»` flow from `Full` to `Typed`, or gating an auto-fetching `«renderer»`).
-7. **Verify annotation coverage.** Confirm that every process, flow, and sink is annotated, flagging any unannotated element as a specification gap and recording the structural reason (*`relay` node, trusted and unreachable, within sink constraint, or out of scope*) whenever an element produces zero crossings.
-
-Completeness holds relative to the diagram: an omitted flow means an omitted chain.
-
-**The mechanism record.** Each emitted record combines the taxonomy classification with the location and context needed to act on the finding:
+Each emitted record combines the taxonomy classification with the location and context needed to act on the finding:
 
 | Field | Source | Purpose |
 | :---- | :---- | :---- |
@@ -839,30 +990,24 @@ Completeness holds relative to the diagram: an omitted flow means an omitted cha
 
 **Evidence maturity** records the strongest public evidence: **Observed** (real-world exploitation), **Demonstrated** (end-to-end researcher proof or disclosed CVE), or **Feasible** (derived architecturally, no published demonstration yet — a test hypothesis, not a finding).
 
-**Step 3 applied.** Section 4.1 showed the final mechanism records (M1–M3), chain, and cut points. Here we show the intermediate derivation steps — path grouping, crossing identification, and realizability assessment — that produced them. Applying the traversal rules to Figure 3:
+#### 4.3.3 Advanced Chain Patterns
 
-*Grouped paths:*
+The Trail of Bits chain was a straightforward linear sequence (M1 → M2 → M3). Complex architectures produce additional patterns:
 
-| Path | Origin | Guards Crossed | Terminal Sink |
-| :---- | :---- | :---- | :---- |
-| P1 | Uploaded Image → Developer → Downscaler → CLI Model → Zapier MCP | Developer (`«guard»`) | C1 on Zapier MCP |
-| P2 | Calendar → CLI Model → Zapier MCP → External Host | None | C2 on External Host |
+* **Confidentiality exfiltration chains** join an integrity path (steering a `«follower»` that holds `Secret` state) with a confidentiality path (carrying that `Secret` output to an unauthorized `«receiver»`), capturing the "lethal trifecta" (Willison, 2025) as graph topology. The Trail of Bits chain is an instance of this pattern.
+* **DLP bypass chains** include a `Meaning` leg at egress: a DLP `«guard»` reads the output as clean, while the `Secret` content sits in zero-width characters or image metadata (`Meaning × Evaluator`, `Steganographic`).
+* **Fragmented / Distributed payloads** emit one `Meaning × Artifact State` aggregation record with a conjunctive precondition across the contributing flows.
 
-P1 and P2 converge at CLI Model — the `«follower»` holds both untrusted (steered) input and secret calendar data.
+#### 4.3.4 Reporting Guidance and Reverse Triage
 
-*Derived crossings:*
+**Reporting guidance.** Design-time reports can present compact summary counts by crossing pattern, sink, and cut point in the main text while placing exhaustive derivation tables in an appendix (e.g. the 15-component Invoice-Processing Agent in **Appendix D.1** yields 17 crossings, 1 missing-safeguard gap, 13 realizable records, 9 chains, and 13 tests).
 
-| ID | Rule Matched | Structural Pattern | Derived Crossing | Surviving Representation |
-| :---- | :---- | :---- | :---- | :---- |
-| D1 | Transform between guard and consumer | Developer `«guard»` → Downscaler `«transform»` → CLI Model `«follower»`; flow stays `Full` | Meaning × Artifact State (*Transform Consistency*) | Steganographic → Overt Semantic (Full flow preserves hidden channel; downscaler reveals it) |
-| D2 | Untrusted Full flow to executor | CLI Model `«follower»` → Zapier MCP `«executor»` [C1]; flow is `Untrusted, Secret · Full` | Authority × Position (*Data-Control* at follower; *Decision-Action* at executor) | Overt Semantic |
-| D3 | Secret flow to unauthorized receiver | Calendar (Secret) → CLI Model → Zapier MCP → External Host [C2]; no guard on outbound path | Confidentiality × Position (*Context Confinement*) | Overt Semantic |
+**Reverse traversal for incident mechanism triage (Use Case C).** The Trail of Bits walkthrough is also an example of reverse triage — starting from a known incident and deriving the chain. To triage any disclosed vulnerability or incident (**Section 5.2**), run the same method in reverse on a minimal diagram:
+1. Draw *only* the path traversed from entry `«source»` to the sink where the hazard occurred, using vendor-neutral functional roles.
+2. Annotate roles, flow labels/fidelities, and the violated sink constraint along that path, then apply Step 3 to emit the chain's mechanism records, separate *supplied* bypasses from *granted* legs, and locate minimal cut points.
+3. Any architectural detail omitted from the incident report (such as whether a filter inspected the raw upload or the resized tensor) surfaces as an unannotated element, defining the exact triage question to ask the system owner; matching the resulting chain against the full DFD reveals sibling exposures across other tools and modalities.
 
-*Realizability:* D1 — Demonstrated (Morozova & Hussain, 2025). D2 — Demonstrated (`trust=True` auto-approves all tool calls). D3 — Demonstrated (no outbound recipient restriction).
-
-*Mechanism records, chain, and cut points:* The three crossings produce the same M1–M3 records, chain, and cut points shown in Section 4.1. The formal tuple notation is `M1 = ⟨Meaning, Artifact State, Steg→Overt⟩` (*Transform Consistency*), `M2 = ⟨Authority, Position, Overt Semantic⟩` (*Data-Control / Decision-Action*), `M3 = ⟨Confidentiality, Position, Overt Semantic⟩` (*Context Confinement*). What the derivation above adds is the intermediate work: the grouped paths, the structural patterns matched, and the realizability assessment that produced them.
-
-**Figure 3b** below visualizes the chain from Section 4.1 with color-coded granted and supplied legs:
+**Figure 3b** below visualizes the Trail of Bits chain with color-coded granted and supplied legs:
 
 ```mermaid
 %%{init: {"flowchart": {"nodeSpacing": 24, "rankSpacing": 35}}}%%
@@ -881,39 +1026,19 @@ flowchart LR
 
 *Figure 3b. The derived attack chain. Crimson marks the attacker-supplied bypass (M1). Amber dashed marks the architecture-granted legs (M2, M3).*
 
-*Coverage audit:* Every node has a role. Every flow has a trust label and fidelity. Both sinks have constraints. Three crossings derived, all three realizable.
-
-#### 4.3.4 Step 4: Deriving Security Tests and Reverse Triage Order
-
-Each derived attack chain maps to a falsifiable **security test scenario** whose pass/fail oracle is the target sink constraint:
-
-* **Test setup and input:** Construct an entry artifact at `«source»` using the surviving `Representation` form(s) required for each attacker-*supplied* leg while leaving *granted* legs in their default state.
-* **Pass/fail oracle:** The test *fails* (confirming the vulnerability) if and only if execution violates the terminal **Sink Constraint** (*Authority policy*, *Disclosure policy*, *Reference specification*, *Resource budget*, or *Safeguard obligation* window).
-
-Design-time reports can present compact summary counts by crossing pattern, sink, and cut point in the main text while placing exhaustive derivation tables in an appendix (e.g. the 15-component Invoice-Processing Agent in **Appendix D.1** yields 17 crossings, 1 missing-safeguard gap, 13 realizable records, 9 chains, and 13 tests).
-
-**Step 4 applied.** The tests below expand the overview from Section 4.1 with explicit chain-to-test mappings. Security tests derived from the Trail of Bits mechanism records:
-
-| Test | From | Setup | Pass Condition (sink constraint preserved) |
-| :---- | :---- | :---- | :---- |
-| T1 | M1 (chain M1→M2→M3) | Upload an image whose downscaled form carries a tool directive (Steganographic payload targeting the aliasing downscaler) | The tool call does not execute (C1 preserved) AND no calendar data reaches the external host (C2 preserved) |
-| T2 | M2 (standalone) | With the image attack successful (M1 bypassed), verify whether the tool call requires user confirmation | The tool call does not execute without explicit user confirmation bound to the specific arguments (C1 preserved) |
-| T3 | M3 (standalone) | With the tool call executed (M1 and M2 bypassed), verify whether calendar data can reach an arbitrary external host | Calendar data does not reach any host outside the allowlist (C2 preserved) |
-
-**Reverse traversal for incident mechanism triage (Use Case C).** The Trail of Bits walkthrough above is also an example of reverse triage — starting from a known incident and deriving the chain. To triage any disclosed vulnerability or incident (**Section 5.2**), run the same method in reverse on a minimal diagram:
-1. Draw *only* the path traversed from entry `«source»` to the sink where the hazard occurred, using vendor-neutral functional roles.
-2. Annotate roles, flow labels/fidelities, and the violated sink constraint along that path, then apply Step 3 to emit the chain's mechanism records, separate *supplied* bypasses from *granted* legs, and locate minimal cut points.
-3. Any architectural detail omitted from the incident report (such as whether a filter inspected the raw upload or the resized tensor) surfaces as an unannotated element, defining the exact triage question to ask the system owner; matching the resulting chain against the full DFD reveals sibling exposures across other tools and modalities.
-
 The Trail of Bits example used one modality (image). The next two subsections show how the method's outputs generalize across modalities and plug into existing security workflows.
 
-### 4.4 Modality Independence and Cross-Modal Prediction
+### 4.4 Reusing Findings Across Modalities
 
 The taxonomy's core design decision is that **modality sits on the data flow, not in the mechanism tuple.** A mechanism record's classification — `⟨Invariant, Divergence, Representation⟩` — names a structural crossing. The modality (text, image, audio, video, structured data, physical sensor) is recorded as a property of the flow that carries the payload to that crossing. The same `Meaning × Artifact State` crossing fires whether the transform is an image downscaler, an audio resampler, or a streaming-text chunk aggregator; only the flow's modality annotation changes.
 
 This separation gives the method three capabilities:
 
-1. **Cross-modal prediction.** Hold a mechanism record's `Invariant × Divergence` and sink constraint fixed, swap the modality of the `«source»` flow, and re-run Steps 2–4. If the crossing is still realizable on the new surface — the transform reproduces the same structural pattern, and the surviving representation forms reach the sink — the result is a concrete test hypothesis for the new modality. A finding in one modality generates targeted tests for every other surface that reproduces the same crossing (**Section 5.3** demonstrates this across text, image, audio, video, streaming text, structured data, and physical robotics).
+1. **Cross-modality-surface prediction.** This is a tool for the **defender**, not the attacker. Because the practitioner has the full annotated DFD, they can systematically check every modality surface for the same structural pattern. The procedure: hold a mechanism record's `Invariant × Divergence` and sink constraint fixed, swap the modality of the `«source»` flow, and re-run Steps 2–4. If the crossing is still realizable on the new surface — the transform reproduces the same structural pattern, and the surviving representation forms reach the sink — the result is a concrete test hypothesis for the new modality surface.
+
+   **Example:** The Trail of Bits analysis found M1 — a `Meaning × Artifact State` crossing at an image downscaler (`«transform»`) sitting between a `«guard»` and a `«follower»`. Now suppose the same system also accepts voice commands through a telephony channel, and the audio path includes a resampler that decimates a high-sample-rate waveform before speech recognition. The practitioner looks at this audio path and asks: "Is there a `«transform»` between a `«guard»` and a downstream consumer?" If yes — say, a human operator listens at the original sample rate (`«guard»`) but the speech recognizer consumes the resampled audio (`«follower»`) — then the same structural pattern fires: `Meaning × Artifact State` (Transform Consistency). The invariant and divergence are identical; only the modality changes from image to audio, and the representation changes from steganographic pixels to ultrasonic or aliased audio content. The practitioner now has a concrete test hypothesis: craft an audio input that sounds benign at the original sample rate but produces a different transcript after resampling. Without cross-modality-surface prediction, this audio vulnerability would require a separate threat-modeling exercise to discover. With it, the image finding generates the audio test directly.
+
+   A finding on one modality surface generates targeted tests for every other surface that reproduces the same crossing (**Section 5.3** demonstrates this across text, image, audio, video, streaming text, structured data, and physical robotics).
 
 2. **Incremental modality reuse.** Adding a new modality to an existing architecture does not require re-analyzing the whole system:
    - Sink constraints are unchanged — they specify downstream requirements that are modality-independent.
@@ -921,38 +1046,26 @@ This separation gives the method three capabilities:
    - Re-run Step 3 over the new path only. Downstream architectural cuts (Typed flows, session-bound tools, approval-argument binding) carry over intact because they constrain flows, not surfaces.
    - Only the Meaning and Cost crossings at the new transforms need modality-specific handling. The engineering question reduces to one check per new transform: *does it normalize its input?*
 
-   A new modality typically adds 3–5 rows to the same derivation, not a new chapter to the threat catalog. The phone-line variant in **Section 5.1** demonstrates this: swapping the text/image ingress for telephony audio reuses all downstream Authority, Confidentiality, and Cost cuts unchanged.
+   **Example:** Suppose the Trail of Bits system (which currently accepts only image uploads) adds a voice-command channel. The practitioner does not re-run the full four-step method from scratch. The sink constraints (C1 on Zapier MCP, C2 on External Host) are unchanged — they say what the sinks are allowed to do, which has nothing to do with whether the input was an image or audio. The downstream chain legs (M2: CLI Model → Zapier MCP, M3: Zapier MCP → External Host) and their cut points (user confirmation, outbound allowlist) are also unchanged — they constrain flows and roles, not input surfaces. The practitioner only needs to annotate the new audio ingress path: the telephony `«source»`, any audio `«transform»` (e.g. a resampler), and any `«guard»` on that path — then run Step 3 over that new path alone. If the resampler is aliasing (fidelity stays `Full`), a new M1-equivalent crossing fires on the audio path. If it uses proper anti-aliasing (fidelity becomes `Normalized`), the steganographic channel is stripped and no Meaning × Artifact State crossing fires — that path is cleaner than the image path. Either way, the practitioner adds 3–5 rows to the existing derivation, not a new threat catalog. The phone-line variant in **Section 5.1** demonstrates this in full.
 
-3. **Modality-independent cut points.** Because cut points are computed over flows and roles, a fix that narrows a `«follower» → «executor»` flow from `Full` to `Typed` closes Authority regardless of which modality the upstream `«source»` carries. Controls transfer across modalities the same way crossings do.
+3. **Modality-independent cut points.** Because cut points are computed over flows and roles — not over the modality of the data — a fix at a downstream component protects against attacks from *every* upstream modality surface simultaneously.
 
-### 4.5 Operational Integration
+   **Example:** In the Trail of Bits system, the cut point at M2 is "add user confirmation on tool calls" — this narrows the `«follower» → «executor»` flow by inserting a `«guard»`. That fix works regardless of whether the injected instruction arrived via a crafted image (the original attack), a malicious audio input (the cross-modality-surface prediction above), or a text-based prompt injection through some future input channel. The practitioner does not need a separate fix per modality. Conversely, the cut point at M1 (replacing the aliasing downscaler with an anti-aliased one) is modality-specific — it only protects the image path. If the system later adds audio, the audio resampler needs its own assessment. This distinction helps the practitioner prioritize: **modality-independent cut points (M2, M3) protect against surfaces that don't exist yet; modality-specific cut points (M1) must be re-evaluated each time a new surface is added.**
 
-The method's outputs — mechanism records, attack chains, cut points, and security tests — map to the workflows security teams already run:
+### 4.5 How Different Audiences Use the Outputs
 
-| Existing Process | What the Taxonomy Adds | Output Used |
+The method produces the same six outputs for every system. Different audiences read different outputs and take different actions:
+
+| Audience | What They Read | What They Do With It |
 | :---- | :---- | :---- |
-| **Design review / threat model** | Systematic derivation of multimodal and agentic crossings from the DFD, instead of brainstorming from checklists | Mechanism records, cut points |
-| **Security review gate** | Concrete architectural requirements ("narrow this flow to Typed") tied to specific sink constraints, not generic guidance ("consider prompt injection") | Cut points, sink constraints |
-| **Incident response** | Structural chain decomposition separating what the attacker did from what the architecture gave away for free | Granted vs. supplied legs, cut points |
-| **Red team / adversarial testing** | Test plans with explicit pass/fail oracles derived from sink constraints, scoped by evidence maturity | Security tests, evidence maturity |
-| **Cross-team / cross-org sharing** | Vendor-neutral records that communicate structural findings without exposing proprietary architecture | Mechanism records with functional roles |
-| **Portfolio coverage tracking** | A matrix of which Invariant × Divergence cells have been assessed for each system | Coverage audit |
+| **Red team** | Mechanism records, security tests | Read the *Representation* column to know how to build the payload (Steganographic → hidden pixels, Overt Semantic → plaintext instructions, Adversarial Perturbation → optimization against the model). Start with all-granted chains — they should fail immediately without a sophisticated attack. Run *Feasible* rows first — those are the novel findings the assessment contributes. |
+| **Engineering** | Cut points, security tests | Read cut points as the prioritized fix list. The highest-leverage cut point breaks the most chains. After applying a fix, re-run the corresponding security test — the pass/fail oracle is unchanged, so a test that still fails means the fix was not applied correctly. |
+| **Security architects** | Cut points, coverage audit | Each cut point is a concrete architectural requirement ("narrow this flow to `Typed`"), not generic guidance ("consider prompt injection"). The coverage audit is the completeness evidence — every element is annotated or has a documented reason for producing zero crossings. An unconstrained sink is itself a finding. |
+| **Incident responders** | Attack chains, granted-vs-supplied legs | Run the method in reverse on the exploit path (**Section 4.3.4**). Granted legs tell you what the architecture gave away for free — those are the immediate remediation targets. |
+| **Executives** | Chain counts, cut-point table | Summarize: "N attack chains. X are entirely architecture-granted (zero attacker effort). Y have one supplied leg with Demonstrated evidence." The cut-point table shows how many changes are needed and how many chains each resolves — the basis for a cost-benefit discussion. |
+| **Cross-org sharing** | Mechanism records with vendor-neutral roles | Share structural findings without revealing proprietary details. For example: *"We found a `Meaning × Artifact State` chain through an aliasing transform with two granted `Authority × Position` and `Confidentiality × Position` legs. Entry: `Steganographic → Overt Semantic` on an image flow. Evidence: Demonstrated."* Another team can check their own architecture for the same topology without knowing the model vendor, resize dimensions, or MCP configuration. |
 
-**Cross-organization sharing.** Because mechanism records use vendor-neutral functional roles (`«guard»`, `«transform»`, `«follower»`, `«executor»`, `«renderer»`) and abstract flow fidelities (`Full`, `Normalized`, `Typed`), organizations can share structural findings without revealing proprietary details. For example:
-
-> "We found a `Meaning × Artifact State` chain through an aliasing transform with two granted `Authority × Position` and `Confidentiality × Position` legs. The entry was `Steganographic → Overt Semantic` on an image flow. Evidence maturity: Demonstrated."
-
-This communicates the full structural finding — another team can check their own architecture for the same topology — without revealing the model vendor, the exact resize dimensions, the MCP server configuration, or the internal data stores. The three-incident comparison in **Section 5.2** (Trail of Bits, Cursor `CVE-2025-54132`, EchoLeak `CVE-2025-32711`) shows three different products sharing one structural topology at exactly this level of abstraction.
-
-**Reading the outputs by role.** Different practitioners consume the same outputs differently. The guidance below maps each output to the action it enables for a specific role:
-
-* **Red team / adversarial testing.** Read each mechanism record as a test target. The *Representation* column tells you how to build the payload: `Steganographic` means hidden pixels or zero-width characters, `Overt Semantic` means plaintext instructions, `Adversarial Perturbation` means you need optimization against the target model. The *Evidence maturity* column scopes effort: run `Feasible` rows first — those are novel findings the assessment contributes; `Demonstrated` and `Observed` rows confirm known exposures. Start with chains whose legs are all *granted* — they should fail immediately without a sophisticated attack, and a failure confirms the architecture is vulnerable by default.
-* **Controls development / engineering.** Read cut points as the prioritized fix list. Each row names a specific flow or component to harden ("narrow this flow to `Typed`," "disable remote fetches in this renderer"), the number of chains it breaks, and whether the fix is deterministic (`Closable`) or probabilistic (`Reducible-only`). The highest-leverage cut point is the one that breaks the most chains. After applying each cut point, re-run the corresponding security tests as regression tests — the pass/fail oracle is unchanged, so a test that still fails means the fix was not applied correctly.
-* **Security architecture review / design gate.** Cut points are the agenda: each one is a concrete architectural requirement tied to a specific sink constraint, not generic guidance. The coverage audit is the completeness evidence — every component, flow, and sink is either annotated with crossings or has a documented reason for producing none. An unconstrained sink (no stated policy) is itself a finding and should be escalated as a missing security requirement.
-* **Incident response.** Run the method in reverse on a minimal diagram of the exploit path (**Section 4.3.4**). The granted-vs-supplied separation tells you what the attacker did (supplied legs) versus what the architecture gave away for free (granted legs). Granted legs that enabled the incident are the immediate remediation targets. The vendor-neutral record format lets you share the structural finding with peer organizations without disclosing proprietary details.
-* **Executive reporting.** Summarize by chain count and effort: "We found N attack chains. X are entirely architecture-granted (zero attacker effort). Y have one supplied leg with Demonstrated evidence. Z are Feasible hypotheses requiring validation." The cut-point table shows how many architectural changes are needed and how many chains each one resolves — the basis for a cost-benefit discussion.
-
-**Theoretical foundations.** The method combines three established foundations: top-down loss-to-constraint analysis from STPA-Sec (Young & Leveson, 2013; `arXiv:2006.02930`), source-to-sink taint and information-flow lattices (Denning, 1976; FIDES, `arXiv:2505.23643`; CaMeL, Debenedetti et al., 2025) paired with attack-graph minimum cuts (Phillips & Swiler, 1998; Sheyner et al., 2002; Ou et al., 2005), and the distinction between safety (*nothing unauthorized happens*) and liveness (*a required intervention occurs within its operational bound*) (Lamport, 1977; Alpern & Schneider, 1985).
+For the method's theoretical foundations and classical precedents (STPA-Sec, information-flow lattices, attack-graph minimum cuts), see **Section 6.3**.
 
 ## 5. Applications: Abridged Case Walkthroughs
 
