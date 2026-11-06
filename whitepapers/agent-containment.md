@@ -992,7 +992,7 @@ An agent with bounded authority in the way a corporate laptop has it is not an a
 ## 11. References
 
 1. Anthropic. *Claude Mythos Preview System Card*, 2026-04-07. https://www-cdn.anthropic.com/7624816413e9b4d2e3ba620c5a5e091b98b190a5/Claude%20Mythos%20Preview%20System%20Card.pdf
-2. OpenAI. *OpenAI and Hugging Face partner to address security incident during model evaluation*, 2026-07-21, updated 2026-07-28. https://openai.com/index/hugging-face-model-evaluation-security-incident/
+2. OpenAI. *OpenAI and Hugging Face partner to address security incident during model evaluation*, 2026-07-21, updated through 2026-08-26. https://openai.com/index/hugging-face-model-evaluation-security-incident/
 3. Anthropic Frontier Red Team. *Disclosure of evaluation incidents*, 2026-07-30. https://www.anthropic.com/news/investigating-incidents-cybersecurity-evals
 4. UK AI Security Institute. *INC-2026-07-28-01*, 2026-08-04. https://www.aisi.gov.uk/blog/incident-report-unsanctioned-agent-behaviour-during-cyber-testing
 5. Ona.com. *How Claude Code Escapes Its Own Denylist and Sandbox*, 2026-03-03. https://ona.com/stories/how-claude-code-escapes-its-own-denylist-and-sandbox
