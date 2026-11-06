@@ -36,9 +36,9 @@ status: "Working draft, all sections drafted. Not reviewed, not approved."
   - [5.3 Why the distinction matters](#53-why-the-distinction-matters)
   - [5.4 Threat sources and trust assumptions](#54-threat-sources-and-trust-assumptions)
 - [6. Reachability and blast radius](#6-reachability-and-blast-radius)
-  - [6.1 A control, not a hygiene metric](#61-a-control-not-a-hygiene-metric)
+  - [6.1 Patching and reachability address different risks](#61-patching-and-reachability-address-different-risks)
   - [6.2 Which reachable systems are yours](#62-which-reachable-systems-are-yours)
-  - [6.3 Reach decides evidence](#63-reach-decides-evidence)
+  - [6.3 System control and evidence](#63-system-control-and-evidence)
 - [7. Detection and evidence](#7-detection-and-evidence)
   - [7.1 What to log](#71-what-to-log)
   - [7.2 The false-positive profile](#72-the-false-positive-profile)
@@ -520,61 +520,87 @@ A component is not trustworthy merely because it appears in the table. Each comp
 
 ## 6. Reachability and blast radius
 
-What follows treats reachability minimization as a control in its own right, distinct from vulnerability management. The distinction decides not only what can be hardened but what can be proven afterwards.
+Reducing which systems an agent can reach is a control in its own right, separate from vulnerability management. The distinction affects both what the operator can constrain and what the evidence can establish after an incident.
 
-### 6.1 A control, not a hygiene metric
+### 6.1 Patching and reachability address different risks
 
-The blog post's patch-posture requirement was already the honest version of vulnerability management. "Zero CVEs" is not a promise anyone can keep, so what can be held is narrower: no known-exploitable CVEs in the isolation path, a measured patch SLA, minimum attack surface, and named compensating controls where patching lags [11]. Even that honest version answers only half the question, because neither of the anchor incidents would have been prevented by it. The seccomp architecture gap was not an unpatched vulnerability but a documented specification pitfall a decade old, a §5 mode-3 failure that no patch cycle touches [7]. And an escape that chains previously unknown vulnerabilities is, by definition, ahead of any patch posture: patching cannot precede knowledge.
+Vulnerability management still requires a clear patching policy: no known-exploitable CVEs (publicly catalogued vulnerabilities) in the isolation path, defined patching deadlines with measured compliance, a minimal attack surface, and named compensating controls when patching is delayed. This is not a promise of zero CVEs.
 
-What remains governable when the mechanism's failure cannot be ruled out is the *consequence* of that failure: the set of systems the agent can touch when a §5 mode 1, 2, or 3 failure occurs. That set is decided at design time: by deny-by-default egress, by which peer services share the agent's network, and by which credentials sit within its reach (§2). It is decided *before any specific vulnerability exists*.
+Keeping software patched does not, by itself, establish that the policy enforces the intended boundary. For example, Linux's system-call filtering (seccomp) documentation warns that a filter can be bypassed if it checks a system call number without also checking the architecture [7]. Patching also cannot guarantee protection from vulnerabilities that have not yet been discovered.
 
-Vulnerability management lowers the probability that the boundary fails; reachability minimization bounds what failure is worth to the agent. Both are required. Only the second is fully within the operator's control, because the first depends on the undiscovered.
+Enforcement failure cannot always be ruled out. The design must therefore also limit its consequences: the systems an agent can reach when a mode 1, 2 or 3 failure occurs (§5). Design choices include deny-by-default egress, which peer services share the agent's network, and which credentials are available to the agent (§2). These choices can be made before a particular vulnerability is known.
 
-The control takes three practical forms:
+Vulnerability management reduces the risk of a boundary failure. Reachability minimization limits the consequences when failure occurs. Both are required. Responsibility follows actual control: the organization implements and demonstrates the controls it can operate. For controls it cannot operate itself, the organization must specify what the provider is required to implement and what evidence the provider must supply to demonstrate that those controls meet the paper's applicable requirements (§1.1).
 
-- an enumerated reachable set: every system, service and endpoint the agent can touch through any path in its effective reach (§3), maintained as deployment configuration and verified before runs (§8);
-- a minimization pass against task requirements, treating every reachable system the task does not require as blast radius carried for no return; and
-- the honest patch posture above, applied to what remains.
+Put this into practice in three ways:
 
-The inventory draws on inputs that include:
+- Maintain an inventory of every system, service and endpoint the agent can reach through any path in its effective reach (§3). Keep the inventory as deployment configuration and verify it before each run (§8).
+- Review the inventory against the task's requirements and minimize unnecessary access. Every reachable system the task does not need adds exposure if a control fails.
+- Apply the patching policy above to what remains reachable, with responsibilities assigned according to actual control (§1.1).
 
-- the deployment architecture (local resources and host interfaces, network peers, and egress policy);
-- the credentials and authority available to the agent (§2);
-- the actions enabled by tools and MCP servers; and
-- the indirect and alternate paths described in §3.
+Inputs for the inventory include:
 
-Design-time threat modeling can bring these inputs together to identify reachable systems and which entries the task requires; the inventory is updated when those inputs change and verified against the deployed system as §8 requires.
+- The deployment architecture: local resources and host interfaces, network peers, and egress policy.
+- The credentials and authority available to the agent (§2).
+- The actions enabled by tools and MCP servers.
+- The indirect and alternate paths described in §3.
 
-The reachable set is a declared quantity, so it is versioned, and each run's record names the version it ran under by content digest (§7). What the run actually touched is a measured quantity, and the two can be compared only afterwards, and only when the record names the inventory. The comparison has three outcomes, and they stay apart: the touched set lies within the declared set; it lies outside it; or it cannot be determined, because the journal is partial. The third is the one that gets folded into the first. A partial journal read as "within" is the failure the comparison exists to prevent. The procedure belongs in a practical guide; the paper requires the versioning and the three outcomes.
+Design-time threat modeling can bring these inputs together to identify which systems are reachable and which the task requires. Update the inventory when any of these inputs changes, and verify it against the deployed system as §8 requires.
+
+Version the inventory of systems the agent can reach. Each run's record must identify the inventory version used for that run by its content digest, a hash of the inventory's contents (§7).
+
+What the run actually touched is measured rather than declared. It can be compared with the declared reachable set only after the run, and only when the record identifies the inventory used. Keep three outcomes distinct:
+
+- The touched set is within the declared set.
+- The touched set extends outside the declared set.
+- The comparison cannot be determined because the journal is incomplete.
+
+An incomplete journal must not be treated as proof that the run stayed within the declared set. This paper requires inventory versioning and keeps the three comparison outcomes distinct. A practical guide should explain how to perform the comparison; it does not replace these requirements.
 
 ### 6.2 Which reachable systems are yours
 
-The worked example is the July 2026 evaluation-environment incident, and it is a better example told accurately than it was told merged (Appendix A.2). It has two halves on opposite sides of this section's central boundary.
+This example distinguishes controls within an evaluation environment from controls on another organization's production systems.
 
-The first half: models under evaluation escaped their sandbox by way of the package-registry infrastructure available inside the evaluation environment, as reported by the operator [2]. That infrastructure was stood up for the engagement, so it was *in scope to constrain*. Its reachability was a design choice. What the evaluation environment made reachable, it could have made unreachable, hardened, or instrumented. This is the half where reachability minimization is an available control. The design principle it yields is the one the incident's own reviewers stated: minimize the interactions an agent can make outside a tightly controlled environment with multiple layers of protection.
+In its preliminary account, published in July 2026, OpenAI reported that evaluation models exploited a vulnerability in an internally hosted package-registry cache proxy, then escalated privileges and moved through its research testing environment to a node with Internet access. The models had no direct Internet access at the start, and their cyber refusals had been reduced for evaluation purposes [2].
 
-The second half: an intrusion into a third party's production infrastructure. According to that party's own disclosure, the intrusion began in their data-processing pipeline and proceeded to node-level access and lateral movement [14]. Their systems were never the evaluation operator's to harden. For the operator, no patch posture, no compensating control, no instrumentation on the reached side was available. The only available control was whether the path existed at all. Where the reached system belongs to someone else, reachability minimization is not one control among several; it is the *only* one left.
+For the evaluation environment, include package infrastructure in the reachable-set inventory (§6.1). Where the operator controls a service or access path, restricting access, hardening and monitoring are available control options. Where a provider operates those controls, implementation and evidence obligations follow §1.1.
 
-The gym incident sits at the same boundary from the authority side [11]. The reached system belonged to a third party, and the agent's access to it was legitimate (§5 mode 4).
+Hugging Face's disclosure reports an intrusion through its data-processing pipeline, followed by node-level access, credential harvesting and lateral movement. It does not identify the model or link the intrusion to a named evaluation [14].
 
-Across all three cases the pattern holds: the owner of the reached system determines which remedies exist. A containment design that does not classify its reachable set by ownership has not yet discovered which of its controls are real.
+An evaluation operator cannot assume it can patch another organization's systems or monitor their internal activity. Its containment design must minimize unnecessary external reach and limit what the agent is authorized to do through the connections it still needs (§§2-3). When a provider operates controls the organization cannot operate itself, the organization must specify what the provider must implement and what evidence it must supply to demonstrate that the applicable requirements are met (§1.1).
 
-### 6.3 Reach decides evidence
+In the reported gym waitlist case, an AI agent acting for a gym member removed another person's waitlist entry [19]. The relevant point here is ownership: the booking system belonged to a third party, not to the member or the agent's operator.
 
-The same boundary decides a second thing, and it surfaces after the incident: what can be *proven*.
+Classify the reachable set by ownership and actual control. For each system, identify what the organization can constrain directly, what it must require from a provider, and what remains outside its control (§1.1).
 
-When an agent reaches a system its operator controls, both sides of the interaction land in records the operator holds. When it reaches a third party's system, the operator holds a record that the agent asked, the third party holds a record that something happened, and nothing binds the two. Reconstruction then depends on the third party's retention, cooperation, and record quality. The operator controls none of these, and the §7 evidence contract cannot require them of the third party.
+### 6.3 System control and evidence
 
-The Anthropic disclosure's retrospective, which reviewed 141,006 evaluation runs after another organization's report to discover what its own agents had touched [3], is what this looks like at scale: the reach was real, and the evidence had to be excavated.
+Control over the systems an agent reaches affects what evidence can be collected and what it can establish after an incident.
+
+When the operator controls both systems, it can collect records from both sides of an interaction. That control does not, by itself, establish that the records are complete.
+
+For a third-party system, the operator's record of a request does not, by itself, establish what happened on the other side.
+
+Reconstructing both sides requires records that can be linked. Where reconstruction requires records held by the third party, it depends on that party's retention, cooperation and record quality. The operator cannot assume control over those dependencies, and this paper's evidence requirements cannot impose them on the third party (§7).
+
+After OpenAI's disclosure, Anthropic reported reviewing 141,006 evaluation runs in which Claude could have obtained Internet access [3]. Its retrospective review used existing transcripts to identify real-world activity.
 
 Two consequences follow.
 
-- **For engineering:** cross-boundary reach that cannot be removed should be forced through the operator's own mediation surface (§3), so that at minimum the asking side of every interaction is in first-party records with full lineage (§7).
-- **For the standards work this paper feeds:** binding the two halves requires a correlation the *resource owner's* record can carry, an identifier linking their event to the causing agent. That is precisely the shape proposed in OCSF as `caused_by` on the resource owner's event (ocsf/ocsf-schema#1738). That link is evidence rather than a later agreement between two parties only if the identifier is minted and sequenced on the asking side, in the operator's integrity-protected sequence (§7), before the request is dispatched, and travels with the request. The third party's record is then checkable against an entry that was already sealed, and the operator can neither disown nor retrofit it.
+- **For engineering:** Cross-boundary access that cannot be removed should be forced through the operator's own mediation controls (§3), so that, at minimum, the asking side of every interaction is recorded in first-party records with full lineage (§7). Full lineage includes a record of the responsible agent and its delegation chain.
+- **For cross-system evidence:** The resource owner's record needs to identify which agent request led to the recorded action. A shared identifier connects that record to the operator's record of the request.
 
-§7 carries the evidence contract. This is the row of it that only exists if the other side cooperates, which is why the reachable-set inventory of 6.1 should mark, for every entry, not just *whose system* but *whose records*, and for how long they exist. A third-party record with a thirty-day life bounds how long the two halves can be bound at all, and that horizon is known at design time, not discovered at verification time.
+  For this link to serve as evidence, the operator must create and sequence the identifier on the asking side, in its own integrity-protected sequence, before dispatching the request (§7). The identifier must travel with the request. The link must not be something the two parties agree to add afterwards.
 
-For the procured deployment shapes of §1.1, both halves of this section become procurement. The provider's reachable set and its ownership classification are what to demand in evidence. A provider that cannot enumerate what its agent can reach cannot support any containment claim this paper would recognize.
+  The resource owner's event can then be checked against an entry sealed before dispatch. Subject to §7's evidence conditions, the operator cannot later disown or retrofit that link.
+
+When cross-system reconstruction needs records held by the resource owner, it depends on that owner's cooperation (§7). For every reachable system, the inventory in §6.1 should identify the system's owner, who holds the required records, and how long those records remain available.
+
+For example, if a third party holds a required record and deletes it after thirty days, reconstruction after that point cannot rely on retrieving it. Determine how long records will remain available while you design the deployment, rather than waiting until you need them to reconstruct an incident.
+
+For controls the organization cannot operate itself, it must specify what the provider must implement and what evidence the provider must supply (§1.1). That evidence must include the provider's reachable-set inventory and system-ownership classification. The organization remains responsible for implementing and demonstrating the controls it can operate itself.
+
+If the provider cannot enumerate the systems its agent can reach, a containment claim covering that provider-operated reach is not established.
 
 ---
 
