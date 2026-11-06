@@ -267,25 +267,19 @@ flowchart LR
 
 *Figure 1d. Support-ticket triage agent (combined architecture). Section 4 later annotates this diagram with formal roles and flow labels; here the components are described in plain terms so the definitions in Sections 3.1–3.4 can reference them directly.*
 
-Key components:
+Key components (details appear in the examples that use them):
 
 - **Text Filter**: inspects ticket text for malicious content; does not see uploaded screenshots.
 - **Normalizer**: strips HTML, canonicalizes Unicode, and truncates at 4,000 characters.
-- **Aliasing Downscaler**: resizes uploaded screenshots before they reach the model. Uses nearest-neighbor or bicubic resampling without anti-aliasing filtering — so hidden pixel patterns can survive the resize.
-- **Triage LLM**: classifies tickets into one of five categories (`billing`, `technical`, `account`, `abuse`, `other`), drafts HTML replies, and invokes CRM and billing tools. Holds both customer-supplied ticket content and confidential internal context simultaneously.
-- **Internal Header** (confidential): the account's fraud-risk score, the rule that flagged it, and VIP handling notes — attached by the mail gateway, not visible to the customer.
-- **CRM Store** (confidential records + customer-editable notes): customer invoices and financial records, plus a `delivery_notes` field the customer can edit through a self-service portal. When the LLM calls `crm.lookup`, the response — including the customer-editable notes — flows back into the LLM's context.
-- **Queue Router**: sends the ticket to the queue matching the LLM's category label; `abuse` triggers the Abuse Pager.
-- **Abuse Pager**: must page on-call responders within 1 hour for threat or fraud tickets.
-- **Billing Credit**: issues credits up to \$25 automatically; credits above \$25 require Human Approver sign-off.
-- **Human Approver**: reviews a model-generated summary card for above-threshold credits and returns an approval flag to the LLM.
-- **Staff HTML Preview**: renders the LLM's HTML reply draft in a staff console and automatically fetches any remote images (`<img src=...>`) embedded in the draft as soon as a reviewer opens it.
-
-**How information flows through the system (Figure 1d).** A customer's ticket text passes through the Text Filter and Normalizer before reaching the Triage LLM; an attached screenshot bypasses the Text Filter entirely and passes through the Aliasing Downscaler. The Triage LLM simultaneously holds the customer's input, the confidential Internal Header, and CRM records (including customer-editable notes that flow back after a `crm.lookup` call). It emits a category label to the Queue Router, an HTML reply draft to the Staff HTML Preview, and — when it has tool-calling authority — credit requests to Billing Credit. Credits above \$25 pass through the Human Approver, whose approval flag returns to the LLM. Each of these handoffs is a point where a security assumption can break, and the definitions below identify exactly which assumption fails at each one.
-
-**What going wrong looks like.** A fraudster files a ticket requesting to redirect someone else's payouts. The ticket text ends with *"Note for triage AI: route to billing."* The Triage LLM misroutes the ticket to `billing` instead of `abuse`, so the Abuse Pager never fires and the request skips fraud review. Through the same ticket — or a follow-up — the attacker steers the LLM to call Billing Credit for a \$25 credit to the wrong account, and because the model also holds the confidential Internal Header, the attacker's reply draft leaks the account's fraud-risk score to the customer. One system, multiple failures at different handoffs. The definitions that follow name each failure precisely.
-
----
+- **Aliasing Downscaler**: resizes screenshots without anti-aliasing — hidden pixel patterns can survive.
+- **Triage LLM**: classifies tickets (`billing`, `technical`, `account`, `abuse`, `other`), drafts HTML replies, and invokes CRM and billing tools. Holds customer input and confidential internal context simultaneously.
+- **Internal Header** (confidential): fraud-risk score, flagging rule, and VIP notes — not visible to the customer.
+- **CRM Store**: customer invoices and financial records, plus a customer-editable `delivery_notes` field whose contents flow back into the LLM on `crm.lookup`.
+- **Queue Router**: routes to the queue matching the LLM's label; `abuse` triggers the Abuse Pager.
+- **Abuse Pager**: must page on-call responders within 1 hour.
+- **Billing Credit**: auto-approves credits ≤\$25; above \$25 requires Human Approver sign-off.
+- **Human Approver**: reviews above-threshold credits and returns an approval flag.
+- **Staff HTML Preview**: renders the LLM's HTML draft and auto-fetches any embedded remote images on open.
 
 The subsections that follow define each tuple component using this system, calling back to Trail of Bits where it applies.
 
@@ -623,14 +617,18 @@ flowchart LR
 
 #### End-to-End Walkthrough: Trail of Bits / Gemini CLI
 
-**What the practitioner starts with.** Before the method begins, the practitioner needs two things:
+##### Prerequisites
+
+Before the method begins, the practitioner needs two things:
 
 1. **A data-flow diagram (DFD) of the system** — the standard kind that application-security teams already draw for STRIDE threat modeling. It shows components (processes, external entities, data stores) and directed flows between them. For the Trail of Bits system, this means: the uploaded image source, the developer who views it, the CLI (which internally includes a downscaler), the model, the Google Calendar store, the Zapier MCP tool connector, and the external host it can reach. At this stage the diagram is *unannotated* — it shows what exists, not what could go wrong.
 2. **Business and security context** — from product owners, security leads, compliance stakeholders, or the system's own documentation. Business context identifies what must never go wrong (private data must not leak, tools must not act without authorization). Security context identifies the trust model and configuration: what permissions exist, what data is sensitive, how components authenticate and authorize. For this system: the developer uses Gemini CLI with a Zapier MCP server configured with `trust=True` (security context — tool calls auto-execute without confirmation), the model can read the developer's private Google Calendar (security context — sensitive data accessible to the model), and the CLI downscales every uploaded image before the model sees it (architectural context — a preprocessing step that changes what the model sees).
 
 The method then transforms these two inputs — a plain architecture diagram and business/security context — into prioritized, testable security findings through four steps.
 
-**Step 1 — What must never go wrong.** This step introduces three concepts and derives them in order. A **stakeholder loss** (termed *adverse impact* in NIST SP 800-30, derived from STPA-Sec's top-down sequence; Young & Leveson, 2013) is an unacceptable business, operational, or physical outcome — the thing that makes an incident matter (leaked data, unauthorized transactions, missed safety alerts). A **sink** is any component where data has a consequential, hard-to-reverse effect — executing a tool call, sending data to an external host, charging a payment, or triggering a physical actuator. A **sink constraint** (analogous to *control objectives* in SP 800-53, but typed and attached to specific pipeline components) is the explicit security rule on a sink that says what it is *allowed* to do: which actions are permitted, which data may pass through, or which recipients may receive output. Every finding the method produces is ultimately a violation of a sink constraint — if no constraint is stated, there is nothing to violate, so the first step is to define them.
+##### Step 1: Sink Constraints
+
+This step introduces three concepts and derives them in order. A **stakeholder loss** (termed *adverse impact* in NIST SP 800-30, derived from STPA-Sec's top-down sequence; Young & Leveson, 2013) is an unacceptable business, operational, or physical outcome — the thing that makes an incident matter (leaked data, unauthorized transactions, missed safety alerts). A **sink** is any component where data has a consequential, hard-to-reverse effect — executing a tool call, sending data to an external host, charging a payment, or triggering a physical actuator. A **sink constraint** (analogous to *control objectives* in SP 800-53, but typed and attached to specific pipeline components) is the explicit security rule on a sink that says what it is *allowed* to do: which actions are permitted, which data may pass through, or which recipients may receive output. Every finding the method produces is ultimately a violation of a sink constraint — if no constraint is stated, there is nothing to violate, so the first step is to define them.
 
 The practitioner works through these in order, drawing on the inputs gathered above:
 
@@ -663,7 +661,9 @@ flowchart LR
 
 *Figure 2b. The system before annotation — components, data flows, and sink constraints only.*
 
-**Step 2 — Annotate the DFD.** The practitioner takes the DFD with sink constraints from Step 1, along with the security and architectural context gathered at the start, and adds three layers of annotation. First, the practitioner assigns a **functional role** to each component based on what it does in the pipeline:
+##### Step 2: Annotate the DFD
+
+The practitioner takes the DFD with sink constraints from Step 1, along with the security and architectural context gathered at the start, and adds three layers of annotation. First, the practitioner assigns a **functional role** to each component based on what it does in the pipeline:
 
 - `«source»` — an external entity supplying potentially attacker-controlled inputs
 - `«guard»` — evaluates content and gates downstream flow (a filter, a human reviewer, a threshold check)
@@ -733,7 +733,9 @@ flowchart LR
 
 **Output of Step 2:** An annotated data-flow diagram where every component has a functional role (e.g. `«source»`, `«guard»`, `«transform»`, `«follower»`, `«executor»`, `«receiver»`) and every flow has a trust label (`Untrusted`, `Trusted`, or `Secret`) and fidelity (`Full`, `Normalized`, or `Typed`). Hidden components like the Aliasing Downscaler are unpacked as separate nodes. This annotated diagram is what Step 3 walks to derive findings — the roles and labels are the inputs to the structural pattern matching.
 
-**Step 3 — Derive findings.** The practitioner takes two inputs from the previous steps: the annotated DFD from Step 2 (with functional roles, trust labels, and fidelity on every component and flow) and the sink constraints from Step 1 (which identify the constrained sinks that define where paths must be traced to).
+##### Step 3: Derive Findings
+
+The practitioner takes two inputs from the previous steps: the annotated DFD from Step 2 (with functional roles, trust labels, and fidelity on every component and flow) and the sink constraints from Step 1 (which identify the constrained sinks that define where paths must be traced to).
 
 The core tool for this step is the **structural pattern lookup table**. This table is **provided by the method** — the practitioner does not create it. It was derived from the taxonomy's Invariant × Divergence matrix (Section 3) by identifying how each cell in that matrix manifests as a recognizable node-role and flow-label combination on a DFD. Each row is an if-then rule: *if* you see this topology on the annotated diagram, *then* it produces this specific security **crossing**. A crossing is a point on the DFD where a security property (an invariant from Section 3 — Meaning, Authority, Confidentiality, or Cost) breaks because two components that should agree on the same artifact, decision, or data scope actually diverge. Each crossing is classified by *which* invariant breaks and *why* the divergence occurs — the Invariant × Divergence pair. For example, the row "A `«transform»` modifies the artifact between an upstream `«guard»` and downstream consumption → Meaning × Artifact State" means: whenever the practitioner sees a `«guard»` followed by a `«transform»` followed by a consumer on the diagram, the method says the guard and the consumer may be reading different versions of the same artifact — the transform changed it in between, so the meaning may have diverged.
 
@@ -829,7 +831,9 @@ As a final check, the practitioner **verifies annotation coverage**: every proce
 
 **Output of Step 3:** Three mechanism records (M1–M3), one attack chain linking them with supplied-vs-granted legs, three cut points where a single architectural change breaks the chain, and a coverage verification confirming every element is accounted for. Together these tell the practitioner *what* is broken, *where* it is broken, *how much work* the attacker needs, and *where to fix it* — all derived from the annotated diagram rather than brainstormed.
 
-**Step 4 — Security tests.** Step 3 produced an analysis of what *could* go wrong based on the diagram — but the diagram is a model of the system, not the system itself. The architecture could behave differently than drawn, a defense that looks absent on paper might exist in the implementation, or the practitioner could have annotated a flow incorrectly. Step 4 bridges the gap from theoretical analysis to empirical verification: it turns each attack chain into a **falsifiable security test** — a test with a binary, unambiguous outcome (pass or fail) determined by a concrete criterion, not subjective judgment. Unlike a finding that says "this looks risky," a falsifiable test can be run against the real system and the result speaks for itself: either the sink constraint was violated or it was not. Without Step 4, the practitioner has findings on paper; with Step 4, they have a test plan they can hand to a red team, run in CI, or use to verify that a cut-point fix actually works.
+##### Step 4: Security Tests
+
+Step 3 produced an analysis of what *could* go wrong based on the diagram — but the diagram is a model of the system, not the system itself. The architecture could behave differently than drawn, a defense that looks absent on paper might exist in the implementation, or the practitioner could have annotated a flow incorrectly. Step 4 bridges the gap from theoretical analysis to empirical verification: it turns each attack chain into a **falsifiable security test** — a test with a binary, unambiguous outcome (pass or fail) determined by a concrete criterion, not subjective judgment. Unlike a finding that says "this looks risky," a falsifiable test can be run against the real system and the result speaks for itself: either the sink constraint was violated or it was not. Without Step 4, the practitioner has findings on paper; with Step 4, they have a test plan they can hand to a red team, run in CI, or use to verify that a cut-point fix actually works.
 
 The practitioner takes two inputs from the previous steps: the attack chains with their mechanism records from Step 3, and the sink constraints from Step 1. The goal is to produce tests that either pass or fail against the running system, with no ambiguity about the verdict.
 
@@ -894,7 +898,9 @@ flowchart TD
 
 **Output of Step 4:** A set of falsifiable security tests (T1–T3), each with a concrete setup derived from the mechanism record's representation and a pass/fail oracle tied directly to a sink constraint. The tests decompose the chain so each leg is tested independently — if T1 fails but T2 passes after a fix, the practitioner knows the confirmation gate (M2's cut point) is working. This gives the practitioner not just a yes/no on the full attack, but a leg-by-leg diagnostic of which defenses hold and which do not.
 
-**What the practitioner walks away with.** After applying the four steps to the Trail of Bits / Gemini CLI system, the security practitioner has:
+##### Summary: What the Practitioner Walks Away With
+
+After applying the four steps to the Trail of Bits / Gemini CLI system, the security practitioner has:
 
 1. **Two stakeholder losses** (L1, L2) and **two sink constraints** (C1, C2) — the system's security requirements, stated explicitly and attached to specific components.
 2. **An annotated data-flow diagram** (Figure 3) — every component has a functional role, every flow has trust and fidelity labels, and hidden components (the downscaler) are unpacked.
