@@ -93,6 +93,36 @@ These frameworks are complementary, not competing — the taxonomy fills the gap
 
 Section 6 compares the method in detail with these frameworks, neighboring academic taxonomies, and classical security precedents, and **Appendix C** holds the full crosswalk tables.
 
+### 1.5 How to Use This Paper
+
+This section gives two entry paths: one for a reader who will apply the method by hand to one system, and one for a team that will encode the method in a skill, an assistant, or an automated check. Both paths use the same vocabulary (**Section 3**) and the same four steps (**Section 4**); they differ only in who performs the traversal.
+
+**Path A: an architect reviewing one system by hand.**
+
+1. **Learn the vocabulary in one pass.** Read **Section 1.2** for the thesis, **Section 3** up to **Table 1** for the thirteen boundary subclasses and their *Closable* or *Reducible-only* tags, and **Table 2** for which payload forms survive a `Full`, `Normalized`, or `Typed` flow. The subsections of **Sections 3.1** and **3.2** can wait: each adds one change to the running support-ticket example, and is best read when a crossing of that kind appears in your own diagram.
+2. **Start from the DFD you already have.** Step 1 (**Section 4.1**) adds one constraint per sink: an authority policy, a disclosure policy, a reference specification, a resource budget, or a safeguard obligation. Step 2 (**Section 4.2**) adds roles, trust labels, and fidelities from **Table 3**. The six-item checklist in **Section 4.2** is the part most reviews miss, because it unpacks the transforms, extractors, and renderers that a single "AI service" box hides.
+3. **Derive; do not brainstorm.** Step 3 (**Section 4.3**) walks seven rules; the crossing patterns are in **Table A.1** and the path-grouping and chain-length rules in **Appendix A.3**. The only judgment per crossing is realizability, recorded with an evidence maturity of `Observed`, `Demonstrated`, or `Feasible`. Step 4 (**Section 4.4**) turns each chain into a test whose pass/fail oracle is the sink constraint.
+4. **Calibrate against a worked case before trusting a first result.** **Section 5.1** and **Appendix D.1** show a complete design-time derivation; **Section 5.2** and **Table 5** show the reverse traversal for an incident; **Section 5.3** and **Table 6** show coverage planning across modalities. **Appendix A.4** settles the subclasses that are easy to confuse.
+5. **Report in the shape of Section 4.4.** Summary counts by crossing pattern, sink, and cut point go in the body, and the derivation tables in an appendix. **Appendix C** maps each record to MITRE ATLAS, NIST AI 100-2, OWASP, the CoSAI Risk Map, CWE, and STRIDE for teams that report in those vocabularies.
+
+| If you need to | Read first | Then apply | Your output |
+| :---- | :---- | :---- | :---- |
+| Threat-model a new or changed design | **1.2**, **3.3** (**Table 1**), **4** | Steps 1 to 4 on your own DFD; **5.1** as the pattern | Mechanism records, attack chains, cut points, security tests |
+| Triage a disclosed exploit or incident | **4.4** (reverse traversal), **5.2** | Steps 2 and 3 on the one path traversed; **Table 5** as the pattern | Supplied vs. granted legs, the triage questions for the system owner, sibling exposures |
+| Plan red-team coverage across modalities | **3.4** (**Table 2**), **5.3** | Steps 2 to 4 with the `«source»` modality swapped; **Table 6** as the pattern | A variant matrix of tests per surface |
+| Map findings to another framework | **1.3**, **6** | **Appendix C** crosswalks | Records tagged with ATLAS, NIST AI 100-2, OWASP, Risk Map, CWE, and STRIDE |
+
+**Path B: building a skill, an assistant, or an automated check.**
+
+The method is designed to be run by a program; human judgment is confined to one decision per crossing. A faithful implementation has four parts:
+
+1. **Catalog.** Encode **Table 1** (`Invariant × Divergence` subclasses with their *Closable* or *Reducible-only* tags), **Table 2** (representation survival by fidelity), **Table 3** (roles, trust labels, fidelities, and sink constraint types), **Table A.1** (crossing patterns), the rules of **Appendix A.3**, and the stage mapping of **Table B.2**. **Appendix B.3** names the five serialized components; the *Taxonomy Catalog* is the first of them.
+2. **Input contract.** Accept an annotated DFD in the shape of the **Appendix B.3** specification: nodes with `id`, `role`, and `sink_constraints`; flows with `source`, `target`, `trust_label`, `fidelity`, and `modality_context`. Reject a diagram that fails the **Section 4.2** checklist or Step 3 rule 7: an unannotated element is a specification gap, not a zero-finding.
+3. **Traversal.** Implement Step 3 rules 1 to 3 and 5 to 7 deterministically. Rule 4 is where the human stays in the loop: the tool proposes each crossing together with the representations that survive to it, and the analyst marks it realizable or not and sets the evidence maturity. Keep records 1-to-1 with crossings so chain lengths stay comparable across systems.
+4. **Output.** Emit the remaining four **Appendix B.3** components: the mechanism and chain inventory with `granted` and `supplied` legs and minimal cut points, the security test catalog with the sink constraint as the oracle, and the crosswalk links of **Appendix C**. A skill used inside an assistant adds one habit: quote the crossing pattern matched (**Table A.1**) and the survival cell used (**Table 2**) with each proposed record, so a reviewer can check the derivation rather than the conclusion.
+
+Two cautions apply to either path. Completeness is relative to the diagram: an omitted flow is an omitted chain (**Section 4.3**), so the **Section 4.2** checklist comes before any derivation. And a record names where a perimeter breaks, not what an attacker is called; use the crosswalks in **Appendix C** to speak to catalogs such as MITRE ATLAS or OWASP rather than renaming their entries.
+
 ## 2. Scope and System Model
 
 ### 2.1 Modalities and Architectures
