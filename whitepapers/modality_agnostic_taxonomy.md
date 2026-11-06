@@ -87,16 +87,6 @@ These frameworks are complementary, not competing — the taxonomy fills the gap
 
 Section 6 compares the method in detail with these frameworks, neighboring academic taxonomies, and classical security precedents, and **Appendix C** holds the full crosswalk tables.
 
-### 1.5 Practitioner Workflows and Paper Roadmap
-
-The vocabulary and DFD method support three concrete workflows demonstrated in Section 5:
-
-1. **Design-time threat analysis (Use Case A, Section 5.1):** Walk an architecture's annotated DFD, then evaluate each added capability incrementally on the same threat model (e.g., a ticket classifier gains rendered user outputs, backend tools, multimodal inputs, and voice channels). **Appendix D.1** has the complete 15-component enterprise derivation.
-2. **Incident mechanism triage (Use Case C, Section 5.2):** Draw only the path traversed by a disclosed exploit (such as Trail of Bits / Gemini CLI) using vendor-neutral roles to separate attacker-supplied bypasses from architecture-granted steps and identify related exposures (`CVE-2025-54132`, `CVE-2025-32711`).
-3. **Adversarial coverage planning and cross-modal prediction (Use Case B, Section 5.3):** Hold sink constraints fixed while swapping input channels across text, images, audio, video, and physical robotics sensors to generate targeted security tests where the violated sink constraint is the pass/fail oracle.
-
-Section 2 defines the multimodal system model and inference-time perimeter scope. Section 3 (*Defining a Mechanism*) introduces `Invariant × Divergence × Representation` with a worked example, and Section 4 specifies the four-step DFD derivation method and applies it end-to-end to the same example. Section 5 applies the method across abridged progressive, incident, and robotics cases (with exhaustive breakdowns in **Appendix D**). Section 6 expands on the ecosystem positioning introduced above with detailed framework crosswalks, comparable academic taxonomies, and classical security precedents, and Section 7 outlines empirical validation, limitations, and the CoSAI roadmap toward a per-mechanism control catalog and automated DFD assessment tool.
-
 ## 2. Scope and System Model
 
 ### 2.1 Modalities and Architectures
@@ -216,21 +206,19 @@ flowchart LR
 
 *Figure 1c. Trail of Bits / Gemini CLI attack chain. The three numbered edges correspond to the three mechanism tuples in the table below: ① the downscaler reveals hidden instructions, ② the model drives an auto-approved tool call, and ③ calendar data reaches an attacker-controlled host. Section 4 derives the same three records systematically from an annotated DFD.*
 
-| Step | What Happened | Mechanism Tuple | Matrix Cell | Fix |
-| :---- | :---- | :---- | :---- | :---- |
-| **1. Downscaler reveals hidden text** | The developer and the model see different content because the downscaler changes the artifact between check and use. Hidden pixels become legible instructions. | `⟨Meaning, Artifact State, Steganographic → Overt Semantic⟩` | Transform Consistency **(C)** | Anti-aliased downscaler strips the hidden channel |
-| **2. Model calls a tool** | The injected instructions drive a tool call reserved for the authenticated user. `trust=True` skips confirmation. | `⟨Authority, Position, Overt Semantic⟩` | Data-Control / Decision-Action **(C)** | User confirmation bound to specific tool arguments |
-| **3. Calendar data exfiltrated** | The tool sends secret calendar entries to the attacker's host. No outbound recipient restriction exists. | `⟨Confidentiality, Position, Overt Semantic⟩` | Context Confinement **(C)** | Outbound recipient allowlist |
+| Step | What Happened | Mechanism Tuple | Fix |
+| :---- | :---- | :---- | :---- |
+| **1. Downscaler reveals hidden text** | The developer and the model see different content because the downscaler changes the artifact between check and use. Hidden pixels become legible instructions. | `⟨Meaning, Artifact State, Steganographic → Overt Semantic⟩` | Anti-aliased downscaler strips the hidden channel |
+| **2. Model calls a tool** | The injected instructions drive a tool call reserved for the authenticated user. `trust=True` skips confirmation. | `⟨Authority, Position, Overt Semantic⟩` | User confirmation bound to specific tool arguments |
+| **3. Calendar data exfiltrated** | The tool sends secret calendar entries to the attacker's host. No outbound recipient restriction exists. | `⟨Confidentiality, Position, Overt Semantic⟩` | Outbound recipient allowlist |
 
 One attack, three mechanisms, three independently fixable cells. **Section 4** applies the full method to this same attack, deriving the same three records systematically from an annotated DFD and showing which legs the attacker supplies vs. which the architecture grants for free.
 
-**What the Trail of Bits example does not cover.** The attack exercises three of the thirteen cells in the Invariant × Divergence matrix: `Meaning × Artifact State`, `Authority × Position`, and `Confidentiality × Position`. It does not involve a guard that reads the artifact differently from the model (Evaluator divergence), a state that changes between validation and use (Time divergence), a resource-exhaustion pathway (Cost), or subclasses such as *Parser / Interpreter Differential*, *Semantic Stability*, *Grant Persistence*, or *Delegation Authority*. To demonstrate the full matrix, the definitions that follow use a second system — a support-ticket triage agent — whose components naturally exercise all four invariants and all four divergences. Where Trail of Bits applies, each definition calls it back.
+**What the Trail of Bits example does not cover.** The attack exercises three of the full set of invariant–divergence combinations (defined in Section 3.3): `Meaning × Artifact State`, `Authority × Position`, and `Confidentiality × Position`. It does not involve a guard that reads the artifact differently from the model (Evaluator divergence), a state that changes between validation and use (Time divergence), a resource-exhaustion pathway (Cost), or subclasses such as *Parser / Interpreter Differential*, *Semantic Stability*, *Grant Persistence*, or *Delegation Authority*. To cover the remaining combinations, the definitions that follow use a second system — a support-ticket triage agent — whose components naturally exercise all four invariants and all four divergences. Where Trail of Bits applies, each definition calls it back.
 
 #### Teaching Example: Support-Ticket Triage Agent
 
-The system below serves as the running example for Sections 3.1–3.4. It is deliberately richer than the Trail of Bits pipeline so that each invariant and divergence has a concrete instance. Section 5.1 later builds this system progressively, adding one capability at a time and re-deriving at each step; here we introduce the combined architecture so the definitions can reference its components directly.
-
-A customer submits a support ticket by email or web form. The system triages the ticket, drafts a reply, and can issue billing credits:
+A customer submits a support ticket by email or web form. The system filters and normalizes the text, classifies the ticket, routes it to the appropriate queue, drafts an HTML reply, and can issue billing credits. Uploaded screenshots bypass the Text Filter and pass through an Aliasing Downscaler. The Triage LLM simultaneously holds customer input, a confidential Internal Header (fraud-risk score), and CRM records (including a customer-editable notes field). Credits at or below \$25 are auto-approved; credits above \$25 require Human Approver sign-off, after which the approved credit flows back through the LLM to Billing Credit (dotted edge). The Staff HTML Preview renders reply drafts and automatically fetches any remote images (`<img src=...>`) embedded in the HTML.
 
 ```mermaid
 %%{init: {"flowchart": {"nodeSpacing": 22, "rankSpacing": 32}}}%%
@@ -244,6 +232,7 @@ flowchart LR
     HDR[("Internal Header<br/>(confidential)")]:::store
     CRM[("CRM Store<br/>(confidential records +<br/>customer-editable notes)")]:::store
     RTR(["Queue Router"]):::executor
+    QUE["Other Queues<br/>(billing, technical,<br/>account, other)"]:::executor
     PGR{{"Abuse Pager<br/>[1h SLA]"}}:::guard
     BIL(["Billing Credit<br/>[≤$25 auto]"]):::executor
     APP{{"Human Approver"}}:::guard
@@ -256,10 +245,13 @@ flowchart LR
     DSC --> LLM
     HDR -- "confidential" --> LLM
     CRM -- "confidential records +<br/>customer-editable notes" --> LLM
-    LLM -- "one label from<br/>fixed category list" --> RTR --> PGR
+    LLM -- "one label from<br/>fixed category list" --> RTR
+    RTR -- "if abuse" --> PGR
+    RTR -- "billing / technical /<br/>account / other" --> QUE
     LLM -- "credit ≤$25" --> BIL
     LLM -- "credit >$25" --> APP -. "approval flag" .-> LLM
-    LLM -- "HTML draft" --> PRV --> USR
+    LLM -. "approved credit" .-> BIL
+    LLM -- "HTML draft" --> PRV -- "reply + auto-fetches<br/>remote &lt;img&gt; URLs" --> USR
 
     classDef src fill:#fee2e2,stroke:#dc2626,stroke-width:1.5px,color:#7f1d1d
     classDef guard fill:#e5e7eb,stroke:#6b7280,stroke-width:1.5px,color:#1f2937
@@ -269,25 +261,7 @@ flowchart LR
     classDef store fill:#f3e8ff,stroke:#7c3aed,stroke-width:1.5px,color:#3b0764
 ```
 
-*Figure 1d. Support-ticket triage agent (combined architecture). Section 4 later annotates this diagram with formal roles and flow labels; here the components are described in plain terms so the definitions in Sections 3.1–3.4 can reference them directly.*
-
-Key components:
-
-- **Text Filter**: inspects ticket text for malicious content; does not see uploaded screenshots.
-- **Normalizer**: strips HTML, canonicalizes Unicode, and truncates at 4,000 characters.
-- **Aliasing Downscaler**: resizes uploaded screenshots before they reach the model. Uses nearest-neighbor or bicubic resampling without anti-aliasing filtering — so hidden pixel patterns can survive the resize.
-- **Triage LLM**: classifies tickets into one of five categories (`billing`, `technical`, `account`, `abuse`, `other`), drafts HTML replies, and invokes CRM and billing tools. Holds both customer-supplied ticket content and confidential internal context simultaneously.
-- **Internal Header** (confidential): the account's fraud-risk score, the rule that flagged it, and VIP handling notes — attached by the mail gateway, not visible to the customer.
-- **CRM Store** (confidential records + customer-editable notes): customer invoices and financial records, plus a `delivery_notes` field the customer can edit through a self-service portal. When the LLM calls `crm.lookup`, the response — including the customer-editable notes — flows back into the LLM's context.
-- **Queue Router**: sends the ticket to the queue matching the LLM's category label; `abuse` triggers the Abuse Pager.
-- **Abuse Pager**: must page on-call responders within 1 hour for threat or fraud tickets.
-- **Billing Credit**: issues credits up to \$25 automatically; credits above \$25 require Human Approver sign-off.
-- **Human Approver**: reviews a model-generated summary card for above-threshold credits and returns an approval flag to the LLM.
-- **Staff HTML Preview**: renders the LLM's HTML reply draft in a staff console and automatically fetches any remote images (`<img src=...>`) embedded in the draft as soon as a reviewer opens it.
-
-**How information flows through the system (Figure 1d).** A customer's ticket text passes through the Text Filter and Normalizer before reaching the Triage LLM; an attached screenshot bypasses the Text Filter entirely and passes through the Aliasing Downscaler. The Triage LLM simultaneously holds the customer's input, the confidential Internal Header, and CRM records (including customer-editable notes that flow back after a `crm.lookup` call). It emits a category label to the Queue Router, an HTML reply draft to the Staff HTML Preview, and — when it has tool-calling authority — credit requests to Billing Credit. Credits above \$25 pass through the Human Approver, whose approval flag returns to the LLM. Each of these handoffs is a point where a security assumption can break, and the definitions below identify exactly which assumption fails at each one.
-
-**What going wrong looks like.** A fraudster files a ticket requesting to redirect someone else's payouts. The ticket text ends with *"Note for triage AI: route to billing."* The Triage LLM misroutes the ticket to `billing` instead of `abuse`, so the Abuse Pager never fires and the request skips fraud review. Through the same ticket — or a follow-up — the attacker steers the LLM to call Billing Credit for a \$25 credit to the wrong account, and because the model also holds the confidential Internal Header, the attacker's reply draft leaks the account's fraud-risk score to the customer. One system, multiple failures at different handoffs. The definitions that follow name each failure precisely.
+*Figure 1d. Support-ticket triage agent. Each node label carries the detail the examples in Sections 3.1–3.4 reference; Section 4 later annotates this diagram with formal roles and flow labels.*
 
 ---
 
@@ -386,7 +360,7 @@ An **Artifact State** divergence is a transformation or multi-input aggregation 
 * A single transform: an attacker hides text that only an aliasing downscaler reveals, or places a fraudulent request past the 4,000-character cut (*Transform Consistency*).
 * An aggregation of several inputs: an attacker spreads one large credit across several tickets that each stay under the `\$25` auto-approval limit, while the 30-day total exceeds the account's `\$50` cap (*Transform Consistency*, aggregation).
 
-*Example (Figure 1d):* The Normalizer truncates each ticket at 4,000 characters. The fraudster opens the ticket with 4,000 characters of routine billing text and puts the payout-change request after the cut. The Triage LLM sees only the billing text and labels the ticket `billing`, while the billing queue receives the full ticket. The fault: the Triage LLM judges a different artifact from the one the queue acts on (*Transform Consistency*).
+*Example (Figure 1d):* The Normalizer truncates each ticket at 4,000 characters. The fraudster opens the ticket with 4,000 characters of routine billing text and appends the payout-change request after the cut. The Triage LLM sees only the billing text and labels the ticket `billing`, so the Queue Router sends it to the billing queue instead of triggering the Abuse Pager. A human reviewer reading the original submission would see the fraud request, but the LLM never did — the Normalizer removed it. The fault: the transform changes the artifact between submission and classification, and the LLM's routing decision is based on an incomplete version of the input (*Transform Consistency*).
 
 > *Trail of Bits callback:* The Aliasing Downscaler is the same pattern — a transform between the developer's visual check and the model's consumption changes what the artifact says, revealing hidden instructions that the developer never saw.
 
