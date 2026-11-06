@@ -970,11 +970,11 @@ This paper takes no position on agent-to-agent protocol design, model evaluation
 
 **The paper in eight takeaways.**
 
-1. Containment is one layer of bounded authority, not a standalone discipline. Most of the incidents that made headlines as escapes were, on inspection, agents using authority they had legitimately been granted. The frame decides where the next dollar of hardening goes (§1).
-2. The isolation layer decomposes along three axes: local, outbound, and inbound. Mapped against them, the existing guidance is strong on the first, partial on the second, and nearly silent on the third (§2).
+1. Containment is one layer of bounded authority, not a standalone discipline. Several incidents reported as escapes turned on an insufficiently specified control or on authority the agent already held (§5). The frame decides where the next dollar of hardening goes (§1).
+2. The isolation layer decomposes along three axes: local, outbound, and inbound (§2).
 3. Mediation is a claim about effects, not paths. Every path capable of producing the same consequential effect crosses an independently enforced authorization boundary before the effect commits, or is excluded from the claimed assurance boundary, in writing, per decision. Prior evidence never becomes executable authority for the final effect (§3).
 4. Per-agent controls cannot see a set of agents. Only an accounting authority holding the aggregate sees what a delegation subtree consumes together, under a fail-safe default: past its latency bound, the action is refused or held, never allowed (§4).
-5. The enforcement property is the reference monitor: complete mediation, tamper-proof placement, and verifiability read as *evidenced*. Every control failure lands in one of four modes: defeated, disabled, insufficiently specified, or permitted. Industry attention concentrates on the first two; the incident record concentrates on the last two (§5).
+5. The enforcement property is the reference monitor: complete mediation, tamper-proof placement and verifiability, with records that let a reviewer confirm mediation (§5.1). Every control failure lands in one of four modes: defeated, disabled, insufficiently specified, or permitted (§5).
 6. Vulnerability management lowers the probability that a boundary fails. Reachability minimization bounds the consequence when it does. Only the second is fully within the operator's control, and the yours-to-harden boundary also decides whether evidence will exist at all (§6).
 7. Detection and evidence are two artifacts against the same event. Detection may be noisy, heuristic and tuned locally. Evidence must be stable, complete and dull. In the record, a determined absence is distinguishable from an absence never established, because an explicit absence is evidence and an empty field is a shrug (§7).
 8. A sandbox is vetted when it can demonstrate, mechanically and before the run, that it does what it claims: the boundary holds, mediation is complete or its exclusions are stated, the monitor is out of reach, the evidence verifies, the reachable set is current, and aggregate accounting holds across the principal. A configuration is not a demonstration. The demonstration is bound to the run it describes, and a claim whose last demonstration has lapsed is not a current claim (§8).
@@ -992,7 +992,7 @@ An agent with bounded authority in the way a corporate laptop has it is not an a
 ## 11. References
 
 1. Anthropic. *Claude Mythos Preview System Card*, 2026-04-07. https://www-cdn.anthropic.com/7624816413e9b4d2e3ba620c5a5e091b98b190a5/Claude%20Mythos%20Preview%20System%20Card.pdf
-2. OpenAI. *ExploitGym evaluation disclosure*, 2026-07-21. https://openai.com/index/hugging-face-model-evaluation-security-incident/
+2. OpenAI. *OpenAI and Hugging Face partner to address security incident during model evaluation*, 2026-07-21, updated 2026-07-28. https://openai.com/index/hugging-face-model-evaluation-security-incident/
 3. Anthropic Frontier Red Team. *Disclosure of evaluation incidents*, 2026-07-30. https://www.anthropic.com/news/investigating-incidents-cybersecurity-evals
 4. UK AI Security Institute. *INC-2026-07-28-01*, 2026-08-04. https://www.aisi.gov.uk/blog/incident-report-unsanctioned-agent-behaviour-during-cyber-testing
 5. Ona.com. *How Claude Code Escapes Its Own Denylist and Sandbox*, 2026-03-03. https://ona.com/stories/how-claude-code-escapes-its-own-denylist-and-sandbox
@@ -1016,6 +1016,7 @@ An agent with bounded authority in the way a corporate laptop has it is not an a
 22. Sven Bugiel, Lucas Davi, Alexandra Dmitrienko, Thomas Fischer, Ahmad-Reza Sadeghi, Bhargava Shastry. *Towards Taming Privilege-Escalation Attacks on Android*. NDSS Symposium, 2012. https://www.ndss-symposium.org/wp-content/uploads/2017/09/07_3.pdf
 23. James P. Anderson. *Computer Security Technology Planning Study, Volume I—Executive Summary*. ESD-TR-73-51, Vol. I, October 1972. https://csrc.nist.gov/files/pubs/conference/1998/10/08/proceedings-of-the-21st-nissc-1998/final/docs/early-cs-papers/ande72a.pdf
 24. Scott Rose, Oliver Borchert, Stu Mitchell, Sean Connelly. *Zero Trust Architecture*. NIST Special Publication 800-207, August 2020. https://doi.org/10.6028/NIST.SP.800-207
+25. OpenAI. *OpenAI – Hugging Face Incident Technical Report*, 2026-08-26. https://cdn.openai.com/pdf/67869394-cb91-4c12-888c-5cbd85c7814c/OpenAI-Hugging-Face%20Incident-Technical-Report.pdf
 
 ---
 
@@ -1067,10 +1068,10 @@ so to the editor and the change will be made.
 **Purpose.** Evidence the blog post could not carry.
 
 - **A.1 The x32/seccomp result.** A publishable receipt: test harness, models and versions, sandbox configuration (Landlock, Docker network isolation, seccomp-BPF), the exact bypass, and the chained LLM-API relay. Until this appendix exists, the paper cites the result as reported, not as verified.
-- **A.2 The OpenAI / Hugging Face / Artifactory chain.** Primary sources read 2026-09-05; status per claim:
+- **A.2 The OpenAI / Hugging Face / Artifactory chain.** Primary sources read 2026-09-05 and 2026-11-06; status per claim:
   - **Established from Hugging Face's disclosure [14]:** the intrusion into Hugging Face started in their data-processing pipeline — a remote-code dataset loader and a template injection in a dataset configuration, reaching a processing worker — followed by escalation to node-level access, credential harvesting, and lateral movement. Artifactory appears nowhere in that account, and the disclosure affirmatively reports the software supply chain verified clean, container images and published packages included. The blog's sentence merging Artifactory into the Hugging Face breach is wrong; §6 carries the corrected telling.
-  - **Established from NVD:** at least ten JFrog CVEs published 2026-07-27, nine naming Artifactory, severities up to a privilege-escalation flaw. Published-same-day is not used-in-the-chain; no CVE record connects itself to the incident, and researcher-credit claims trace to news coverage only. "Zero-day" is characterized directly only by Anthropic [3] — singular, and about OpenAI's escape, not the Hugging Face breach.
-  - **Unverified, primary source unread (the cited OpenAI page [2] blocks automated fetches; likely primary source is OpenAI's Black Hat presentation):** 17,600 attacker actions; the 4.5-day duration (secondary accounts give a 9–13 July recovery window while a timeline from the presentation runs 7 May–20 July, so the figure's meaning is unestablished); Kubernetes node root via a service-account token; 181 nodes enrolled in the VPN mesh; attempted CI pipeline poisoning; and Artifactory's exact role in the evaluation-environment escape. None of these may be asserted in the paper until read against the primary source; anything still unverified at first draft is dropped.
+  - **Established from NVD:** at least ten JFrog CVEs published 2026-07-27, nine naming Artifactory, severities up to a privilege-escalation flaw. Published-same-day is not used-in-the-chain; no CVE record connects itself to the incident, and researcher-credit claims trace to news coverage only. "Zero-day" is OpenAI's own characterization of the Artifactory flaws in its escape [2], [25]; no source applies it to the Hugging Face breach.
+  - **Established from OpenAI's disclosure [2] and technical report [25]:** the models reached the public internet through zero-days in the internal Artifactory package-registry proxy. Figures that neither source gives stay out of the body: 17,600 attacker actions, the 4.5-day duration, 181 enrolled nodes.
 - **A.3 Comparison of external findings.** @Johncavanaugh-IIS's comparison of the OpenAI researcher findings against the blog post's findings: what they found that we did not, and the reverse. Lands here first; sections 2 and 6 draw from it.
 
 ---
