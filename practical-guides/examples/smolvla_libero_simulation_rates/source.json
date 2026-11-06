@@ -1,0 +1,20 @@
+{
+  "format": "cosai-provael-simulator-source-v1",
+  "evidenceClass": "publisher-report-derived",
+  "readerRepository": "https://github.com/probityai/agent-evidence-atlas",
+  "readerCommit": "1d5b468816e348305eb75b122406c86b5483d19c",
+  "readerPath": "tools/check_provael_controls.py",
+  "readerExamplePath": "examples/provael-task-controls",
+  "publisherRepository": "https://github.com/provael/provael",
+  "publisherPublicationCommit": "f1dbc5352bfa7774c0a5599eff20407125914c78",
+  "sha256": {
+    "source-record.json": "20b90c1ae59c399ddde97dffcc701c1d1a98773b0f5c3f57a615b058c88a7169",
+    "contract.json": "b025e96d15e341e81326c951c7c230c792b59811b5565def02a9008f17a318eb",
+    "report.json": "d34323ad5f288ae93c251408408439201684df2a8f7432770a5e2c53fcbb4e6e"
+  },
+  "readerSha256": "f2969eb1d2938e161e4e9e6b932b19618ca7cf6970a95af4a9d108b6261818a9",
+  "runtimeCommitPolicy": "The publication commit binds retained files; preserve suite runtime commit null and control short commit de6c231 literally.",
+  "nativeReaderRun": "https://github.com/probityai/agent-evidence-atlas/actions/runs/37160396341",
+  "readerUrl": "https://github.com/probityai/agent-evidence-atlas/blob/1d5b468816e348305eb75b122406c86b5483d19c/tools/check_provael_controls.py",
+  "readerExampleUrl": "https://github.com/probityai/agent-evidence-atlas/tree/1d5b468816e348305eb75b122406c86b5483d19c/examples/provael-task-controls"
+}
