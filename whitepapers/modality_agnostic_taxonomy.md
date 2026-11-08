@@ -66,13 +66,13 @@ Section 2 defines the multimodal system model and inference-time perimeter scope
 
 ### 1.5 How to Use This Paper
 
-There are two ways to use this paper: an architect applying the method by hand to one system, or a team building it into a tool. Both use the same vocabulary (Section 3) and the same four steps (Section 4).
+This paper supports two uses: applying the method to a system by hand, and developing tools that assist the analysis. Both use the vocabulary in Section 3 and the four steps in Section 4.
 
-**Path A: applying the method by hand.** Read Section 3 for the vocabulary, and keep Table 1 (the boundary subclasses) and Table 2 (which payload forms survive each fidelity) at hand. Then work through Section 4.1, which runs all four steps once on the Trail of Bits attack, and repeat the steps on your own data-flow diagram. Use Section 4.2 as the reference while you annotate, and Table A.1 to look up crossings in Step 3. Section 5 shows the method on three use cases: design-time threat analysis, incident triage and cross-modal coverage planning.
+**Path A: applying the method by hand.** Read Section 3 for the vocabulary, keeping Table 1 and Table 2 nearby for classification and representation guidance. Then follow the complete walkthrough in Section 4.1 and repeat the four steps on your own data-flow diagram. Use Section 4.2 while annotating the diagram and Table A.1 to identify candidate crossings. Section 5 illustrates design-time threat analysis, incident triage, and cross-modal coverage planning.
 
-**Path B: building the method into a tool.** A tool, assistant or automated check can treat Tables 1 and 2, the annotation vocabulary in Section 4.2 and the lookup table in Table A.1 as its catalog, and an annotated data-flow diagram as its input. Keep one human decision per crossing: whether an attacker can realistically exploit it, and with what evidence maturity. Have the tool show which lookup pattern and which survival rule it used for each record, so a reviewer can check the derivation and not just the result.
+**Path B: developing tool support.** Tables 1 and 2, Section 4.2, and Table A.1 provide a starting point for tools that suggest candidate crossings from an annotated data-flow diagram. For each record, show the matched lookup pattern, the representation-survival assumption, and the potentially violated sink constraint. Human review remains necessary for the constraints, component roles, flow labels, fidelity assignments, exploitability, and evidence maturity.
 
-Either way, the results are only as complete as the diagram: a component or flow that is never drawn produces no findings.
+For either path, findings depend on the completeness and accuracy of the diagram and its annotations. Missing components or flows leave gaps in the analysis.
 
 ## 2. Scope and System Model
 
