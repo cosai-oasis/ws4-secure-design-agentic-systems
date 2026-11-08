@@ -171,3 +171,5 @@ The command checks every corpus member against its manifest, judges all cases fr
 ### Residual gaps
 
 Operations authorship of a cancel is read from the booking system's event actor; where the booking system does not record it, variant 3 cannot be told apart from the agent system's own cancel. The corpus judges signed records and does not judge price, amount or settlement.
+
+Reviewed by @siddhartha1310: [review of 28 October](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/pull/307#issuecomment-6476107692).
