@@ -1327,6 +1327,8 @@ Nasr, M., et al. (2023). Scalable extraction of training data from (production) 
 
 Nasr, M., et al. (2025). The attacker moves second: Stronger adaptive attacks bypass defenses against LLM jailbreaks and prompt injections. arXiv:2510.09023. https://arxiv.org/abs/2510.09023
 
+National Institute of Standards and Technology. (2020). *Security and privacy controls for information systems and organizations* (NIST SP 800-53 Rev. 5). https://doi.org/10.6028/NIST.SP.800-53r5
+
 National Institute of Standards and Technology. (2023). *Artificial Intelligence Risk Management Framework (AI RMF 1.0)* (NIST AI 100-1). https://doi.org/10.6028/NIST.AI.100-1
 
 National Vulnerability Database. (2025a). *CVE-2025-32711: Microsoft 365 Copilot information disclosure (EchoLeak)*. https://nvd.nist.gov/vuln/detail/CVE-2025-32711
@@ -1340,6 +1342,8 @@ OpenAI. (2024, May 13). *Hello GPT-4o*. https://openai.com/index/hello-gpt-4o/
 Ou, X., Govindavajhala, S., & Appel, A. W. (2005). MulVAL: A logic-based network security analyzer. *Proceedings of the 14th USENIX Security Symposium*.
 
 OWASP Foundation. (2025). *Agentic AI – Threats and Mitigations* (version 1.0). https://genai.owasp.org/
+
+OWASP Foundation. (2025, December 9). *OWASP Top 10 for Agentic Applications* (ASI01 Agent Goal Hijack; ASI02 Tool Misuse; ASI03 Identity & Privilege Abuse). https://genai.owasp.org/2025/12/09/owasp-top-10-for-agentic-applications-the-benchmark-for-agentic-security-in-the-age-of-autonomous-ai/
 
 OWASP Foundation. (2025). *OWASP Top 10 for LLM Applications 2025* (LLM01 Prompt Injection; LLM05 Improper Output Handling; LLM06 Excessive Agency). https://genai.owasp.org/llm-top-10/
 
@@ -1356,6 +1360,8 @@ Rawat, A., et al. (2024). Attack Atlas: A practitioner's perspective on challeng
 Rehberger, J. (2024, August 26). *Microsoft Copilot: From prompt injection to exfiltration of personal information* (ASCII smuggling). Embrace The Red. Reported in *The Register*, August 28, 2024: https://www.theregister.com/2024/08/28/microsoft_copilot_copirate
 
 Robey, A., Ravichandran, Z., Kumar, V., Hassani, H., & Pappas, G. J. (2024). Jailbreaking LLM-controlled robots (RoboPAIR). arXiv:2410.13691. https://arxiv.org/abs/2410.13691
+
+Rose, S., Borchert, O., Mitchell, S., & Connelly, S. (2020). *Zero trust architecture* (NIST SP 800-207). https://doi.org/10.6028/NIST.SP.800-207
 
 Salesforce. (2026). *Agentforce documentation*. https://www.salesforce.com/agentforce/
 
@@ -1639,6 +1645,119 @@ The attacker can tailor the pair to exploit whichever arbitration bias the model
 **Why the `Composition-Dependent` modifier applies:** Each artifact classifies as `Overt Semantic`, and the modifier records that the adversarial effect requires their co-processing. Two complete, independent artifacts produce the failure through combined interpretation, which is the `Composition-Dependent` case (one payload split into incomplete pieces is the `Fragmented / Distributed` case). In **Completion** (`EX-IMAGE.4` in **Appendix C.1**), both modalities cooperate to supply complementary parts of an operation. In **Contradiction**, the modalities deliberately conflict, and the attack exploits whichever one the model treats as authoritative over the ground-truth observation (`C1`).
 
 **Comparison with adversarial audio contradiction:** An audio contradiction attack can also set two channels in conflict, but with an `Adversarial Perturbation` representation (an adversarially optimized audio waveform). In Scenarios A and B above, both modalities are `Overt Semantic`, so the contradiction is between two plainly readable or viewable inputs. The boundary (`Meaning × Evaluator`, *Semantic Stability*) and modifier (`Composition-Dependent`) are the same, and only the representation form differs, which is enough for the taxonomy to tell them apart: the audio perturbation requires mitigating a model-specific perturbation, while Scenarios A and B require enforcing cross-modal conflict rejection against `C1` (which Step 4 tests using paired claim-vs.-observation fixtures such as `probityai/agent-evidence-vectors`).
+
+---
+
+## Glossary and Terminology Alignment
+
+This glossary lists the terms this paper defines and relates each one to the closest term in existing frameworks and literature, so readers who know those sources can map between them. **Relationship** uses four tags: **Same** (same term and meaning); **Equivalent** (the same concept under a different name); **Broader** (this paper widens the existing concept, usually to non-text modalities, machine perception, or human reviewers acting as guards); **New** (no equivalent found in the sources reviewed as of November 2026). ATLAS identifiers refer to data release v2026.09.
+
+### Core model
+
+| Term | Defined in | Meaning in this paper | Closest existing term(s) | Relationship |
+| :---- | :---- | :---- | :---- | :---- |
+| Mechanism tuple `⟨Invariant, Divergence, Representation⟩` | 3.0 | Three-part key that classifies a failure mechanism | — | New |
+| Mechanism record | 4.3 | One finding: the tuple plus DFD node, role, sink constraint, modality, fidelity, evidence maturity, chain role, and closability | Threat-model finding; CWE weakness entry | Equivalent |
+| Invariant | 3.1 | Security property a sink constraint protects | Security property / objective (CIA triad) | Equivalent |
+| Divergence | 3.2 | Why two evaluations assumed to agree actually differ | Interpretation conflict (`CWE-436`) | New (as a classification axis) |
+| Representation | 3.4 | Form the adversarial payload takes at a given processing point | Payload; adversarial examples (NIST AI 100-2e2025) for one form | New (as a classification axis) |
+| Sink | 3.0 | Component where data has consequential effect | Sink (taint analysis) | Same |
+| Sink constraint | 3.0, 4.2.1 | Explicit security rule on a sink | Security constraint (STPA-Sec; Young & Leveson, 2013) | Equivalent |
+| Crossing | 4.3 | An `Invariant × Divergence` cell found on a DFD path; may lie inside a single trust zone | Trust-boundary crossing (DFD threat modeling) — different meaning | New (distinct from the DFD usage) |
+| Closable / Reducible-only | 3.3 | A deterministic architectural fix exists / defenses only lower attack success | Deterministic vs. probabilistic controls (Glukhov et al., 2023) | New |
+
+### Invariants and divergences
+
+| Term | Defined in | Meaning in this paper | Closest existing term(s) | Relationship |
+| :---- | :---- | :---- | :---- | :---- |
+| Meaning (*Semantic Integrity*) | 3.1.1 | Readers agree on what an artifact says | Integrity; interpretation conflict (`CWE-436`) | Broader |
+| Authority | 3.1.2 | Entitlement to drive a consequential action | Access enforcement (NIST SP 800-53 AC-3); Biba integrity | Equivalent |
+| Confidentiality | 3.1.3 | Secret context reaches only permitted recipients | Confidentiality; Bell-LaPadula; Denning (1976) | Same |
+| Cost (*Resource Bounding*) | 3.1.4 | Resource use stays within the admitted budget | Availability; `CWE-400`; OWASP `LLM10:2025` Unbounded Consumption | Equivalent |
+| Evaluator | 3.2.1 | Two evaluators read the same artifact state differently | `CWE-436`; ATLAS `AML.T0129` Triggers in Multimodal Inputs | Broader |
+| Artifact State | 3.2.2 | A transform or aggregation changes content between check and use | `CWE-180` Validate Before Canonicalize; image-scaling attacks (Xiao et al., 2019; Quiring et al., 2020) | Broader |
+| Time | 3.2.3 | State changes between validation (`t`) and use (`t + Δ`) | Time-of-check to time-of-use (`CWE-367`) | Equivalent |
+| Position | 3.2.4 | A flow's trust or sensitivity label violates the sink's policy | Information-flow policy violation (Denning, 1976; NIST SP 800-53 AC-4) | Equivalent |
+
+### Boundary subclasses (Table 1)
+
+| Term | Cell | Closest existing term(s) | Relationship |
+| :---- | :---- | :---- | :---- |
+| Human-Machine Perception | Meaning × Evaluator | `CWE-451` UI Misrepresentation of Critical Information; `CWE-1039` Inadequate Detection or Handling of Adversarial Input Perturbations in Automated Recognition Mechanism | Broader |
+| Guard-Model Capability | Meaning × Evaluator | ATLAS `AML.T0129` Triggers in Multimodal Inputs | New (as a named class) |
+| Parser / Interpreter Differential | Meaning × Evaluator | `CWE-436`; parser differentials (Momot et al., 2016) | Same |
+| Semantic Stability | Meaning × Evaluator | ATLAS `AML.T0054` LLM Jailbreak; `AML.T0015` Evade AI Model | New (as a named class) |
+| Transform Consistency | Meaning × Artifact State | `CWE-180`; insertion and evasion (Ptacek & Newsham, 1998) | Broader |
+| Check-Use Consistency | Meaning × Time | `CWE-367` (TOCTOU) | Equivalent |
+| Grant Persistence | Authority × Time | `CWE-613` Insufficient Session Expiration; OWASP Agentic `ASI03` Identity & Privilege Abuse | Equivalent |
+| Data-Control | Authority × Position | Prompt injection: OWASP `LLM01:2025`; ATLAS `AML.T0051`; `CWE-1427` (text only); OWASP Agentic `ASI01` Agent Goal Hijack | Broader (beyond text) |
+| Decision-Action | Authority × Position | OWASP `LLM06:2025` Excessive Agency; OWASP Agentic `ASI02` Tool Misuse; `CWE-862` Missing Authorization | Equivalent |
+| Delegation Authority | Authority × Position | Confused deputy (Hardy, 1988; `CWE-441`) | Equivalent |
+| Context Confinement | Confidentiality × Position | OWASP `LLM02:2025` Sensitive Information Disclosure; ATLAS `AML.T0086` Exfiltration via AI Agent Tool Invocation | Equivalent |
+| Output-Consumer | Confidentiality × Position | ATLAS `AML.T0077` LLM Response Rendering; OWASP `LLM05:2025` Improper Output Handling; `CWE-1426` | Equivalent |
+| Resource Accounting | Cost × Evaluator | `CWE-400`; ATLAS `AML.T0029` Denial of AI Service, `AML.T0034` Cost Harvesting | Equivalent |
+
+### Representation forms, modifiers, and optional annotations
+
+| Term | Defined in | Closest existing term(s) | Relationship |
+| :---- | :---- | :---- | :---- |
+| Overt Semantic | 3.4.1 | Plaintext prompt injection; typographic image injection | Equivalent |
+| Encoded / Obfuscated | 3.4.1 | ATLAS `AML.T0068` LLM Prompt Obfuscation (encoding cases such as base64 or rot13) | Same |
+| Steganographic | 3.4.1 | Steganography; ATLAS `AML.T0068` (hidden-text cases such as same-color text). ATLAS groups these with encoding; this paper separates them because normalization removes one but not the other | Same |
+| Adversarial Perturbation | 3.4.1 | Adversarial examples (NIST AI 100-2e2025); ATLAS `AML.T0043` Craft Adversarial Data; `CWE-1039` | Equivalent |
+| Fragmented / Distributed | 3.4.2 | Payload splitting (OWASP `LLM01:2025`, scenario 6) | Equivalent |
+| Composition-Dependent | 3.4.2 | Cross-modal prompt injection (Wang et al., 2025) | New (as a modifier) |
+| Sequence-Dependent | 3.4.2 | — | New |
+| Intrinsic Amplification | 3.4.3 | Decompression bomb (`CWE-409`); asymmetric resource consumption (`CWE-405`) | Equivalent |
+| Semantic Amplification | 3.4.3 | ATLAS `AML.T0034.001` Resource-Intensive Queries, `AML.T0034.002` Agentic Resource Consumption | Equivalent |
+| Construction Method | 3.6 | ATLAS `AML.T0043.000` White-Box Optimization, `.001` Black-Box Optimization, `.003` Manual Modification | Equivalent |
+| Attacker Knowledge / Access (*Partial Knowledge*) | 3.6 | White-box, black-box, and gray-box attacks (NIST AI 100-2e2025, Section 2.1.4) | Equivalent (*Partial Knowledge* = gray-box) |
+| Transfer Context (*Surrogate Transfer*) | 3.6 | ATLAS `AML.T0043.002` Black-Box Transfer | Equivalent |
+
+### Annotation vocabulary
+
+| Term | Defined in | Closest existing term(s) | Relationship |
+| :---- | :---- | :---- | :---- |
+| *Authority policy* | 4.2.1 | Access control policy (NIST SP 800-53 AC-3, AC-6) | Equivalent |
+| *Disclosure policy* | 4.2.1 | Information-flow policy (NIST SP 800-53 AC-4) | Equivalent |
+| *Reference specification* | 4.2.1 | Ground-truth specification | New (as a sink-constraint type) |
+| *Resource budget* | 4.2.1 | Quota / rate limit; ATLAS `AML.M0036` Limit AI Workload Resource Consumption | Equivalent |
+| *Safeguard obligation* (liveness bound) | 4.2.1 | Liveness property (Alpern & Schneider, 1985); a deadline-bounded obligation is bounded liveness | Broader |
+| `«source»` | 4.2.2 | External entity (DFD); source (taint analysis) | Same |
+| `«receiver»` | 4.2.2 | External entity on the outbound side (DFD) | Equivalent |
+| Data store | 4.2.2 | Data store (DFD; Shostack, 2014) | Same |
+| `«guard»` | 4.2.2 | Guardrail (ATLAS `AML.M0020`); policy enforcement point (NIST SP 800-207); human-in-the-loop approval (ATLAS `AML.M0029`) | Broader (includes human reviewers) |
+| `«transform»` | 4.2.2 | Preprocessing; canonicalization (`CWE-180`); input restoration (ATLAS `AML.M0010`) | Equivalent |
+| `«follower»` | 4.2.2 | Agent reasoning core (CoSAI Risk Map); planner (Costa et al., 2025) | New (role name) |
+| `«executor»` | 4.2.2 | Agent tool (ATLAS `AML.T0053`); actuator (STPA) | Equivalent |
+| `«renderer»` | 4.2.2 | Downstream output consumer (OWASP `LLM05:2025`); rendering client (ATLAS `AML.T0077`) | Equivalent |
+| `«relay»` | 4.2.2 | Pass-through data flow (DFD) | New (role name) |
+| `Untrusted` / `Trusted` | 4.2.3 | Integrity labels in information-flow control (Biba; Denning, 1976; Costa et al., 2025) | Same |
+| `Secret` | 4.2.3 | Confidentiality label (Bell-LaPadula; Denning, 1976; Costa et al., 2025) | Same |
+| Propagation rule | 4.2.3 | Label join in an information-flow lattice (Denning, 1976); taint propagation | Same |
+| Fidelity (`Full` / `Normalized` / `Typed`) | 3.4.1, 4.2.3 | — | New |
+| `Normalized` | 4.2.3 | Canonicalization (`CWE-180`); input restoration (ATLAS `AML.M0010`) | Broader |
+| `Typed` | 4.2.3 | Schema validation (ATLAS `AML.M0033`); control/data separation (Debenedetti et al., 2025) | Broader |
+
+### Method
+
+| Term | Defined in | Closest existing term(s) | Relationship |
+| :---- | :---- | :---- | :---- |
+| Step 1: losses, hazards, sink constraints | 4.1 | Losses, hazards, and constraints in STPA-Sec (Young & Leveson, 2013) | Same |
+| Structural pattern | 4.3 | Threat-pattern rule in DFD-based threat modeling | Equivalent |
+| Attack chain | 4.1, 4.3 | Attack path in an attack graph (Phillips & Swiler, 1998; Sheyner et al., 2002) | Equivalent |
+| Leg | 4.1 | Attack step (one edge of an attack path) | Equivalent |
+| Granted / supplied leg | 4.1, 4.3 | — | New |
+| Cut point | 4.1, 4.3 | Minimum cut set in attack graphs (Sheyner et al., 2002) | Equivalent |
+| Security test (sink-constraint oracle) | 4.3.4 | Test oracle; abuse case | Same |
+| Coverage audit | 4.3 | Threat-model completeness check (STRIDE-per-element coverage) | Equivalent |
+| Evidence maturity (*Observed* / *Demonstrated* / *Feasible*) | 4.3 | ATLAS case-study type *Incident* (≈ Observed) and *Exercise* (≈ Demonstrated) | Broader (adds *Feasible*) |
+| Reverse traversal (incident triage) | 4.3.4 | CAST accident analysis (Leveson, 2019) | Equivalent |
+| Modality surface | 2.1 | Attack surface, per input or output channel | Equivalent |
+| Cross-modality-surface prediction | 2.1, 4.4 | — | New |
+| Context separation | 3.3 | Control/data-flow separation (Debenedetti et al., 2025) | Equivalent |
+| Type narrowing | 3.3 | Output schema enforcement (ATLAS `AML.M0033`) | Equivalent |
+| Exfiltration chain | 4.3 | The "lethal trifecta" (Willison, 2025) | Equivalent |
 
 ---
 
