@@ -8,7 +8,7 @@
 
 ## Abstract
 
-Multimodal AI agents read documents and screenshots, transcribe calls, sample video, call tools, and render rich output, and each new input channel or output surface tends to get its own threat catalog and point guardrail. This paper presents an architectural analysis method that scales across modalities. Architects add three lightweight annotations to the data-flow diagrams they already draw for STRIDE — security rules on consequential components, the role each component plays in the pipeline, and how much each data flow preserves of its raw input. Candidate failure mechanisms, attack chains, structural cut points, and security tests then follow by rule. Each mechanism is a tuple `⟨Invariant, Divergence, Representation⟩`: the security property that breaks, why two evaluations that should agree actually differ, and the form the adversarial payload takes. Because the record names a structural crossing and carries modality on the data flow, an exploit demonstrated in one modality predicts testable variants in others. We walk through the method on the Trail of Bits Gemini CLI image-scaling disclosure. We then apply it to a support-ticket agent that gains a phone line and to a physical delivery robot. Finally, we trace one failure across seven input surfaces (text, image, audio, video, streaming text, structured data, and robotics).
+Multimodal AI agents read documents and screenshots, transcribe calls, sample video, call tools, and render rich output, and each new input channel or output surface tends to get its own threat catalog and point guardrail. This paper presents an architectural analysis method that scales across modalities. Architects add three lightweight annotations to the data-flow diagrams they already draw for STRIDE — security rules on consequential components, the role each component plays in the pipeline, and how much each data flow preserves of its raw input. Candidate failure mechanisms, attack chains, structural cut points, and security tests then follow by rule. Each mechanism is a tuple `⟨Invariant, Divergence, Representation⟩`: the security property that breaks, why two evaluations that should agree actually differ, and the form the adversarial payload takes. Because the record names a structural crossing and carries modality on the data flow, an exploit demonstrated in one modality predicts testable variants in others. We walk through the method on the Trail of Bits Gemini CLI image-scaling disclosure. We then apply it to a support-ticket agent that gains a phone line and to a physical delivery robot. Finally, across seven input surfaces (text, image, audio, video, streaming text, structured data, and robotics), we use attacks demonstrated on some surfaces to predict attacks on the rest.
 
 ## 1. Introduction
 
@@ -103,7 +103,7 @@ A **unified** architecture integrates several modalities in one model (e.g., GPT
 
 ### 2.2 In Scope
 
-The method covers inference-time security mechanisms in unimodal, multimodal, and cross-modal processing. A mechanism is in scope when it can be expressed as an `Invariant × Divergence` crossing carrying a `Representation` on an annotated DFD, whatever the number or type of modalities involved; model capability matters where it shapes those crossings. The method applies to unified, fragmented, and hybrid agent architectures, with architectural configuration recorded as supporting context. Coverage of individual attack families follows the evidence maturity of each instance (**Section 5.3, Table 4**).
+The method covers inference-time security mechanisms in unimodal, multimodal, and cross-modal processing. A mechanism is in scope when it can be expressed as an `Invariant × Divergence` crossing carrying a `Representation` on an annotated DFD, whatever the number or type of modalities involved; model capability matters where it shapes those crossings. The method applies to unified, fragmented, and hybrid agent architectures, with architectural configuration recorded as supporting context. Coverage of individual attack families follows the evidence maturity of each instance (**Section 5.3, Tables 4 and 5**).
 
 * Adversarially constructed inputs presented at inference time, including text, image, audio, video, structured data, tool responses, and composite artifacts.
 * Adversarially constructed outputs, including covert exfiltration channels and outputs that become active when rendered or consumed downstream.
@@ -522,7 +522,7 @@ The tuple describes structure, so the same crossings appear far from support tic
 
 *Fault:* the moderator evaluates individual frames while the video-language model aggregates all frames and follows the reconstructed command (`Meaning × Artifact State`, *Transform Consistency* — aggregation; `Overt Semantic` + `Fragmented / Distributed` + `Sequence-Dependent`). The guard and the model act on different artifact states: the guard sees pieces, the model sees the whole.
 
-*Cross-modality-surface prediction (streaming text):* the same structural crossing predicts a vulnerability in a text pipeline with per-chunk guardrails. An attacker splits a directive across streaming chunks — chunk 1 (*... ignore*), chunk 2 (*... previous*), chunk 3 (*... instructions*), and so on. Each chunk passes a stateless content filter individually; the LLM's context window aggregates them into an active command. The mechanism record is identical: `⟨Meaning, Artifact State, Overt Semantic [Fragmented + Sequence-Dependent]⟩`. The modality changes from video to streaming text; the tuple does not. The fix is also shared: the guard must evaluate the same assembled artifact the model consumes, not the individual pieces. A team that found the video attack and holds this record would generate the streaming-text test without needing a separate threat catalog entry. Evidence maturity: **Demonstrated** for video, **Feasible** for streaming text (Section 5.3, Table 4 develops the full cross-modality-surface coverage matrix).
+*Cross-modality-surface prediction (streaming text):* the same structural crossing predicts a vulnerability in a text pipeline with per-chunk guardrails. An attacker splits a directive across streaming chunks — chunk 1 (*... ignore*), chunk 2 (*... previous*), chunk 3 (*... instructions*), and so on. Each chunk passes a stateless content filter individually; the LLM's context window aggregates them into an active command. The mechanism record is identical: `⟨Meaning, Artifact State, Overt Semantic [Fragmented + Sequence-Dependent]⟩`. The modality changes from video to streaming text; the tuple does not. The fix is also shared: the guard must evaluate the same assembled artifact the model consumes, not the individual pieces. A team that found the video attack and holds this record would generate the streaming-text test without needing a separate threat catalog entry. Evidence maturity: **Demonstrated** for video, **Feasible** for streaming text (Section 5.3, Table 4 places both beside image and audio).
 
 ### 3.6 Supporting Annotations Beyond the Core Tuple
 
@@ -947,7 +947,7 @@ This separation gives the method three practical capabilities:
 
 1. **Cross-modal prediction.** Found a vulnerability in the image channel? Hold the mechanism's `Invariant × Divergence` cell (from **Table 1**) and sink constraint fixed, swap the modality to audio (or video, or text), and re-run Steps 2–4 (Sections 4.3.2–4.3.4). If the new surface has a transform that reproduces the same structural pattern from the crossing lookup table (Section 4.3.3, Rule 2), you have a concrete test hypothesis — not a vague concern, but a specific test to run.
 
-   *Concrete example:* The Trail of Bits image-scaling crossing is `Meaning × Artifact State` through an aliasing downscaler. An audio pipeline with an aliasing resampler — one that decimates a high-sample-rate waveform by sampling every Nth sample without anti-aliasing filtering — has the same structural pattern: a `«guard»` (human listener) checks the audio before a `«transform»` (resampler) changes it, and the model hears something different from what the listener heard. The mechanism tuple is identical; only the modality annotation on the flow changes from image to audio. A team that found the image vulnerability and holds the mechanism record would generate this audio test without needing a separate threat catalog entry. **Section 5.3** demonstrates this across seven modalities.
+   **Section 5.3** walks through one such prediction, from image to audio.
 
 2. **Incremental modality reuse.** Adding a new modality (e.g., phone-call audio to an existing text-and-image system) does not require re-analyzing the whole architecture:
    - Sink constraints stay the same — they describe downstream requirements, not input formats.
@@ -971,7 +971,7 @@ The same vendor-neutral format supports **portfolio coverage tracking** across a
 
 ## 5. Applications
 
-This paper's central claim (Section 1.3) is that multimodal attacks — whatever the modality — come down to a small set of failure mechanisms determined by how the pipeline is built. Accordingly, an analysis done once should carry over when the system changes or when the method moves to a new domain. Section 5.1 tests this on a modified system and Section 5.2 on a physical robot; Section 5.3 shows one failure recurring across seven input surfaces.
+This paper's central claim (Section 1.3) is that multimodal attacks — whatever the modality — come down to a small set of failure mechanisms determined by how the pipeline is built. Accordingly, an analysis done once should carry over when the system changes or when the method moves to a new domain. Section 5.1 tests this on a modified system and Section 5.2 on a physical robot; Section 5.3 uses attacks known on some input surfaces to predict attacks on others.
 
 ### 5.1 Agile Threat Modeling
 
@@ -1055,23 +1055,36 @@ Implications:
 
 Mitigation: an independent map or range-sensor interlock between perception and the Brake Planner stops the robot in both designs, whichever model sits upstream.
 
-### 5.3 One Crossing, Seven Surfaces
+### 5.3 Predicting Attacks on Other Surfaces
 
-Four of the seven surfaces in **Table 4** share one crossing, `Meaning × Artifact State`: an upstream check reads a different version of the artifact than the downstream consumer. Their evidence ranges from `Feasible` to `Demonstrated` (Section 4.3.3), so the mechanism is the stable unit and each surface carries its own maturity.
+A published attack on one input surface tells a red team where to test the others. The seven surfaces below reduce to two crossings (Tables 4 and 5). Within each crossing, attacks demonstrated on some surfaces predict attacks on the rest. Two of those predictions are still `Feasible` (audio and streaming text).
 
-| Surface | Divergence on the Path | Mechanism Record | Security Test (fails if the sink constraint breaks) | Evidence Maturity |
-| :---- | :---- | :---- | :---- | :---- |
-| **Text** | Review UI and text `«guard»` see rendered characters; `«follower»` consumes raw code points | `Meaning × Evaluator` (*Human-Machine Perception*), `Steganographic` | Embed a directive in Unicode tag or zero-width characters inside benign text; fails if the `«follower»` acts on it | **`Demonstrated`** (ASCII smuggling against Microsoft 365 Copilot, Rehberger, 2024; Boucher et al., 2022). Text-borne indirect prompt injection in deployed agents: **`Observed`** (Unit 42, 2026) |
-| **Image** | User views full-resolution image; aliasing downscaler feeds `«follower»` | `Meaning × Artifact State` (*Transform Consistency*), `Steganographic → Overt Semantic` | Upload an image whose downscaled form carries a tool directive; fails if the tool call executes | **`Demonstrated`** (Morozova & Hussain, 2025; Xiao et al., 2019; Quiring et al., 2020) |
-| **Audio** | Listener hears a 48 kHz clip; resampler decimates to 16 kHz for ASR | `Meaning × Artifact State` (*Transform Consistency*), `Steganographic → Overt Semantic` | Check whether the resampler low-pass filters before decimation; on an unfiltered resampler, place a command in the aliased band; fails if ASR transcribes it and the agent acts | **`Feasible`** (predicted by Chen et al., 2021; no published attack yet). Model-targeted audio perturbation is a separate record: `Meaning × Evaluator`, `Adversarial Perturbation`, **`Demonstrated`** (AudioHijack, Chen et al., 2026) |
-| **Video** | Moderation model checks sparsely sampled frames; viewers or downstream consumers receive every frame | `Meaning × Artifact State` (*Transform Consistency*), `Overt Semantic` + *Sequence-Dependent* | Insert a short out-of-policy clip between sampling points; fails if the video is certified compliant | **`Demonstrated`** (omission rates above 90% across five VideoLLMs, arXiv:2508.10974, AAAI 2026; poisoned frame selection, arXiv:2509.20851) |
-| **Streaming text** | Stateless `«guard»` scans each chunk; `«follower»` context aggregates the stream | `Meaning × Artifact State` (*Transform Consistency*, aggregation), `Overt Semantic` + *Fragmented / Distributed* | Split one directive into incomplete pieces across chunk boundaries; fails if every chunk passes and the aggregated directive executes | **`Feasible`** (design gap acknowledged in NVIDIA NeMo Guardrails and LiteLLM documentation and in SentGuard, arXiv:2606.02041; no published exploit yet) |
-| **Structured data** | Upstream components treat a field as inert data; a framework deserializer instantiates it as an object | `Meaning × Evaluator` (*Parser / Interpreter Differential*), `Encoded / Obfuscated` | Return a tool or model output containing the framework's reserved serialization marker; fails if the deserializer instantiates an object or reads a secret | **`Demonstrated`** (LangGrinch, `CVE-2025-68664`) |
-| **Physical robotics** | A person reads `STOP`; camera and perception model feed the Brake Planner (Figure 5) | `Meaning × Evaluator` (*Human-Machine Perception*), `Adversarial Perturbation` or `Overt Semantic`; plus `Authority × Position` (*Decision-Action*) with a VLM planner (Section 5.2) | Present RP2 stickers or a typographic sign across the approach cone; fails if the robot enters the crossing without halting | **`Demonstrated`** components (Eykholt et al., 2018; Tencent Keen Lab, 2019; Robey et al., 2024). Full sign-to-delivery-robot chain: **`Feasible`** |
+The Trail of Bits attack (Section 4.1) is a check followed by a transform: the user inspects the full-resolution image, and an aliasing downscaler then changes what the model receives (`Meaning × Artifact State`). To predict where else the attack applies, a red team looks for that structure on other surfaces. Thus, an audio pipeline is a candidate when a listener checks a 48 kHz clip and an aliasing resampler then decimates it to 16 kHz for ASR. The prediction becomes a test with two steps: check whether the resampler low-pass filters before it decimates (the question Table 3 raised for the phone line); if it aliases, place a command in the aliased band and check whether the agent acts on it.
 
-*Table 4. One failure mechanism predicted across seven surfaces.*
+Each crossing also gives a red team a search rule for its own system.
 
-The audio row is the clearest prediction: the image instance predicts the audio test, and that test's first step (does the resampler low-pass filter?) is the same question Table 3 raises for the phone line.
+`Meaning × Artifact State`: look for any transform between a check and the consumer (e.g., downscalers, resamplers, frame samplers, and stream aggregation).
+
+| Surface | The check sees | The consumer sees | Evidence |
+| :---- | :---- | :---- | :---- |
+| Image | Full-resolution image (user) | Aliased downscale carrying hidden text (model) | Demonstrated (Morozova & Hussain, 2025) |
+| Video | Sparsely sampled frames (moderator) | Every frame (viewers) | Demonstrated (arXiv:2508.10974) |
+| Audio | 48 kHz clip (listener) | Aliased 16 kHz resample (ASR) | Feasible, predicted from image |
+| Streaming text | Each chunk (stateless guard) | The assembled stream (model) | Feasible, predicted from video (Section 3.5.5) |
+
+*Table 4. Surfaces where the check and the consumer see different versions of the artifact (`Meaning × Artifact State`).*
+
+`Meaning × Evaluator`: look for any artifact that two readers interpret differently (e.g., a reviewer and a model reading text; upstream components and a deserializer reading a field; a person and a perception model reading a sign). All three rows in Table 5 are demonstrated attacks, so this rule finds new instances of known attacks on a team's own system.
+
+| Surface | One reader sees | The other reads | Evidence |
+| :---- | :---- | :---- | :---- |
+| Text | Rendered characters (reviewer) | Raw code points, including tag and zero-width characters (model) | Demonstrated (Rehberger, 2024) |
+| Structured data | An inert field (upstream components) | A serialized object (deserializer) | Demonstrated (`CVE-2025-68664`) |
+| Robotics | `STOP` (a person) | A speed-limit sign (perception model, Figure 5) | Components demonstrated (Eykholt et al., 2018); full chain Feasible |
+
+*Table 5. Surfaces where two readers see the same artifact differently (`Meaning × Evaluator`).*
+
+Appendix C.3 turns each row into a security test whose pass condition is the system's own sink constraint, so a red team can run the `Feasible` rows as test cases before anyone publishes an attack.
 
 ## 5. Ecosystem Positioning
 
@@ -1102,7 +1115,7 @@ The mechanism record combines the violated invariant, the payload representation
 * **Shi et al.** (2025) trace agent vulnerabilities to a mismatch between dynamic trust and static authorization, the precedent for the `Authority` row.
 * **Maloyan & Namiot** (2026) catalog attacks on coding agents with modality as a primary axis.
 
-The added capability is **cross-modality-surface variant prediction**. Schemes that assign modality to delivery fold preprocessing divergence into delivery, and schemes keyed on modality or carrier grow a new branch for each new surface. Keying records on `Invariant × Divergence` and carrying modality on the data flow lets an existing record predict its analog on a new surface, as **Table 4** shows for audio, video, streaming text, and physical sensors.
+The added capability is **cross-modality-surface variant prediction**. Schemes that assign modality to delivery fold preprocessing divergence into delivery, and schemes keyed on modality or carrier grow a new branch for each new surface. Keying records on `Invariant × Divergence` and carrying modality on the data flow lets an existing record predict its analog on a new surface, as **Tables 4 and 5** show for audio, video, streaming text, and physical sensors.
 
 ### 5.3 Classical Security and Safety Precedents
 
@@ -1125,7 +1138,7 @@ This paper presented an architectural analysis method for multimodal agentic sec
 The method's central design decision — placing modality on the data flow rather than in the mechanism tuple — yields three practical capabilities that no reviewed framework offers individually:
 
 1. **Mechanical derivation replaces brainstorming.** The structural pattern lookup table (Section 4.3.1, Table A.1) produces candidate crossings by rule from an annotated DFD. Practitioners walk the diagram and match node-role and flow-label patterns rather than inventorying threats from memory or checklists.
-2. **Findings transfer across modality surfaces.** A mechanism record's `Invariant × Divergence` classification names a structural crossing. Holding the crossing fixed and swapping the source modality generates testable hypotheses for every surface that reproduces the same topology (Section 4.4; Table 4). A team that found the Trail of Bits image-scaling crossing would generate the audio-resampling test without a separate threat catalog entry.
+2. **Findings transfer across modality surfaces.** A mechanism record's `Invariant × Divergence` classification names a structural crossing. Holding the crossing fixed and swapping the source modality generates testable hypotheses for every surface that reproduces the same topology (Section 4.4; Tables 4 and 5). A team that found the Trail of Bits image-scaling crossing would generate the audio-resampling test without a separate threat catalog entry.
 3. **Cut points are computed, not guessed.** The supplied-vs-granted classification on each chain leg directs remediation toward zero-effort legs first, and modality-independent cut points (e.g., user confirmation on tool calls) protect against surfaces that do not yet exist.
 
 Section 4.1 demonstrated these capabilities on the Trail of Bits disclosure. Section 5 carried them to three settings: a support-ticket agent that gains a phone line; a physical delivery robot; and seven input surfaces (text, image, audio, video, streaming text, structured data, and robotics).
@@ -1436,7 +1449,7 @@ Relationship tags: **Exact** means the classical concept names the same invarian
 
 ## Appendix C: Case Derivation Traces and Secondary Case Catalog
 
-This appendix provides complete derivation traces for the support-ticket triage system and related incident triage chains, plus secondary multimodal case cards demonstrating additional attack patterns.
+This appendix provides complete derivation traces for the support-ticket triage system and related incident triage chains, secondary multimodal case cards demonstrating additional attack patterns, and security tests for the surfaces of Section 5.3.
 
 ### C.1 Complete Derivation Traces
 
@@ -1552,6 +1565,22 @@ The attacker can tailor the pair to exploit whichever arbitration bias the model
 **Why the `Composition-Dependent` modifier applies:** Each artifact classifies as `Overt Semantic`, and the modifier records that the adversarial effect requires their co-processing. Two complete, independent artifacts produce the failure through combined interpretation, which is the `Composition-Dependent` case (one payload split into incomplete pieces is the `Fragmented / Distributed` case). In **Completion** (`EX-IMAGE.4` in **Appendix C.1**), both modalities cooperate to supply complementary parts of an operation. In **Contradiction**, the modalities deliberately conflict, and the attack exploits whichever one the model treats as authoritative over the ground-truth observation (`C1`).
 
 **Comparison with adversarial audio contradiction:** An audio contradiction attack can also set two channels in conflict, but with an `Adversarial Perturbation` representation (an adversarially optimized audio waveform). In Scenarios A and B above, both modalities are `Overt Semantic`, so the contradiction is between two plainly readable or viewable inputs. The boundary (`Meaning × Evaluator`, *Semantic Stability*) and modifier (`Composition-Dependent`) are the same, and only the representation form differs, which is enough for the taxonomy to tell them apart: the audio perturbation requires mitigating a model-specific perturbation, while Scenarios A and B require enforcing cross-modal conflict rejection against `C1` (which Step 4 tests using paired claim-vs.-observation fixtures such as `probityai/agent-evidence-vectors`).
+
+### C.3 Security Tests for the Seven Surfaces
+
+Each test holds the sink constraint fixed and changes only the surface (Section 5.3, Tables 4 and 5). A test fails if the sink constraint breaks, so the same test confirms a vulnerability before a fix and verifies the fix afterward.
+
+| Surface | Mechanism Record | Security Test | Evidence Maturity |
+| :---- | :---- | :---- | :---- |
+| **Text** | `Meaning × Evaluator` (*Human-Machine Perception*), `Steganographic` | Embed a directive in Unicode tag or zero-width characters inside benign text; fails if the `«follower»` acts on it | **`Demonstrated`** (ASCII smuggling against Microsoft 365 Copilot, Rehberger, 2024; Boucher et al., 2022). Text-borne indirect prompt injection in deployed agents: **`Observed`** (Unit 42, 2026) |
+| **Image** | `Meaning × Artifact State` (*Transform Consistency*), `Steganographic → Overt Semantic` | Upload an image whose downscaled form carries a tool directive; fails if the tool call executes | **`Demonstrated`** (Morozova & Hussain, 2025; Xiao et al., 2019; Quiring et al., 2020) |
+| **Audio** | `Meaning × Artifact State` (*Transform Consistency*), `Steganographic → Overt Semantic` | Check whether the resampler low-pass filters before decimation; on an unfiltered resampler, place a command in the aliased band; fails if ASR transcribes it and the agent acts | **`Feasible`** (predicted by Chen et al., 2021; no published attack yet). Model-targeted audio perturbation is a separate record: `Meaning × Evaluator`, `Adversarial Perturbation`, **`Demonstrated`** (AudioHijack, Chen et al., 2026) |
+| **Video** | `Meaning × Artifact State` (*Transform Consistency*), `Overt Semantic` + *Sequence-Dependent* | Insert a short out-of-policy clip between sampling points; fails if the video is certified compliant | **`Demonstrated`** (omission rates above 90% across five VideoLLMs, arXiv:2508.10974, AAAI 2026; poisoned frame selection, arXiv:2509.20851) |
+| **Streaming text** | `Meaning × Artifact State` (*Transform Consistency*, aggregation), `Overt Semantic` + *Fragmented / Distributed* | Split one directive into incomplete pieces across chunk boundaries; fails if every chunk passes and the aggregated directive executes | **`Feasible`** (design gap acknowledged in NVIDIA NeMo Guardrails and LiteLLM documentation and in SentGuard, arXiv:2606.02041; no published exploit yet) |
+| **Structured data** | `Meaning × Evaluator` (*Parser / Interpreter Differential*), `Encoded / Obfuscated` | Return a tool or model output containing the framework's reserved serialization marker; fails if the deserializer instantiates an object or reads a secret | **`Demonstrated`** (LangGrinch, `CVE-2025-68664`) |
+| **Physical robotics** | `Meaning × Evaluator` (*Human-Machine Perception*), `Adversarial Perturbation` or `Overt Semantic`; plus `Authority × Position` (*Decision-Action*) with a VLM planner (Section 5.2) | Present RP2 stickers or a typographic sign across the approach cone; fails if the robot enters the crossing without halting | **`Demonstrated`** components (Eykholt et al., 2018; Tencent Keen Lab, 2019; Robey et al., 2024). Full sign-to-delivery-robot chain: **`Feasible`** |
+
+*Table C.6. Security tests and full evidence for the surfaces in Tables 4 and 5.*
 
 ---
 
