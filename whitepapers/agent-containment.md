@@ -606,98 +606,117 @@ If the provider cannot enumerate the systems its agent can reach, a containment 
 
 ## 7. Detection and evidence
 
-**Purpose.** Carry the detection argument and a schema summary in the paper; put the concrete logging schema in a practical guide alongside the MCP runtime isolation guide.
+**Purpose.** Explain detection and give a schema summary in this paper. Put the concrete logging schema in a practical guide alongside the MCP runtime isolation guide.
 
-Detection and evidence are two artifacts against the same event, not one list. Detection wants signals that discriminate an attempt from normal behavior, and is allowed to be noisy, heuristic, and tuned per deployment. Evidence wants the fields that let someone who was not there and does not trust you reconstruct what happened, and must be stable, complete, and boring — and nothing in it may be executable authority (§3).
+Detection and evidence are separate outputs for the same event, serving different readers. Detection helps an operator distinguish an attempt from normal activity. Its signals may be noisy, rely on rules of thumb and be tuned to the deployment.
 
-The evidence contract is normative in this paper; the OCSF mapping goes in the practical guide, pinned to an OCSF version, with proposed fields marked as proposed. §7.1 is structured as two tables accordingly.
+Evidence must let a reviewer who was not present and does not trust the operator reconstruct what happened. Those records must be stable and complete. They must describe the action and its authorization without containing anything that could itself be reused as authority at an enforcement point or to bypass a required mediation step (§3).
 
-The blog post's "containment that fails loudly" and "tamper-evident logging" bullets: alert on denied syscalls, repeated policy violations, `/proc` inspection, Docker socket and metadata-service probes, blocked DNS and egress, credential-broker denials, and any attempt to alter the sandbox configuration; keep those events outside the agent's write scope; correlate across runs; use OCSF `attestation` and the `record_integrity` profile (OCSF 1.9.0) for tamper evidence [12].
+This paper defines the evidence requirements. The practical guide maps those requirements to concrete schema fields, with the mapping pinned to a specified schema version and proposed fields marked as proposed. Section 7.1 separates detection signals from the evidence contract in two tables.
 
-Correction to the supporting narrative, from the A.2 source check: Anthropic's sentence is "the two organizations **we were able to reach** had not previously detected the activity" — narrower than the blog's paraphrase — and Hugging Face *did* detect their own intrusion, via LLM-based triage on anomalies, before OpenAI connected its internal testing to it.
+Alert on denied system calls, repeated policy violations, inspection of `/proc`, probes of Docker sockets and metadata services, blocked DNS resolution, blocked egress, credential-broker denials, and attempts to change the sandbox configuration.
 
-The section's argument survives both facts, but must carry them: the strongest counter-example in the field is also the best existing evidence that the detection this section calls for actually works.
+Keep these event records outside the agent's write access, correlate them across runs and protect their integrity so that tampering can be detected (§7.1).
 
-**Requirements across §7.** An absence that was determined MUST be distinguishable in the record
-from an absence that was never established. A determined absence carries an explicit value and
-reason; missing visibility or incomplete observation is recorded as `not_established`, with the
-missing premise. An omitted field establishes neither absence nor a negative finding.
+Anthropic reported that the two affected organizations it had reached had not previously detected the activity [3]. Hugging Face separately reported detecting its own intrusion through LLM-based triage of security telemetry [14].
 
-The observation states are `present` (established), `absent` (absence determined),
-`not_established` (the observation could not be established), and `pending` (an
-outcome is not yet known). An unknown action outcome is `pending`; it does not
-become `not_established` when the reporting window ends. Report that pending
-outcome as "not verified by the end of the window", with the window duration.
+These accounts illustrate both missed activity and successful detection. They do not establish comparative detector effectiveness or false-positive rates for this paper's signals (§7.2).
 
-**Evidence independence.** Evidence cannot rule out a failure if that same failure could compromise the component that produced, signed or retained it. If an agent escapes its sandbox or disables its gateway (§5.2, modes 1 and 2), evidence produced alongside that control may no longer be trustworthy: logs may be altered or suppressed, and signing keys may no longer show who wrote the record. This paper calls the set of components that can be compromised together a *trust domain*. §9.1 makes this point about trajectories produced by the agent's own framework, and it holds for other controls: a sandbox cannot, by itself, provide independent evidence that it was never escaped, and a gateway on a compromised host cannot independently establish that it was never disabled.
+**Requirements across §7.** The record MUST distinguish an absence that has been established from one that has not. When absence has been established, record an explicit value and reason. When visibility is missing or observation is incomplete, record `not_established` and identify the missing premise. An omitted field establishes neither absence nor a negative finding.
 
-A containment claim that rules out a defeated or disabled control (§5.2, modes 1 and 2) MUST NOT rest solely on evidence from a trust domain that failure could also compromise. The record SHOULD therefore identify the trust domain of its producer, or otherwise make its independence assumptions explicit. Where the deployment shape (§1.1) provides no evidence producer outside the workload's trust domain, the claim narrows accordingly: such evidence can establish what the monitor observed or decided while its integrity is assumed to hold, but it cannot independently rule out modes 1 and 2. As with an unverifiable subject claim (§7.1), this constrains what the record can support; it does not change the underlying enforcement decision.
+Record observations using four distinct states:
+
+- `present`: the observation has been established.
+- `absent`: absence has been established.
+- `not_established`: the observation could not be established.
+- `pending`: the outcome is not yet known.
+
+An action with an unknown outcome remains `pending`. Do not change it to `not_established` when the reporting window ends. Instead, report the outcome as "not verified by the end of the window" and include the window's duration.
+
+**Evidence independence.** Evidence cannot rule out a failure if that same failure could compromise the component that produced, signed or retained it.
+
+If an agent escapes its sandbox or disables its gateway (§5.2, modes 1 and 2), evidence produced alongside that control may no longer be trustworthy. Logs may be altered or suppressed, and a signature may no longer reliably identify who wrote a record.
+
+In this paper, components share a *trust domain* when the same failure could compromise them together. If that failure could affect both a control and its records, those records cannot independently rule out the failure. This also applies to the agent framework's own run records (§9.1). A sandbox cannot, by itself, provide independent evidence that it was never escaped. A gateway on a compromised host cannot independently establish that it was never disabled.
+
+A record of what a control observed or decided is different from independent evidence that the control was never defeated or disabled. The question is whether the failure being ruled out could also compromise the evidence used to rule it out.
+
+A containment claim that rules out a defeated or disabled control (§5.2, modes 1 and 2) MUST NOT rely solely on evidence from a trust domain that the same failure could compromise.
+
+To make the basis for the claim clear, the record SHOULD identify its producer's trust domain or otherwise state the assumptions about the evidence's independence. A reviewer needs to understand whether the failure being ruled out could also affect the evidence used to rule it out.
+
+If a deployment provides no evidence producer outside the workload's trust domain (§1.1), the claim must be narrower. Assuming the monitor's integrity holds, its records can establish what it observed or decided. They cannot independently establish that the control was never defeated or disabled.
+
+This is a limit on what the evidence can establish, not a change to the enforcement decision. The same distinction applies to an unverifiable subject claim (§7.1): a problem verifying that claim limits what the record can support; it does not, by itself, change the underlying enforcement decision.
 
 ### 7.1 What to log
 
-Two approved WS4 papers already carry most of the field list, and this section should be read as extending them rather than restarting them.
+Two WS4 papers already define logging requirements. This section builds on those requirements rather than starting a separate field list.
 
-- The *Model Context Protocol Security* paper requires, at L2 and above, structured logging of tool identity, caller identity, policy decision, resource target, outcome, request metadata and correlation identifiers, with raw parameters logged only after redaction, hashing or field-level tokenization, rising to immutable tamper-evident logging of all interactions at L4.
+The *Model Context Protocol (MCP) Security* paper requires structured logging at assurance level 2 (L2) and above. Those records must include tool identity, caller identity, policy decision, resource target, outcome, request metadata and correlation identifiers.
 
-- The *Agentic Identity and Access Management* paper's Appendix D requires agent ID, subject ID, tenant, environment, resource and action, decision with reason, scope and authorization details, policy version, attestation information and a `correlation_id`, and states the "prove control on demand" obligation: an organization must be able to answer, from logs alone, which agents were active, what permissions they held at that time, who was involved in each action, and which policies, attestation evidence and delegated scopes justified each decision.
+At L2, raw parameters and tool outputs must be protected before they are logged, using redaction, hashing or field-level tokenization. These requirements carry forward to higher levels, which add further requirements: L3 requires comprehensive action logging with full parameter redaction, and L4 requires immutable, tamper-evident logging of all interactions.
 
-What this paper adds is the separation. Those lists are single lists serving two readers.
+The *Agentic Identity and Access Management* paper's core principles state that organizations MUST be able to reconstruct which agents existed, what they were allowed to do, what delegations they held and what actions they performed, using immutable logs and lineage.
 
-- **Detection** is written for an operator inside the deployment who is trying to notice an attempt in progress, and it is allowed to be noisy, heuristic and tuned locally.
+For each significant agent action, its governance and logging appendix (Appendix E) says logs SHOULD capture: agent ID, subject ID, tenant, environment, resource and action, authorization decision with reason, scope and authorization details used, policy version, attestation information and a `correlation_id`. The identifier links related events across agents within the same workflow.
 
-- **Evidence** is written for someone who was not there and does not trust the operator, and it must be stable, complete and dull.
+The appendix also says organizations SHOULD be able to answer its "prove control on demand" questions from their logs. These cover which agents were active during a given period and what permissions they held at that time. For each action, the questions identify the agent and subject involved and the policies, attestation evidence and delegated scopes that justified the decision.
 
-A field that earns its place in one does not automatically earn its place in the other, and the two have opposite failure modes: a detection signal that fires too rarely is useless, while an evidence field that is present only sometimes is worse than absent, because a verifier cannot distinguish "did not happen" from "was not recorded".
+The inherited logging requirements combine information used for detection with information needed as evidence. This paper separates those purposes so that fields can be selected for the job they need to do, rather than assuming that one list serves both equally well.
+
+**Detection** helps operators inside the deployment notice an attempt while it is in progress. It can use signals that suggest a problem without proving one, and those signals may also fire during normal activity. Operators can tune them to the deployment.
+
+**Evidence** serves a reviewer who was not present and cannot accept records as conclusive simply because the operator or provider supplied them. This is not a judgment about the provider's reputation. The records must be assessed for what they can establish, including their provenance, integrity and completeness. They must provide a stable, complete basis for reconstructing what happened, not simply repeat what triggered an alert.
+
+A field that helps raise an alert does not necessarily help reconstruct an event, or vice versa. The consequences of missing information also differ. A detection signal that fires too rarely can leave an attempt unnoticed. If an evidence field is recorded only sometimes without explaining its absence, the reviewer cannot distinguish "did not happen" from "was not recorded".
 
 Two constraints apply to the evidence table as a whole.
 
-1. Nothing in an evidence record may be executable authority (§3): the record states what was decided and on what basis, and a consumer of the record must never be able to replay a field in it to obtain the decision again.
-2. Correlation is scoped to the shared principal and the delegation subtree it roots, not to one run or one container (§4); a per-run correlation key cannot show that a set of individually compliant agents collectively exceeded the intended authority or budget, which is the failure §4 describes.
+1. **Records must not grant authority.** An evidence record describes what was decided and the basis for that decision (§3). No field in it may itself be reused as authority at an enforcement point or to bypass a required mediation step. A consumer must never be able to replay a field from the record to obtain that authorization again.
 
-**Detection signals.** Each row names what the signal is evidence of and where its false positives
-come from. §7.2 takes up why the rates themselves cannot be stated yet.
+2. **Correlation must cover the shared principal and its delegation subtree.** Related records must be linked across all agents sharing a principal and across the delegation subtree rooted at that principal, rather than only within one run or container (§4). A per-run correlation key cannot show when agents that each stay within their own limits collectively exceed the intended authority or shared budget.
 
-| Signal | What it indicates | Expected false-positive source |
+**Detection signals.** Each row explains what a signal indicates and gives possible reasons for a false positive. These examples do not establish false-positive rates; §7.2 explains why measured rates are not available in this draft.
+
+| Signal | What it indicates | Possible false-positive source |
 | :---- | :---- | :---- |
-| Denied syscalls under the sandbox policy | The workload attempted something the profile forbids | Language runtimes and package managers probe for capabilities they can live without; a denied `clone3` or `statx` is routine startup behaviour on a mismatched libc |
-| Repeated policy violations by one agent instance | Systematic probing rather than an incidental denial | A misconfigured tool retrying a legitimately scoped call; retry loops inflate one denial into many |
-| `/proc` and cgroup inspection | Sandbox reconnaissance | Ordinary resource introspection: runtimes read `/proc/self/cgroup` and memory limits to size thread pools and heaps |
-| Container runtime socket access | Possible access to the host control plane; severity depends on which runtime the socket controls | A build or CI agent may legitimately use a runtime socket in its deployment shape (§1.1). Treat unexpected host-socket access as a high-severity investigation trigger; its false-positive rate and comparative confidence require a deployment-specific baseline |
-| Cloud metadata service probes | Attempted credential theft | SDK default credential chains probe the metadata endpoint unconditionally on startup, before any application code decides how to authenticate |
-| Blocked DNS resolution and blocked egress destinations | Exfiltration or command-and-control attempt | Telemetry, update checks and dependency resolution reaching destinations nobody put on the allowlist |
-| Credential-broker denials | A request for authority beyond the granted scope | An agent legitimately discovering the boundary of its own scope, which is indistinguishable at the broker from probing it |
-| Attempted modification of sandbox configuration | Possible self-escalation; assess the caller's authority and the targeted control | Authorized provisioning or maintenance may change configuration. Unexpected agent-originated changes warrant investigation; the false-positive profile depends on the deployment and has not been measured here |
-| Attempted or observed aggregate consumption across the delegation subtree crossing the applicable budget | A consumption refused or held by the accounting authority is a preventive-control event; an observed excess is evidence of a control failure (§4) | Legitimate fan-out can produce high consumption within budget or a refused over-budget attempt without malicious intent. Distinguish those cases from an observed excess; the profile depends on the deployment's task and fan-out shape |
-| Executed capability outside the agent's declared set | The discriminator named in §7.2: undeclared-but-executed | An incomplete or stale declaration, which is a defect in the declaration rather than noise in the signal |
+| Denied system calls under the sandbox policy | The workload attempted an operation that the policy blocks. This alone does not establish malicious intent. | Runtime capability checks or package-management operations may encounter a profile that does not allow a call they attempt. |
+| Repeated policy violations by one agent instance | Possible repeated probing of the policy boundary, not proof of systematic probing. | A misconfigured tool may repeatedly retry a legitimately scoped call, making one underlying problem appear as many denials. |
+| `/proc` and cgroup inspection | Possible gathering of information about the sandbox and its resource limits. Reading this information alone does not establish malicious intent. | Resource-management code may read `/proc/self/cgroup` or cgroup memory-limit files to learn its cgroup membership or resource limits. |
+| Container runtime socket access | Possible access to a runtime's control API. The potential impact depends on the daemon's privileges and isolation, including whether it controls the host. | A build or CI agent may be authorized to use a runtime socket in its deployment shape (§1.1). Treat unexpected access to a host-runtime socket as a high-severity investigation trigger. Its false-positive rate and comparative confidence require a deployment-specific baseline. |
+| Cloud metadata service probes | Possible attempts to obtain cloud credentials or inspect instance metadata. A probe alone does not establish credential theft. | Legitimate SDK credential discovery may query metadata. For example, an AWS SDK may use EC2 IMDS when valid credentials are not otherwise configured; this is conditional, not an unconditional startup probe [26]. |
+| Blocked DNS resolution and blocked egress destinations | Possible exfiltration or command-and-control attempt. The block alone does not establish malicious intent or a successful transfer. | Telemetry, update checks or dependency resolution may attempt to reach destinations missing from the allowlist. |
+| Credential-broker denials | Possible requests for authority beyond the granted scope. The denial alone does not establish malicious probing. | An agent legitimately discovering its scope boundary may receive the same denial as one deliberately probing it. The denial by itself does not distinguish those purposes. |
+| Attempted modification of sandbox configuration | Possible self-escalation. Assess the caller's authority and which control it attempted to change. | Authorized provisioning or maintenance may change configuration. Unexpected agent-originated changes warrant investigation. The false-positive profile depends on the deployment and has not been measured in this draft. |
+| Attempted or observed aggregate consumption across the delegation subtree crossing the applicable budget | An attempt refused or held by the accounting authority is a preventive-control event. An observed excess is evidence of a control failure (§4). | Legitimate fan-out can produce high consumption within budget or a refused over-budget attempt without malicious intent. Neither should be confused with an observed excess. The false-positive profile depends on the deployment's task and fan-out pattern. |
+| Executed capability outside the agent's declared set | An undeclared capability was executed: the distinction used in §7.2. This does not, by itself, establish that the action was unauthorized. | If the declaration is incomplete or outdated, the detector may correctly flag an undeclared capability even when its use was authorized. In that case, the declaration needs correcting; the alert is not necessarily a detection error. |
 
-Signals and counters derived from enforcement decisions count the verdict applied to each
-invocation, as its evidence record carries it, not a reused decision.
+For signals and counters based on enforcement decisions, count the verdict actually applied to each invocation, as recorded in its evidence. A previously recorded decision does not, by itself, establish the verdict applied to another invocation.
 
-**The evidence contract.** These are the fields that let a party who was not present and does not
-trust the operator reconstruct what happened. Each is REQUIRED unless the row says otherwise. The
-mapping to concrete schema fields belongs in the practical guide, pinned to an OCSF version, with
-proposed fields marked as proposed.
+**The evidence contract.** The following fields let a reviewer who was not present reconstruct what happened without taking the operator's account at face value.
+
+Each field is REQUIRED unless its row says otherwise.
+
+The practical guide maps these requirements to concrete schema fields, with the mapping pinned to a specified schema version and proposed fields marked as proposed.
 
 | Field | What it makes reconstructible | Notes |
 | :---- | :---- | :---- |
-| Principal and full delegation chain | Who the action was ultimately performed for, and by what path of authority | The integrity-protected correlation key. Scoped to the subtree, not the run, per §4. The whole chain, because the immediate caller alone cannot show that attenuation held at every hop |
-| Actor identity (`actor_id`) and establishment provenance | Which agent executed the action and how that identity was established | Required separately from the subject. A connection credential may identify one agent across many requests; it does not establish the principal for each request. Use the closed provenance enum below and preserve the verification outcome |
-| Subject identity (`subject_id`) and establishment provenance | The principal on whose authority this request was made, as distinct from the executing agent | Required per request, with the claim's verification outcome and binding to the action. This is §4's accounting principal; an agent-asserted value or a signature alone does not establish that authority. Apply the explicit-absence rule independently to actor and subject |
-| Policy version | Which rules were in force at the moment of decision | Identified by a content digest of the policy as it was in force at the decision, not by a label: a label can stay unchanged while the rules behind it change. Without it a later reader evaluates the action against today's policy and reaches a different verdict than the enforcement point did |
-| Assurance-boundary statement | Which paths the containment claim covered, and which it excluded, at the moment of decision | Identified by a content digest of the statement as it stood at the decision, for the same reason as policy version: the paths a claim covers can change while its name does not. It sits beside policy version because the two answer different questions: the policy says what was allowed, the boundary statement says on which paths that was enforced and, per the exclusion clause in §3, which paths the claim does not cover. It records the claimed scope; it does not prove enforcement, and a reader must not treat an excluded path as closed or an included path as mediated on the strength of this row alone |
-| Tool-catalog version | What the agent could have called at that moment | Distinct from policy version and separately mutable. Identified by a content digest of the catalog as the agent saw it at that invocation, since a server-side catalog can change a tool's description or schema under an unchanged version string. Required for the declared-versus-executed discriminator in §7.2 to be checkable after the fact |
-| Action or tool-call identifier | Which specific invocation this record is about | The join key between the detection artifact, the evidence artifact and any downstream effect |
-| Request digest | That the recorded request is the request that was made | A digest rather than the parameters, so the record can be retained and shared without carrying the payload. The digest covers the request as it was made, before any redaction, and the record states which fields it covers alongside the canonicalization; two records that digest different fields are incomparable even under the same canonicalization. Where parameters are guessable, a bare digest can permit recovery by enumeration. Use a keyed commitment with a separately protected secret and identify the scheme in the record; a public salt alone does not prevent guessing. Payload redaction and access to commitment verification remain separate controls |
-| Enforcement decision and reason | What the enforcement point concluded, and on what basis | Both halves. A decision without a reason cannot be audited, only counted. The decision record is committed to the integrity-protected sequence before the action is dispatched; the outcome is appended later as its own entry that references the decision. Ordered this way, a crash between the effect and the write leaves a decision with no outcome, which the record can show, instead of an effect with no record, which it cannot |
-| Runtime identity or attestation reference | What was executing, as opposed to what claimed to be executing | Required. Bound to this record so it cannot be reused from another run: the attested data covers the checkpoint signing key and the policy version. States whether it carries attestation evidence or an attestation result (RATS [17]); a result names the verifier that produced it. Where attestation is not available in the deployment shape (§1.1), the field carries an explicit `not-available` value with a reason rather than being omitted. An explicit absence is evidence; an empty field is a shrug |
-| Outcome | Whether the action took effect | Distinct from the decision: an allowed action can still fail, and a refused one can still have partial effect. Recorded as a later entry that references the decision it resolves. A decision whose outcome entry is missing has an unknown outcome, and stays unknown until an outcome is recorded; it is not read as success, and per §4 it remains charged |
-| Integrity-protected sequence with trusted checkpoints | Ordering and detectable gaps within a declared record sequence | Verification needs expected sequence boundaries and trusted checkpoints. A completeness claim also needs a declared collection scope and accounting for actions omitted before recording. A timestamp alone does not establish completeness. |
-| The accounting decision | What the aggregate budget stood at, and what was reserved, committed, released or reconciled for this action | Per §4, record the accounting authority's decision and reason, the principal and subtree, applicable budget, aggregate consumed and remaining, and reservation/action references. Preserve refused or held attempts even when no consumption follows. An unknown outcome remains charged until authoritative non-consumption or idempotent reconciliation; post-hoc totals do not establish atomic enforcement |
+| Principal and full delegation chain | Who the action was ultimately performed for, and the chain through which authority reached the caller. | Use this as an integrity-protected correlation key scoped to the delegation subtree, not a single run (§4). Record every delegation step, not just the immediate caller. The immediate caller alone cannot show whether each step stayed within the authority of the party granting it. |
+| Actor identity (`actor_id`) and the source of the identity claim | Which agent executed the action, and where its identity claim came from. | Record this separately from the subject identity. A connection credential may identify an agent across many requests, but it does not establish the principal for each request. Use only the defined provenance values in §7.1 and record the verification outcome separately. |
+| Subject identity (`subject_id`) and the source of the identity claim | The principal on whose authority the request was made, distinct from the executing agent. | Record this for each request, together with the claim's verification outcome and its binding to the action. This is the accounting principal used in §4. An agent's assertion or a signature alone does not establish that principal's authority. Apply the explicit-absence rule separately to actor and subject. |
+| Policy version | Which rules were in force when the decision was made. | Record a content digest of the policy in force at that decision, rather than only a version label. A label may stay unchanged while the rules change. The digest identifies the policy content relevant to the decision, rather than leaving a later reviewer to assume that today's rules applied. |
+| Assurance-boundary statement | Which paths the containment claim covered or excluded when the decision was made. | Record a content digest of the statement as it stood at that decision. Its name may stay unchanged while the covered paths change. The policy identifies what was allowed; this separate statement identifies the paths on which enforcement is claimed and the paths excluded under §3. It records claimed scope, not proof of enforcement. This row alone must not be used to treat an excluded path as closed or an included path as mediated. |
+| Tool-catalog version | The tool catalog visible to the agent for that invocation. | Record a content digest of the catalog as the agent saw it for that invocation, separately from policy version. The catalog and policy can change independently. A catalog can change a tool's description or schema without changing its version string. This record is needed to check the declared-versus-executed comparison in §7.2 after the event. |
+| Action or tool-call identifier | Which specific invocation this record describes. | Use this identifier to link the detection record, the evidence record and any downstream effect to the same invocation. |
+| Request digest | Whether the recorded request matches the request that was made. | Store a digest rather than the request parameters so the record can be retained and shared without carrying the payload. Compute it over the request as made, before redaction. Record which fields it covers and how they were put into a consistent form before hashing (canonicalization). Digests covering different fields are not comparable, even with the same canonicalization. If parameter values are guessable, someone may recover them by trying possible values and comparing their digests. In that case, use a keyed commitment with a separately protected secret and identify the scheme in the record; a public salt alone does not stop guessing. Payload redaction and control over access to commitment verification remain separate safeguards. |
+| Enforcement decision and reason | What the enforcement point concluded, and the basis for that conclusion. | Record both the decision and its reason. Without the reason, a reviewer can count decisions but cannot audit their basis. Commit the decision record to the integrity-protected sequence before dispatching the action. Append the outcome later as a separate entry that references the decision. If a crash occurs after the effect but before its outcome is recorded, the sequence retains the decision with a missing outcome, rather than leaving an effect with no corresponding record. |
+| Runtime identity or attestation reference | What was executing, as distinct from what was claimed to be executing. | This field is required. Bind it to the current record so it cannot be reused from another run. The attested data covers the checkpoint signing key and the policy version. State whether the field carries attestation evidence or an attestation result (RATS [17]). If it carries a result, name the verifier that produced it. Where attestation is unavailable in the deployment shape (§1.1), record an explicit `not-available` value with a reason instead of omitting the field. This records the unavailability explicitly; an empty field does not. |
+| Outcome | Whether the action took effect. | Keep the outcome separate from the decision. An allowed action can fail, and a refused action can still have a partial effect. Record the outcome in a later entry that references the decision it resolves. If that entry is missing, the outcome remains unknown until an outcome is recorded. Do not treat the missing outcome as success. Under §4, the action remains charged. |
+| Integrity-protected sequence with trusted checkpoints | The order of records and detectable gaps within the declared sequence. | Verification needs the expected sequence boundaries and trusted checkpoints. A completeness claim needs more: a declared scope stating what the collection was meant to capture, and an account of actions omitted before they entered the record sequence. A timestamp alone does not establish completeness. |
+| The accounting decision | The aggregate budget state, and what was reserved, committed, released or reconciled for this action. | Under §4, record the accounting authority's decision and reason; the principal and delegation subtree; the applicable budget; the aggregate consumed and remaining; and the reservation/action references. Keep records of refused or held attempts even when they consume nothing. An unknown outcome remains charged until authoritative non-consumption or idempotent reconciliation. Totals reconstructed after the event do not establish that the budget was enforced atomically. |
 
-Where the accounting authority is also the enforcement point for an action, its
-accounting decision is that enforcement decision: one record can satisfy both
-rows. Where the authorities or decisions differ, preserve each decision and its
-relationship to the same action.
+One record can satisfy both evidence-table rows when the accounting authority is also the enforcement point for the action and the same decision serves both purposes. If the authorities or the decisions differ, preserve each decision and link it to the same action.
 
 Where consumption is covered by an already-charged lease, the accounting evidence may be a linked set: the authority's allocation decision records the applicable principal/subtree budgets and aggregate consumed and remaining at allocation; each consuming-action record identifies that allocation and records the local decision, amount consumed and allowance remaining.
 
@@ -705,112 +724,204 @@ Identify the scope and accounting point of each value. Preserve decision reasons
 
 Where a claimed current total or complete reconstruction is not established, state that limitation rather than substituting an old total or treating missing evidence as proof of enforcement.
 
-**Identity provenance and verification.** Each identity carries one of the closed provenance values
-`connection-credential`, `signed-request-claim`, `unsigned-request-claim`, or `absent`. The last means
-absence was determined; it must not stand for a collection failure. If provenance could not be
-established, record `not_established` as the observation status with its reason, rather than
-inventing a fifth provenance value or labeling the identity `absent`.
+**Identity provenance and verification.** For each identity, record one of four provenance values:
 
-Provenance describes the source of a claim, not its verification result. A signed request claim
-may still be unchecked or rejected; record that outcome separately, including the verifying
-authority and request binding where established. An unsigned claim can record what was asserted,
-but does not establish the asserted subject's authority. Do not collapse an unregistered signing
-key and a bad signature into the same verification reason.
+- `connection-credential`
+- `signed-request-claim`
+- `unsigned-request-claim`
+- `absent`
 
-An unverifiable subject claim in this evidence record MUST NOT change the egress decision in
-either direction; it changes only what the record may claim. Treating it as permission rewards
-forgery; treating an evidence-verification failure as a new denial can turn a key-rotation error
-into an outage. This does not bypass the independently enforced authorization and accounting
-requirements in §§3–4: recording a claim cannot satisfy a required authorization check.
+Use `absent` only when absence has been determined, not when collection has failed.
 
-Coverage of the *Agentic IAM* paper's "prove control on demand" checklist follows from the table
-rather than being asserted: which agents were active comes from actor identities and the chain, what
-permissions they held from the policy and catalog versions, who was involved in each action from the
-actor, subject, their provenance and the action identifier, and what justified each decision from the decision, reason and
-attestation reference. The obligation that paper states as a capability, this table states as the
-minimum record that makes the capability real.
+If provenance could not be established, record `not_established` as the observation status and give the reason. Do not add a fifth provenance value or label that identity `absent`.
 
-**Two requirements this section settles.**
+Provenance records where a claim came from, not whether it passed verification. A signed request claim may still be unchecked or rejected.
 
-- **The runtime identity or attestation reference row is required, not conditional.** Attestation is
-  not available in every deployment shape (§1.1), but a conditional evidence field is exactly the
-  shape that produces the "did not happen" versus "was not recorded" ambiguity this section exists to
-  remove. The field is therefore always present and carries an explicit `not-available` value with a
-  reason where attestation is unavailable. When unavailability is established,
-  `not-available` is this field's explicit value for the `absent` observation
-  state, not a fifth state. Inability to establish availability remains
-  `not_established`, with its missing premise.
-- **An implementation MUST state which canonicalization its digests use, and the record MUST
-  identify it.** Two implementations that digest the same request differently produce records that
-  cannot be compared, which defeats the field. The paper requires that a canonicalization be stated
-  and identified, so two records are either comparable or honestly incomparable; which
-  canonicalizations qualify is practical-guide material, pinned alongside the OCSF mapping.
+Record the verification outcome separately. Include the verifying authority and the claim's binding to the request where these have been established.
+
+An unsigned claim records what was asserted; it does not establish the asserted subject's authority. Keep an unregistered signing key and a bad signature as distinct verification reasons.
+
+An unverifiable subject claim in this evidence record MUST NOT change the egress decision in either direction. It changes only what the record may claim.
+
+Treating the claim as permission would reward forgery. Treating an evidence-verification failure as a new reason for denial could turn a key-rotation error into an outage.
+
+The independently enforced authorization and accounting requirements in §§3–4 still apply. Recording a claim does not satisfy a required authorization check.
+
+The evidence table supports the *Agentic IAM* paper's "prove control on demand" checklist through specific records:
+
+- **Which agents were active during a given period:** actor identities and the delegation chain.
+- **What permissions they held at that time:** policy and tool-catalog versions, read alongside the authority recorded in the delegation chain.
+- **Which agent and subject were involved in each action:** their identities, provenance and the action identifier.
+- **What justified each decision:** the decision and reason, policy version, attestation reference and recorded delegation chain.
+
+This paper requires these minimum records to support that reconstruction, subject to the table's stated exceptions. The records must still be assessed under this paper's verification and evidence limits; filling in the fields does not, by itself, establish every checklist answer.
+
+**Two evidence requirements.**
+
+- **The runtime identity or attestation reference field is always required.** Attestation may be unavailable in a deployment shape (§1.1), but the field must still be present. Omitting it would leave unclear whether attestation was unavailable or simply not recorded. When unavailability has been established, record `not-available` with a reason. This is the field's explicit value for the `absent` observation state, not a fifth observation state. If availability cannot be established, record `not_established` as the observation status and identify the missing premise.
+- **An implementation MUST state which canonicalization its digests use, and the record MUST identify it.** Different ways of preparing the same request for hashing can produce digests that cannot be compared. Identifying the canonicalization helps assess whether records can be compared or must be treated as incomparable; it does not establish comparability on its own. The practical guide specifies which canonicalizations qualify, with that guidance version-pinned alongside the schema mapping.
 
 ### 7.2 The false-positive profile
 
-The signals in §7.1 need a baseline for the deployment in which they are used. Filesystem exploration, credential discovery and retries can occur during legitimate work. Their frequency depends on the runtime, available tools, assigned tasks and deployment shape (§1.1). This draft has no measured baseline spanning those conditions. The expected false-positive sources in §7.1 are hypotheses to test; they do not establish rates or comparative detector confidence.
+The signals in §7.1 need a deployment-specific baseline: measurements showing how often they occur under the conditions being evaluated. Filesystem exploration, credential discovery and retries can be part of legitimate work. Their frequency depends on the runtime, available tools, assigned tasks and deployment shape (§1.1).
 
-**Compare execution with the authority in force.** For exploration-like behavior, compare the observed invocation with the capability declaration, policy and tool-catalog versions applicable at that invocation. Keep the declaration's source, scope and effective interval available to the reviewer. A declaration generated after the action cannot establish what was declared beforehand.
+This draft has no measured baseline covering those conditions. The possible false-positive sources listed in §7.1 are hypotheses to test. They do not establish false-positive rates or justify greater confidence in one detector than another.
 
-Executed capability outside the declared set is a discrepancy requiring investigation. It can reflect an unauthorized path or an incomplete declaration. Execution inside the declared set can still misuse an allowed capability, exceed an argument constraint or contribute to an aggregate-budget violation. Declaration membership alone therefore establishes neither authorization nor benign intent. A blocked request establishes an attempted action and an enforcement decision; it does not establish successful execution or the absence of partial effects.
+**Compare execution with the authority in force.** For behavior that looks like exploration, compare the observed action or tool-call request with the capability declaration, policy version and tool-catalog version that applied when the request was made.
 
-If the applicable declaration, version binding or execution evidence is unavailable, report the comparison as not established, with the missing premise. Do not classify it as a match or as a benign example for tuning. Keep malformed records and unsupported mappings separately visible as processing failures.
+Keep the declaration's source, scope and effective period available to the reviewer. A declaration created after the action cannot establish what was declared before it.
 
-**Measure the profile without using the alert as its own label.** Each detector evaluation should identify:
+Execution of a capability outside the declared set is a discrepancy that requires investigation. It may reflect an unauthorized path or an incomplete declaration.
+
+Execution inside the declared set can still misuse an allowed capability, exceed a constraint on its arguments or contribute to an aggregate-budget violation. Being declared therefore establishes neither authorization nor benign intent.
+
+A blocked request establishes an attempted action and an enforcement decision. It does not establish successful execution or rule out partial effects.
+
+If the applicable declaration, version binding or execution evidence is unavailable, report the comparison as not established and identify what is missing. Do not classify it as a match or use it as a benign example when tuning the detector.
+
+Keep malformed records and unsupported mappings visible as processing failures, separate from the comparison results.
+
+**Evaluate detectors without treating alerts as proof of a violation.** Each detector evaluation should identify:
 
 - The deployment shape, task mix, runtime and model versions, policy and catalog revisions, detector version and threshold, and observation window.
-- The unit being classified: an invocation, a logical action with retries, or a correlated sequence. Preserve attempt identifiers even when one incident groups several attempts.
-- How benign and violating cases were adjudicated, using the applicable policy and outcome evidence. Keep unresolved cases separate; a detector firing is not sufficient to label its input as a violation.
-- The counts behind every reported rate and the known collection gaps. Report results by deployment shape before combining them.
+- The unit being classified: a single action or tool-call request, a logical action with retries, or a correlated sequence. Preserve attempt identifiers even when several attempts are grouped into one incident.
+- How cases were judged to be benign or to violate policy, using the applicable policy and outcome evidence. Keep unresolved cases separate. A detector alert alone is not enough to label its input as a violation.
+- The counts behind every reported rate and the known collection gaps. Report results separately for each deployment shape before combining them.
 
-For a declared unit, the false-positive rate is alerted adjudicated-benign units divided by all adjudicated-benign units. The fraction of adjudicated alerts that were benign answers a different question: the review burden among alerts. Report both denominators (all adjudicated-benign units and all adjudicated alerts), the unresolved-label count and any sampling or selection limits. A zero denominator yields no rate. A dataset assembled only from alerts cannot measure the false-positive rate or missed detections. Detector tuning and evaluation must use separately identified data so a tuned threshold is not presented as an independent result.
+For the declared unit of classification, distinguish two measures:
 
-**Require controls and uncertainty for measured rates.** Before a measured rate counts as evidence, report its numerator and denominator, a benign control matched to the stated conditions and outcome criteria except for the intervention under test, and an uncertainty interval with its method and level. State the sampling unit and account for correlated repeats when computing the interval: in a task-grouped evaluation, retain episodes within each task and compute uncertainty across tasks rather than treating episodes as independent. Preserve the per-task or per-group counts, aggregation rule and control results so a reviewer can reproduce the calculation. An attack failure rate without its matched benign control cannot distinguish an attack effect from ordinary task failure. If the number of independent units or remaining dependence prevents a supported interval, report that limitation; a rate alone does not close this section's baseline gap.
+- **False-positive rate:** alerted units judged benign, divided by all units judged benign.
+- **Review burden among alerts:** alerts judged benign, divided by all alerts whose labels have been resolved.
 
-**Keep self-test traffic out of the counts.** A check that feeds synthetic input to a detector or an enforcement point, such as the pre-run check in §8.2, produces alerts and denials that no live workload caused. Each synthetic invocation must carry a marker in its record that names the test behind it. Remove marked invocations before counting alerts, units or either denominator, and report the number removed. If the record cannot separate synthetic from live invocations, report the count as not established, with the missing premise.
+Report both denominators, the unresolved-label count and any sampling or selection limits. A zero denominator means there is no rate to report.
 
-**Correlate across the authority being constrained.** Use the principal, full delegation lineage and action identifiers from §7.1 to join runs and descendants. State identity namespaces and the observation window; identical text identifiers from different tenants or authorities do not establish a join. Deduplicate repeated delivery of the same event while retaining distinct attempts and conflicting versions. A missing lineage link or collection interval limits the resulting subtree claim.
+Data collected only from alerts cannot measure the false-positive rate or missed detections. Detector tuning and evaluation must use separately identified data, so results used to tune a threshold are not presented as independent evaluation results.
 
-Use §4's distinction for aggregate accounting. A consumption refused or held because it would exceed the budget is a preventive-control event. Consumption observed above the applicable budget is evidence of a control failure. High consumption within that budget can be legitimate. Reconstruct reservations, commits, releases and reconciliations using the accounting authority's decision records; an unknown action outcome remains charged under §4 and must not be treated as a harmless timeout. Post-hoc correlation can detect a failure, but cannot supply the atomic decision required at the consuming action.
+**Require controls and uncertainty for measured rates.** Before a measured rate can count as evidence, report:
 
-Alert thresholds and grouping may be tuned to reduce operational noise. That tuning must not discard the evidence needed to reconstruct the decision, invocation and outcome under §7.1. The collection and retention policy should make any sampling or loss explicit, so a quiet detector does not become a claim of complete observation.
+- Its numerator and denominator.
+- A benign control matched to the stated conditions and outcome criteria, except for the intervention being tested.
+- An uncertainty interval, including the method used to calculate it and its level.
+
+State the sampling unit and account for correlations between repeated observations when calculating the uncertainty interval. In a task-grouped evaluation, keep episodes grouped by task and calculate uncertainty across tasks. Do not treat the episodes as independent observations.
+
+Preserve the per-task or per-group counts, aggregation rule and control results so a reviewer can reproduce the calculation.
+
+An attack failure rate needs its matched benign control to distinguish an attack effect from ordinary task failure.
+
+If the number of independent observations or the remaining dependence between them prevents a supported statistical range around the measured rate, report that limitation. A rate alone does not close this section's baseline gap.
+
+**Keep self-test traffic out of the counts.** Synthetic checks feed test input to a detector or an enforcement point, as in the pre-run check in §8.2. Any resulting alerts or denials are test traffic, not live workload activity.
+
+Each synthetic action or tool-call request must carry a marker in its record identifying the test. Exclude marked requests before counting alerts, classification units or either denominator, and report how many were excluded.
+
+If the records cannot distinguish synthetic requests from live requests, report the count as not established and identify the missing premise.
+
+**Correlate across the authority being constrained.** Use the principal, the full chain of delegation and the action identifiers from §7.1 to connect related records. Include records from separate runs and from agents that received delegated authority, directly or through other agents in the chain.
+
+State the identity namespace for each identifier, including which tenant or authority it belongs to, and the time period covered by the records. Matching identifier text alone does not establish a connection: two tenants or authorities may use the same identifier for different identities.
+
+Deduplicate repeated deliveries of the same event, but retain distinct attempts and conflicting versions. A missing lineage link or collection interval limits what the records can establish about the delegation subtree.
+
+Use §4's distinctions when interpreting aggregate-budget records:
+
+- A request refused or held because it would exceed the budget is a preventive-control event.
+- Consumption observed above the applicable budget is evidence of a control failure.
+- High consumption within that budget can be legitimate.
+
+Use the accounting authority's decision records to reconstruct reservations, commits, releases and reconciliations. An unknown action outcome remains charged under §4 and must not be treated as a harmless timeout.
+
+Correlation after the event can detect a failure, but it cannot supply the atomic decision required when the action consumes budget.
+
+Alert thresholds and grouping may be adjusted to reduce operational noise. Those adjustments must not discard the evidence needed to reconstruct the decision, action or tool-call request, and outcome under §7.1.
+
+The collection and retention policy should state any sampling or loss explicitly. Fewer alerts do not establish that all activity was observed.
 
 ### 7.3 Measuring containment
 
-A containment measurement must name what was contained. Its scope can be one process, an agent instance, a delegation subtree, a credential set or specified provider-mediated actions (§3). State the affected authority and reachable systems, including queued work and delegated actions that may survive the initiating process. A local process stopping does not establish that its children, credentials or remote requests have stopped producing effects.
+A containment measurement must state what was contained. It may cover one process, an agent instance, a delegation subtree, a set of credentials or specified actions mediated by a provider (§3).
 
-**Separate detection, response and verification.** Record these milestones with the supporting event identifiers:
+State the affected authority and the reachable systems in scope. Include queued work and delegated actions that may continue after the initiating process stops. Stopping that process does not establish that its child processes, delegated agents, credentials or remote requests have stopped producing effects.
+
+**Separate detection, response and verification.** Record all five milestones and the event identifiers that support each one:
 
 | Milestone | Meaning and required evidence |
 | :---- | :---- |
-| Indicator | Earliest observed event satisfying the stated detector criterion in the declared observation window. Preserve event time and collection time separately. |
-| Detection | Time the detector emitted the alert, with its version, criterion and input references. |
-| Response request | Time an operator or automated control requested containment, identifying the initiator, target scope and requested action. |
-| Enforcement acknowledgment | Time each relevant enforcement point acknowledged applying that action. An acknowledgment alone may not establish its effect. |
-| Verification | Time the last required check established the stated containment condition across the declared scope, with outstanding effects, exceptions and unavailable checks recorded. |
+| Indicator | The earliest observed event that met the stated detector criterion within the declared observation window. Record when the event occurred and when it was collected as separate times. |
+| Detection | When the detector emitted the alert. Record the detector version, criterion and references to its inputs. |
+| Response request | When an operator or automated control requested containment. Identify who or what initiated the request, its target scope and the action requested. |
+| Enforcement acknowledgment | When each relevant enforcement point acknowledged applying the requested action. An acknowledgment alone may not establish that the action took effect. |
+| Verification | When the last required check established the stated containment condition across the declared scope. Record outstanding effects, exceptions and unavailable checks. |
 
-The indicator milestone is an observable starting point, not necessarily the first malicious action. If collection started late or lacks coverage, state that limitation. A retrospective criterion may identify earlier events, but it must be labeled as retrospective and must not replace the detector version used in the live measurement.
+The indicator milestone is a starting point supported by observation, not necessarily the first malicious action. If collection started late or lacks coverage, state that limitation.
 
-Report indicator-to-alert latency, alert-to-response latency and response-to-verification latency separately where both endpoints are recorded. For this paper, **verified time-to-contain** is the interval from the indicator milestone to verification of the declared containment condition. Also report time to a local stop when useful, labeled with its narrower scope. A stop acknowledgment must not substitute for the verification endpoint.
+A criterion applied after the event may identify earlier events. Label that criterion as retrospective. Do not replace the detector version recorded for the live measurement with a version used for that later analysis.
 
-Define the verification checks for the claimed boundary. For example, a subtree claim may require blocked new invocations, descendant authority revocation and disposition of already accepted work at the affected providers. The report must distinguish preventing future effects from reversing effects that have already occurred. A refused test request can support a check on one route; it cannot alone establish that every effective route is blocked. Claims based on no further observed activity require collection coverage for the named scope and interval, including sequence boundaries and actions that could be omitted before recording (§7.1).
+Report these elapsed times separately when both endpoints are recorded:
 
-**Preserve unresolved outcomes.** If a required enforcement point is unreachable, a descendant cannot be accounted for or a provider's pending action has an unknown outcome, containment of that scope is not established. Record verified subscopes and the unresolved remainder. If the observation window ends first, report “not verified by the end of the window” and its duration; do not enter zero, use the last received log as completion or omit the case from the denominator. Reports of completed cases should state the total eligible cases, completed cases, unresolved cases and exclusions. A single average over completed cases hides the failures to complete.
+- Indicator to alert.
+- Alert to response.
+- Response to verification.
 
-Each timestamp must identify its clock source and relevant uncertainty. Use a common clock or a documented relationship between clocks before subtracting times across systems. Where bounded clock error permits only an interval, report that interval. Where ordering cannot be established, report the duration as unknown. Event sequence can establish some ordering without establishing elapsed time; collection time measures observation delay and must remain distinguishable from event time.
+For this paper, **verified time-to-contain** is the elapsed time from the indicator milestone to verification of the declared containment condition.
 
-**Record why execution stopped.** Preserve a normalized reason distinguishing an operator-requested containment action, an automated policy response, ordinary completion, a crash and an unknown reason. Record the native reason alongside its mapping and version.
+Also report time to a local stop when useful, clearly labeled with its narrower scope. A stop acknowledgment must not take the place of the verification endpoint.
 
-A model turn ending, reaching a token limit or yielding to a tool is not sufficient evidence that the agent's authority ended. Correlate stop records, enforcement actions and per-invocation outcomes by agent instance and action identifiers; do not infer a tool's outcome from the model's stop reason.
+Define the verification checks for the boundary being claimed. For example, verifying containment of a delegation subtree may require:
 
-The accounting verdict (`allowed`, `refused` or `held`) records the accounting
-authority's decision; the stop reason records why execution stopped. Keep both
-when applicable. A `held` verdict awaits confirmation of the same action; a
-containment response request initiates containment of the named scope. Neither
-field substitutes for the other. An unknown stop reason can accompany a verified
-outcome, and a known stop reason can leave the outcome `pending`.
+- Blocking new action or tool-call requests.
+- Revoking authority passed down the delegation chain.
+- Establishing how work already accepted by the affected providers has been handled and what remains pending.
 
-The practical guide should bind these concepts to the selected OCSF revision and coordinate any schema gaps with the WS2 telemetry work. This section defines the information needed for the measurement without assuming that one existing stop-reason field [13] represents all of it. Evidence of an earlier decision remains evidence; it must not authorize replay or bypass a mediation step (§3).
+The report must distinguish preventing future effects from reversing effects that have already occurred.
+
+A refused test request can support a check on one route. It cannot, by itself, establish that every effective route is blocked.
+
+Claims based on no further observed activity require collection coverage for the named scope and time period. That includes the record-sequence boundaries and actions that could be omitted before recording (§7.1).
+
+**Preserve unresolved outcomes.** Containment of the agents, processes, credentials or actions covered by the report is not established if:
+
+- A required enforcement point is unreachable.
+- An agent further down the delegation chain cannot be accounted for.
+- A provider's pending action has an unknown outcome.
+
+Record the verified parts of the scope and the unresolved remainder.
+
+If the observation window ends before verification, report "not verified by the end of the window" and the window's duration. Do not enter zero, treat the last received log as completion or omit the case from the denominator.
+
+Reports of completed cases should state the total eligible cases, completed cases, unresolved cases and exclusions. An average based only on completed cases hides those that have not reached completion.
+
+Each timestamp must identify its clock source and relevant timing uncertainty. Before subtracting times from different systems, use a common clock or a documented relationship between their clocks.
+
+If bounded clock error allows only a range of possible elapsed times, report that range. If the order of events cannot be established, report the duration as unknown.
+
+An event sequence can establish some ordering without establishing how much time elapsed. Keep collection time distinct from event time so observation delay is not mistaken for event timing.
+
+**Record why execution stopped.** Preserve the stop reason using consistent categories that distinguish:
+
+- An operator-requested containment action.
+- An automated policy response.
+- Ordinary completion.
+- A crash.
+- An unknown reason.
+
+Preserve the original reason reported by the system, alongside the mapping and version used to place it in one of these categories.
+
+A model ending a turn, reaching a token limit or yielding to a tool does not, by itself, establish that the agent's authority has ended.
+
+Use the agent-instance and action identifiers to link stop records, enforcement actions and the outcomes of individual actions or tool-call requests. Do not infer a tool's outcome from the model's stop reason.
+
+The accounting verdict (`allowed`, `refused` or `held`) records the accounting authority's decision. The stop reason records why execution stopped. Keep both when applicable.
+
+A `held` verdict awaits confirmation of the same action. A containment response request identifies the agents, processes, credentials or actions to be contained and initiates that response. Neither field substitutes for the other.
+
+An unknown stop reason can accompany a verified outcome. A known stop reason can still leave the outcome `pending`.
+
+The practical guide should map these concepts to the selected schema and revision, and coordinate any schema gaps with the WS2 telemetry work.
+
+This section defines the information needed for the measurement. It does not assume that one existing stop-reason field represents all of it.
+
+Evidence of an earlier decision remains evidence. It must not authorize replay or bypass a mediation step (§3).
 
 ### 7.4 Evidence sufficiency for absence claims
 
@@ -1017,6 +1128,7 @@ An agent with bounded authority in the way a corporate laptop has it is not an a
 23. James P. Anderson. *Computer Security Technology Planning Study, Volume I—Executive Summary*. ESD-TR-73-51, Vol. I, October 1972. https://csrc.nist.gov/files/pubs/conference/1998/10/08/proceedings-of-the-21st-nissc-1998/final/docs/early-cs-papers/ande72a.pdf
 24. Scott Rose, Oliver Borchert, Stu Mitchell, Sean Connelly. *Zero Trust Architecture*. NIST Special Publication 800-207, August 2020. https://doi.org/10.6028/NIST.SP.800-207
 25. OpenAI. *OpenAI – Hugging Face Incident Technical Report*, 2026-08-26. https://cdn.openai.com/pdf/67869394-cb91-4c12-888c-5cbd85c7814c/OpenAI-Hugging-Face%20Incident-Technical-Report.pdf
+26. Amazon Web Services. *IMDS credential provider*. AWS SDKs and Tools Reference Guide. https://docs.aws.amazon.com/sdkref/latest/guide/feature-imds-credentials.html (accessed 2026-11-09).
 
 ---
 
