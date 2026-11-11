@@ -1095,22 +1095,78 @@ This paper takes no position on how agent-to-agent protocols are designed, how m
 
 **The paper in eight takeaways.**
 
-1. Containment is one layer of bounded authority, not a standalone discipline. Several incidents reported as escapes turned on an insufficiently specified control or on authority the agent already held (§5). The frame decides where the next dollar of hardening goes (§1).
-2. The isolation layer decomposes along three axes: local, outbound, and inbound (§2).
-3. Mediation is a claim about effects, not paths. Every path capable of producing the same consequential effect crosses an independently enforced authorization boundary before the effect commits, or is excluded from the claimed assurance boundary, in writing, per decision. Prior evidence never becomes executable authority for the final effect (§3).
-4. Per-agent controls cannot see a set of agents. Only an accounting authority holding the aggregate sees what a delegation subtree consumes together, under a fail-safe default: past its latency bound, the action is refused or held, never allowed (§4).
-5. The enforcement property is the reference monitor: complete mediation, tamper-proof placement and verifiability, with records that let a reviewer confirm mediation (§5.1). Every control failure lands in one of four modes: defeated, disabled, insufficiently specified, or permitted (§5).
-6. Vulnerability management lowers the probability that a boundary fails. Reachability minimization bounds the consequence when it does. Only the second is fully within the operator's control, and the yours-to-harden boundary also decides whether evidence will exist at all (§6).
-7. Detection and evidence are two artifacts against the same event. Detection may be noisy, heuristic and tuned locally. Evidence must be stable, complete and dull. In the record, a determined absence is distinguishable from an absence never established, because an explicit absence is evidence and an empty field is a shrug (§7).
-8. A sandbox is vetted when it can demonstrate, mechanically and before the run, that it does what it claims: the boundary holds, mediation is complete or its exclusions are stated, the monitor is out of reach, the evidence verifies, the reachable set is current, and aggregate accounting holds across the principal. A configuration is not a demonstration. The demonstration is bound to the run it describes, and a claim whose last demonstration has lapsed is not a current claim (§8).
+1. **Containment is one layer of bounded authority, not the whole protection model.** A deployment must limit both what an agent can reach and what it is allowed to do (§1). A control can remain active yet enforce the wrong policy, or correctly enforce a policy that permits harmful actions (§5). Choose the remedy for the actual problem rather than assuming every incident needs a stronger sandbox.
 
-The blog post this paper follows closed by asking operators to change their question: not "is this sandbox good enough?" but "what would this agent do if it decided to test its limits?" [11]. The chapters above are what it takes to ask that question honestly. Its weight sits in the half the blog could only gesture at: *and how would we know?* Knowing is not a posture. It is a set of properties a deployment either has or lacks.
+2. **Isolation has three axes: local, outbound and inbound.** Local concerns the agent's effects on its host; outbound concerns its effects on remote systems. Inbound concerns influence on the agent from incoming signals, whether those signals originate on the host or remotely (§2).
 
-Every path to an effect is mediated or excluded in writing (§3). Consumption is accounted where the agents share a principal (§4). The record is one a stranger can verify, in which absence of evidence and evidence of absence are different entries (§7). A containment action arrives in telemetry with a normalized reason, so an operator kill, a policy response, and a crash are distinguishable, and time-to-contain is a number rather than an impression (§7.3). A sandbox re-demonstrates its claims before every run, because configuration drifts and *was vetted once* is not *vetted* (§8). That is what "verified to fail safely" means, unpacked.
+3. **Mediation must cover the effect, not just one route to it.** Different tools, credentials or services may provide routes to the same consequential result.
 
-What the paper does not settle, it names in the open items each section carries. The false-positive profile awaits production baselines no single organization can produce (§7.2). The OCSF mapping belongs to the practical guide, pinned to a version. The evidence-sufficiency rules carry two named review questions (§7.4), and the commons is recommended as a coordinated follow-on specification rather than written here (§8). The discipline is the same one the paper asks of a containment claim: gaps stated are gaps that can be closed; gaps unstated are the ones that surface in an incident report.
+   Every route to that effect must pass through independently enforced authorisation before the result takes effect. Otherwise, explicitly exclude it from the claimed assurance boundary. Record the claimed scope and exclusions for every decision.
 
-An agent with bounded authority in the way a corporate laptop has it is not an agent that cannot fail. It is an agent whose failures are bounded by reachability, noticed by detection, charged by accounting, and provable from evidence. In other words, it is an insider threat managed the way organizations already know how to manage insider threats. The blog post said sandboxing cannot wait. This paper adds that sandboxing was never the whole job, and that the rest of the job is specifiable, testable, and already underway.
+   Prior evidence does not authorise the final action or replace its required enforcement (§3).
+
+4. **Per-agent limits alone do not establish a shared limit.** Account for combined consumption across all agents sharing a principal and across each delegation subtree rooted at that principal (§4).
+
+   Each consuming action must be checked before consumption, either by the shared accounting authority or by a protected local check against a lease already charged atomically to the shared budget. A local spend must stay within that lease's scope and remaining allowance; all other applicable checks still apply.
+
+   Whether the action uses a shared or local check, exceeding that check's time limit means refusing the action or holding it for confirmation. A timeout must never become permission to proceed.
+
+5. **Every enforcement point must meet the reference-monitor requirements.** Every path to a consequential effect within its claimed scope must cross it before that effect occurs. The agent must not be able to change the monitor or its policy, and the implementation must be small enough for complete analysis and testing. Records must also let a reviewer verify that mediation occurred (§5.1).
+
+   Distinguish four modes: defeated, disabled, insufficiently specified, and permitted. In the fourth, the control enforces its policy correctly, yet the agent can cause harm through actions that policy allows. That is not a monitor failure (§5).
+
+6. **Fix vulnerabilities and reduce unnecessary reach.** These controls do different jobs: fixing vulnerabilities reduces opportunities to break a boundary; limiting reach reduces what an agent can affect if a boundary fails.
+
+   What the operator can enforce depends on its actual control over the systems and access paths involved. When another organisation operates part of the agent deployment on your behalf, require it to implement the applicable controls and supply evidence that those controls are working (§§1.1, 6).
+
+   The operator's own records do not, by themselves, establish what happened in a third-party system. If reconstruction needs that system's records, it depends on their quality, retention and the owner's cooperation (§6.3).
+
+7. **Detection signals and evidence records serve different purposes for the same event.** Detection helps operators notice activity and may be noisy, heuristic and tuned to the deployment. Evidence must be stable and complete, so a reviewer who was not present and need not trust the operator can reconstruct what happened (§7).
+
+   Distinguish an established absence from a lack of visibility. Record established absence explicitly, with a reason. If missing or incomplete observation prevents a finding, use `not_established` and name the missing premise. An unknown action outcome remains `pending`; an empty field proves neither absence nor a negative finding.
+
+8. **A configuration is not a demonstration.** A vetting claim depends on the deployment being able to demonstrate its claims mechanically before the run:
+
+   - The claimed boundaries hold.
+   - Every path to an in-scope consequential effect is mediated or explicitly excluded from the claim.
+   - The agent cannot change the monitor or its policy.
+   - The evidence verifies.
+   - The effective-reach inventory matches the current deployment.
+   - Aggregate accounting holds across all agents sharing a principal and each delegation subtree rooted at that principal.
+
+   Bind the demonstration to the run it describes. Repeat the check during long runs to keep it within its validity window. A claim supported only by an expired demonstration is not a current claim (§8).
+
+Calling an agent “sandboxed” is only the starting point. The question is: *What would this agent do if it decided to test its limits, and how would we know?* (§1)
+
+Answering the first part means examining what the agent can reach, whose authority it can use and which actions its controls allow. Answering the second means having records that let a reviewer reconstruct what happened and assess whether those controls held.
+
+The deployment’s description is not enough. Its claims must stay within what its controls enforce and what the available evidence supports. Where that evidence is incomplete, the conclusion must acknowledge the gap rather than assume the controls succeeded or failed.
+
+Every path to a consequential effect must cross independently enforced authorisation before the effect occurs, or be explicitly excluded from the claim. Record the claimed scope and exclusions for each decision (§3). Consumption must be accounted across all agents sharing a principal and across each delegation subtree rooted at that principal (§4).
+
+A reviewer who was not present must be able to verify the evidence without having to trust the operator. It must distinguish an established absence from a finding that could not be established (§7).
+
+Record why execution stopped using consistent categories: an operator-requested containment action, an automated policy response, ordinary completion, a crash or an unknown reason. Preserve the original reason alongside its category mapping and version (§7.3).
+
+Measure verified time-to-contain from the earliest observed event meeting the stated detector criterion within the observation window to verification of containment across the declared scope. A stop request or acknowledgment is not that verification. Report only the timing precision the records support. If verification is incomplete when the window ends, report "not verified by the end of the window" and its duration (§7.3).
+
+Configuration can drift. Re-demonstrate the deployment's claims before every run, bind the result to that run, and repeat checks during long runs to keep the demonstration within its validity window (§8).
+
+A claim of bounded authority depends on the controls and evidence described here. Calling a deployment "verified to fail safely" cannot substitute for them, and does not mean that the agent cannot cause harm through permitted actions (§5).
+
+The paper identifies the questions that remain open. It does not yet provide measured, deployment-specific baselines for the detection signals or their false-positive rates (§7.2).
+
+The mapping from evidence requirements to concrete schema fields belongs in the practical guide, pinned to a specified schema version. Mark proposed fields as proposed (§7).
+
+The evidence-sufficiency rules carry two named review questions (§7.4), and the commons is recommended as a coordinated follow-on specification rather than written here (§8).
+
+State what remains unresolved and what is needed to address it: measurements, design decisions or further specification work. Until that work is done, make clear which claims the paper can support and which it cannot.
+
+Bounded authority does not make an agent incapable of failure. The corporate-laptop comparison is about layered controls, not guaranteed safety. For agents, those layers limit reach and permissions, mediate actions, account for shared consumption, detect activity and preserve evidence for investigation (§1).
+
+These controls provide a way to manage an agent's use of legitimate authority as an insider risk. They do not guarantee that every harmful action will be prevented, detected or reconstructed. Conclusions must stay within the controls actually enforced and the evidence available.
+
+Sandboxing is one part of that work. The rest is to define the boundaries, implement the controls and demonstrate what they achieve.
 
 ---
 
