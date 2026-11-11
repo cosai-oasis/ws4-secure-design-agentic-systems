@@ -1,0 +1,296 @@
+{
+  "capture": "Complete files read from the exact public Git checkout. Publication pin identifies retained source bytes, not the historical runtime commit.",
+  "evidenceClass": "publisher-report-derived",
+  "files": [
+    {
+      "bytes": 11342,
+      "path": "LICENSE",
+      "sha256": "65e4d4dcde0be160910cf24ef4bed7fd720e3823a5c7b3c75981e98e88e11da5"
+    },
+    {
+      "bytes": 1966,
+      "path": "NOTICE",
+      "sha256": "e6f3c8e5b5bb03a3a8e96433b522fd298675375c259ec76632fc9d27b1e5f9f4"
+    },
+    {
+      "bytes": 2963,
+      "path": "TRADEMARKS.md",
+      "sha256": "cad50d6439c00ae986c751f232f4a0af68b76ae1045ec8ab49cc60e03c4d2265"
+    },
+    {
+      "bytes": 54380,
+      "path": "docs/errata.md",
+      "sha256": "380ae677b9f3d481fe2a3a1533493afd07bb8b1b98eb68b34d1ad34e3e408743"
+    },
+    {
+      "bytes": 2109,
+      "path": "results/smolvla_libero_object_control_2026-09-14/NOTES.md",
+      "sha256": "6f9ce1de294bf545b30c6062991358539fc3fd7ba18e7672229842239c7d12a3"
+    },
+    {
+      "bytes": 8248,
+      "path": "results/smolvla_libero_object_control_2026-09-14/README.md",
+      "sha256": "53823337a42a021f69d9741d5c90aa256fcee163f9508ba916288a916d0e53ba"
+    },
+    {
+      "bytes": 2012,
+      "path": "results/smolvla_libero_object_control_2026-09-14/aggregate.json",
+      "sha256": "c6f65bd3d4e7c993d12e9d94aa99af40b97705251a38ada96f2ce5d4d9e2c8dc"
+    },
+    {
+      "bytes": 1501,
+      "path": "results/smolvla_libero_object_control_2026-09-14/libero_object_0/execution-manifest.json",
+      "sha256": "630b46c20723df9d8d8f5444c7aa2ef1dfe104abd1c8b6541f18dae66f6bad55"
+    },
+    {
+      "bytes": 1119358,
+      "path": "results/smolvla_libero_object_control_2026-09-14/libero_object_0/report.json",
+      "sha256": "32c3622643737de5c492ba2f4148486f43ff5283af6772b12936395dbc0b56ea"
+    },
+    {
+      "bytes": 1501,
+      "path": "results/smolvla_libero_object_control_2026-09-14/libero_object_1/execution-manifest.json",
+      "sha256": "63199351680c0369ddbf97a677d769a14afc1e2ddcc1f64dfb3c0bad62779600"
+    },
+    {
+      "bytes": 1012908,
+      "path": "results/smolvla_libero_object_control_2026-09-14/libero_object_1/report.json",
+      "sha256": "d618a077525e3bbf47bd3587b46872d0b89f653333967ff64fb57498d135f188"
+    },
+    {
+      "bytes": 1501,
+      "path": "results/smolvla_libero_object_control_2026-09-14/libero_object_2/execution-manifest.json",
+      "sha256": "872a78836807aff57642f7b0082ae0b83b33d4b45086f434d216a758f16ac98a"
+    },
+    {
+      "bytes": 1099134,
+      "path": "results/smolvla_libero_object_control_2026-09-14/libero_object_2/report.json",
+      "sha256": "7bddb2793086e3fbdb6fd0fe60b26fa9407a3473c5ca21119d267dab0733423d"
+    },
+    {
+      "bytes": 1501,
+      "path": "results/smolvla_libero_object_control_2026-09-14/libero_object_3/execution-manifest.json",
+      "sha256": "625d7ba5c121b22fad7178da455cbd0f245eaa6811bfb941867fe43fd64ae2da"
+    },
+    {
+      "bytes": 1218236,
+      "path": "results/smolvla_libero_object_control_2026-09-14/libero_object_3/report.json",
+      "sha256": "7311bbcc86988d08ecff7d8d628843a1b58478bb1ff9f84bfe6b352e16a02f63"
+    },
+    {
+      "bytes": 1501,
+      "path": "results/smolvla_libero_object_control_2026-09-14/libero_object_4/execution-manifest.json",
+      "sha256": "6d4557be7b28e98688bb22d94d76a5774e9744723dd5f93ad9ae901d99fc3636"
+    },
+    {
+      "bytes": 1229839,
+      "path": "results/smolvla_libero_object_control_2026-09-14/libero_object_4/report.json",
+      "sha256": "9ed0f89ce09f528c6d30fda671d3681f4be472775ecdbea879f8f8fb0fc1d569"
+    },
+    {
+      "bytes": 1501,
+      "path": "results/smolvla_libero_object_control_2026-09-14/libero_object_5/execution-manifest.json",
+      "sha256": "62c020cb75778a3a771748f4e49e1ef4d15d1cedb237355d7138ada416579f0b"
+    },
+    {
+      "bytes": 1172464,
+      "path": "results/smolvla_libero_object_control_2026-09-14/libero_object_5/report.json",
+      "sha256": "c735517018d1350976e3d920a5bf5fc09ec7a61ef529778e473e0ba69fd5a327"
+    },
+    {
+      "bytes": 1501,
+      "path": "results/smolvla_libero_object_control_2026-09-14/libero_object_6/execution-manifest.json",
+      "sha256": "9a19a581913218db15d99c964dd85aaf420066e87f4e9eb0a5cd4cd4f4b418c4"
+    },
+    {
+      "bytes": 1208503,
+      "path": "results/smolvla_libero_object_control_2026-09-14/libero_object_6/report.json",
+      "sha256": "afa1bed6dbeeaebe5f96c0d2ab0545c01540e8c1275adff22756057c97f79aa4"
+    },
+    {
+      "bytes": 1501,
+      "path": "results/smolvla_libero_object_control_2026-09-14/libero_object_7/execution-manifest.json",
+      "sha256": "ecdd1e66aed76d5b1891a85e4550ecb0bfbd10ddbfed7d39f7f37c3a0ca494ce"
+    },
+    {
+      "bytes": 1172204,
+      "path": "results/smolvla_libero_object_control_2026-09-14/libero_object_7/report.json",
+      "sha256": "3206db87dfccb34d3ebf94f61bcbdd0b99aebf234ae4a23345149e7842e0d90f"
+    },
+    {
+      "bytes": 1501,
+      "path": "results/smolvla_libero_object_control_2026-09-14/libero_object_8/execution-manifest.json",
+      "sha256": "2ab961fc89de8ec290eedcdbb072d2042c09b13074e5add5037265e6b6a29dd5"
+    },
+    {
+      "bytes": 1466148,
+      "path": "results/smolvla_libero_object_control_2026-09-14/libero_object_8/report.json",
+      "sha256": "0ffe611ca274a44407b164a50ab467cfa40369f8b46f9ecef1cba6673e362089"
+    },
+    {
+      "bytes": 1501,
+      "path": "results/smolvla_libero_object_control_2026-09-14/libero_object_9/execution-manifest.json",
+      "sha256": "8c42e2c97c08a7da75cbe4ab2f80bbb46b22e2e3ab0bff64fd1d9caa261b71e9"
+    },
+    {
+      "bytes": 2024101,
+      "path": "results/smolvla_libero_object_control_2026-09-14/libero_object_9/report.json",
+      "sha256": "bddec6136d487f3e5510afb3fc2d5e7723b24b1a7b0af758a5157da3cdd1f9e6"
+    },
+    {
+      "bytes": 1422,
+      "path": "results/smolvla_libero_object_suite_2026-09-14/NOTES.md",
+      "sha256": "06cfa6dd280968ea345cc2197917c698fb5fcdd26b7b343f02f807f669977c3c"
+    },
+    {
+      "bytes": 7884,
+      "path": "results/smolvla_libero_object_suite_2026-09-14/README.md",
+      "sha256": "3221eb92e7146769db8822fe669c0eaba656b8ac4b0833c351a223729739a805"
+    },
+    {
+      "bytes": 2170,
+      "path": "results/smolvla_libero_object_suite_2026-09-14/aggregate.json",
+      "sha256": "a6e3ff28007e132cb6eda54c8c5bff8cde8dcacc22721e250ce9393b9b24f76b"
+    },
+    {
+      "bytes": 1479,
+      "path": "results/smolvla_libero_object_suite_2026-09-14/libero_object_0/execution-manifest.json",
+      "sha256": "5c5c0e00d51538ea983d5c500b4286aff8f639e91c201eb42bd35c4a15495360"
+    },
+    {
+      "bytes": 3359349,
+      "path": "results/smolvla_libero_object_suite_2026-09-14/libero_object_0/report.json",
+      "sha256": "dc5301f1706e829b0fac7377e4ceb86a662a12ef84273475607f5d846152d847"
+    },
+    {
+      "bytes": 1479,
+      "path": "results/smolvla_libero_object_suite_2026-09-14/libero_object_1/execution-manifest.json",
+      "sha256": "62d3cbc0377199f5b904af76d351cb86b52969810ad557e6f5230e6b0792726c"
+    },
+    {
+      "bytes": 2897019,
+      "path": "results/smolvla_libero_object_suite_2026-09-14/libero_object_1/report.json",
+      "sha256": "2ed25b79918baef43862aff0be0723ab7518cace513b6aadaa8915697bfec5ea"
+    },
+    {
+      "bytes": 1479,
+      "path": "results/smolvla_libero_object_suite_2026-09-14/libero_object_2/execution-manifest.json",
+      "sha256": "bc8c0ede3216a262ecbfef587f2c0981e6f39508b57b5070569170d009629ce9"
+    },
+    {
+      "bytes": 2754053,
+      "path": "results/smolvla_libero_object_suite_2026-09-14/libero_object_2/report.json",
+      "sha256": "6def024e2983d6af6fafe578ef4ea9ce435b687bcad907079f34093c399bb183"
+    },
+    {
+      "bytes": 1479,
+      "path": "results/smolvla_libero_object_suite_2026-09-14/libero_object_3/execution-manifest.json",
+      "sha256": "5fdee3e8cccf84970f8bf67828cfab769f81e83935f9a357115074a0df3d1488"
+    },
+    {
+      "bytes": 3171493,
+      "path": "results/smolvla_libero_object_suite_2026-09-14/libero_object_3/report.json",
+      "sha256": "9dcf6d852a20028727632f67402b66545ee1247c85c1e6b33397b9597b6aad1b"
+    },
+    {
+      "bytes": 1479,
+      "path": "results/smolvla_libero_object_suite_2026-09-14/libero_object_4/execution-manifest.json",
+      "sha256": "13b63def7afb00f7ce03282b3e49936c1c237bf3d0f8141003583df01b81b370"
+    },
+    {
+      "bytes": 2699328,
+      "path": "results/smolvla_libero_object_suite_2026-09-14/libero_object_4/report.json",
+      "sha256": "deb5a10ff316a3cf3476cafe1d4ff9c7d014eccfcf736cfea8898019954ec387"
+    },
+    {
+      "bytes": 1479,
+      "path": "results/smolvla_libero_object_suite_2026-09-14/libero_object_5/execution-manifest.json",
+      "sha256": "37e349f85b1377cb42e7ec46df790116b52029917f827d259b43b6c6ccde6866"
+    },
+    {
+      "bytes": 3117693,
+      "path": "results/smolvla_libero_object_suite_2026-09-14/libero_object_5/report.json",
+      "sha256": "656c30871b901a7f71ace6468d72d57a16fcb2536d990323334ededb2b4f6991"
+    },
+    {
+      "bytes": 1479,
+      "path": "results/smolvla_libero_object_suite_2026-09-14/libero_object_6/execution-manifest.json",
+      "sha256": "650b5e2080a0a49e5b73c48ef1e9534fba741b2352471be27d63bcf06af9c733"
+    },
+    {
+      "bytes": 3282320,
+      "path": "results/smolvla_libero_object_suite_2026-09-14/libero_object_6/report.json",
+      "sha256": "6fdd636dda56c0f827670e3c6b4073c9ee6748fe413a112a246c17a297c1f0f0"
+    },
+    {
+      "bytes": 1479,
+      "path": "results/smolvla_libero_object_suite_2026-09-14/libero_object_7/execution-manifest.json",
+      "sha256": "736be5b89f1444a0a794907080905012457705915577208eb87375d6001f9dfc"
+    },
+    {
+      "bytes": 3084370,
+      "path": "results/smolvla_libero_object_suite_2026-09-14/libero_object_7/report.json",
+      "sha256": "872f9d71ae6317c5b889af010fedd2f9722a865af4bc6e19ead7e6e5adceb3df"
+    },
+    {
+      "bytes": 1479,
+      "path": "results/smolvla_libero_object_suite_2026-09-14/libero_object_8/execution-manifest.json",
+      "sha256": "2db75435bf44bacfe282e093b0233097bd88222c1385ab72724a7ae4de1e15fc"
+    },
+    {
+      "bytes": 3260582,
+      "path": "results/smolvla_libero_object_suite_2026-09-14/libero_object_8/report.json",
+      "sha256": "9035f6dae6c9728a327b3e0695778421c297aae2247e500f84beb9289e223325"
+    },
+    {
+      "bytes": 1479,
+      "path": "results/smolvla_libero_object_suite_2026-09-14/libero_object_9/execution-manifest.json",
+      "sha256": "86924cab379f2a1de201a584d9859903d669c19ebf66b7300135292b71005217"
+    },
+    {
+      "bytes": 3474542,
+      "path": "results/smolvla_libero_object_suite_2026-09-14/libero_object_9/report.json",
+      "sha256": "e11cdcfe106a0ef713ae5b9f2ec2bfc7746b64180b1b3b734a150352664159b0"
+    },
+    {
+      "bytes": 60530,
+      "path": "src/provael/attest.py",
+      "sha256": "9910844dd80ffe16f29c786a2a0b46f2a58ddeaccb7c01e6170bb06c4448a412"
+    },
+    {
+      "bytes": 11471,
+      "path": "src/provael/execution.py",
+      "sha256": "0d65a58f088b552bbf4593f47fa99ae4cb4f4e3bd062331965b91eb65ab2956a"
+    },
+    {
+      "bytes": 31526,
+      "path": "src/provael/scoring/asr.py",
+      "sha256": "b6664ca2ccab28977887632dbc942d7523588e881c833e9b98f3d396c3bda18f"
+    },
+    {
+      "bytes": 12691,
+      "path": "src/provael/scoring/paired.py",
+      "sha256": "e8fecf498dc76ca0c5cdef2d6d6663e34bc4fb51cd7df50904152bdc1212960a"
+    },
+    {
+      "bytes": 19056,
+      "path": "src/provael/suites/keepout_zones.py",
+      "sha256": "ae4bb9641602a83b1f0dec866e7456159b8e0542f0775bfc3b4e1d23603b7c14"
+    },
+    {
+      "bytes": 33326,
+      "path": "src/provael/suites/libero.py",
+      "sha256": "725f20fc2a37b0d37f5ba59097b0793e41b712c1b5f2af3153dbe9fe9894bb4b"
+    },
+    {
+      "bytes": 41859,
+      "path": "src/provael/types.py",
+      "sha256": "2df6b1a2388fca0b2ccf23e4c961db89883af7711c4f74947b6021f88ba4805c"
+    }
+  ],
+  "format": "probity-provael-source-record-v1",
+  "license": "Apache-2.0",
+  "publicationCommit": "f1dbc5352bfa7774c0a5599eff20407125914c78",
+  "publicationRepository": "https://github.com/provael/provael",
+  "publisher": "Provael / Sattyam Jain"
+}
