@@ -16,6 +16,9 @@ status: "Working draft, all sections drafted. Not reviewed, not approved."
   - [Scope](#scope)
   - [Out of scope](#out-of-scope)
   - [Target audience](#target-audience)
+- [Executive summary](#executive-summary)
+  - [What leaders should expect](#what-leaders-should-expect)
+  - [What evidence to request](#what-evidence-to-request)
 - [1. Introduction: from sandboxing to bounded authority](#1-introduction-from-sandboxing-to-bounded-authority)
   - [1.1 Deployment shapes and what containment can mean in each](#11-deployment-shapes-and-what-containment-can-mean-in-each)
 - [2. The three hardening axes](#2-the-three-hardening-axes)
@@ -84,6 +87,31 @@ This paper addresses containment for autonomous agents with access to real syste
 ### Target audience
 
 This paper is for practitioners and architects responsible for deploying agents with production access, and for security leaders assessing the controls and evidence those deployments require. It addresses both organizations operating agents themselves and those relying on providers.
+
+---
+
+## Executive summary
+
+An AI agent with production access can change records, move data, spend money and ask other agents to act. Those capabilities are useful, but they also create ways to cause harm without escaping a sandbox. A permitted tool can be misused, a permission can be too broad, or several agents can collectively exceed a limit that none exceeds alone.
+
+The objective is **bounded authority**: limit both what an agent can reach and what it is allowed to do, then preserve evidence that supports checking whether those limits held. Isolation remains important. It cannot, by itself, make an over-broad permission appropriate or establish a shared spending limit.
+
+### What leaders should expect
+
+- **Defined boundaries.** Identify the systems and resources the agent can reach, the actions it may take and the limits on those actions. Untrusted messages and tool results must not gain instruction authority.
+- **Enforcement before effects.** Cover every route to a consequential result, not just one tool or network connection. Keep enforcement and its policy outside the agent's ability to change. Record the scope and exclusions for each decision; an excluded route is outside the assurance claim, not proven safe.
+- **Shared consumption limits.** Account across agents sharing a security identity (a principal) and across each delegation subtree: an agent and the agents below it acting through delegated authority. Check consumption before it occurs. A timeout must refuse or hold the action, never silently permit it.
+- **Evidence from the organisation operating the control.** Where a provider operates part of the deployment on your behalf, require it to implement the applicable controls and supply evidence that they work. Your own records cannot, by themselves, establish what happened inside an unrelated third-party system.
+
+### What evidence to request
+
+Ask for records linking actions to the responsible agent, its delegation chain, the policy applied and the recorded outcome. A reviewer who was not present must be able to verify the evidence without having to trust the operator. An alert can identify something worth investigating; it is not a substitute for that evidence.
+
+Require reports to say what is missing. Established absence, insufficient observation and an action whose outcome remains unknown are different findings. A stop acknowledgment does not establish that delegated agents, queued work or remote effects have stopped. Containment measurements must name what was contained and distinguish a verified result from an unresolved one.
+
+Ask for demonstrations that apply to the deployed configuration, not simply a label saying it was tested once. State the limits of the evidence and the conclusions it supports.
+
+When harm occurs, establish whether a control was defeated, disabled, insufficiently specified or wrongly deployed, or correctly enforced a policy that allowed the action. Those situations call for different remedies. Bounded authority does not guarantee that every harmful action will be prevented, detected or reconstructed. It makes the limits, responsibilities and evidence explicit, so leaders can assess what a deployment's claims actually support.
 
 ---
 
