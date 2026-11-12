@@ -1,0 +1,20 @@
+{
+  "agent_info": {
+    "name": "oracle",
+    "version": "1.0.0"
+  },
+  "finished_at": "2026-01-01T00:00:43Z",
+  "id": "00000000-0000-4000-8000-000000000001",
+  "source": null,
+  "started_at": "2026-01-01T00:00:00Z",
+  "task_checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+  "task_id": {
+    "path": "./task"
+  },
+  "task_name": "binding-demo",
+  "trial_name": "binding-demo__synthetic",
+  "trial_uri": "synthetic://binding-demo",
+  "verifier_result": {
+    "reward": 1.0
+  }
+}

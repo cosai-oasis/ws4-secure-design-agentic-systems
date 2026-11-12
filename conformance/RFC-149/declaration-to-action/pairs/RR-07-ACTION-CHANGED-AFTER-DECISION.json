@@ -1,0 +1,42 @@
+{
+ "accept": {
+  "consumer_result": {
+   "result": "pass",
+   "unmet_obligation": null
+  },
+  "corpus": "vectors-agent-audit-record",
+  "member": "v0d65a70ec5288821",
+  "reader_expected": {
+   "codes": [],
+   "tier": "authoritative",
+   "verdict": "valid"
+  },
+  "sha256": "0d65a70ec528882170927d08c9396a7efa7cef211d047626be7dc0736a6fc09b"
+ },
+ "differs_in": "the action changed and the request digest was left at its original value",
+ "id": "RR-07-ACTION-CHANGED-AFTER-DECISION",
+ "note": "The decision against an entitlement binds the exact request.",
+ "reader": "auditrecord",
+ "record": {
+  "pointer": "/provider_entitlements/spiffe:~1~1trust.example~1mcp~1ledger/allowed_actions"
+ },
+ "reject": {
+  "consumer_result": {
+   "result": "processing_failure",
+   "unmet_obligation": null
+  },
+  "corpus": "vectors-agent-audit-record",
+  "member": "v504fb97e3c65e22d",
+  "reader_expected": {
+   "codes": [
+    "request-digest-mismatch"
+   ],
+   "verdict": "malformed"
+  },
+  "sha256": "504fb97e3c65e22d0e5c6bc585b5a2d4f1699da55dc86afa561767c5ab7f3dfb"
+ },
+ "relationship": "decision_to_action",
+ "rfc_scope": "runtime-appraisal",
+ "source": "agent-evidence-vectors==0.17.5",
+ "status": "candidate"
+}
