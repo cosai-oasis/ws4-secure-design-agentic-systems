@@ -1,6 +1,6 @@
-# Agent Behavioral Monitoring in Practice
+# Agent behavioral monitoring in practice
 
-**Practical Guide (draft)** · ADLC SIG with the WS2 telemetry work
+**Practical guide (draft)** · ADLC SIG with the WS2 telemetry work
 
 > **Status:** Placeholder. Scope, outline and examples are still to be agreed. Proposed at the ADLC SIG meeting on 2026-11-11.
 
