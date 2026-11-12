@@ -93,6 +93,16 @@ These frameworks are complementary, not competing — the taxonomy fills the gap
 
 Section 6 compares the method in detail with these frameworks, neighboring academic taxonomies, and classical security precedents, and **Appendix C** holds the full crosswalk tables.
 
+### 1.5 How to Use This Paper
+
+This paper supports two uses: applying the method to a system by hand, and developing tools that assist the analysis. Both use the vocabulary in Section 3 and the four steps in Section 4.
+
+**Path A: applying the method by hand.** Read Section 3 for the vocabulary, keeping Table 1 and Table 2 nearby for classification and representation guidance. Then follow the complete walkthrough in Section 4.1 and repeat the four steps on your own data-flow diagram. Use Section 4.2 while annotating the diagram and Table A.1 to identify candidate crossings. Section 5 illustrates design-time threat analysis, incident triage, and cross-modal coverage planning.
+
+**Path B: developing tool support.** Tables 1 and 2, Section 4.2, and Table A.1 provide a starting point for tools that suggest candidate crossings from an annotated data-flow diagram. For each record, show the matched lookup pattern, the representation-survival assumption, and the potentially violated sink constraint. Human review remains necessary for the constraints, component roles, flow labels, fidelity assignments, exploitability, and evidence maturity.
+
+For either path, findings depend on the completeness and accuracy of the diagram and its annotations. Missing components or flows leave gaps in the analysis.
+
 ## 2. Scope and System Model
 
 ### 2.1 Modalities and Architectures
