@@ -1,6 +1,6 @@
-# Enforced Stateful Knowledge Base for Agents
+# Enforced stateful knowledge base for agents
 
-**Practical Guide (draft)** · ADLC SIG
+**Practical guide (draft)** · ADLC SIG
 
 > **Status:** Placeholder. Scope, outline and examples are still to be agreed. Proposed at the ADLC SIG meeting on 2026-11-11.
 
