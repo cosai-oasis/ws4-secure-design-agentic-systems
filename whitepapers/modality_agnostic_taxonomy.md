@@ -8,7 +8,7 @@
 
 ## Abstract
 
-Multimodal AI agents read documents and screenshots, transcribe calls, sample video, call tools, and render rich output, and each new input channel or output surface tends to get its own threat catalog and point guardrail. This paper presents an architectural analysis method that scales across modalities. Architects add three lightweight annotations to the data-flow diagrams they already draw for STRIDE — security rules on consequential components, the role each component plays in the pipeline, and how much each data flow preserves of its raw input. Candidate failure mechanisms, attack chains, structural cut points, and security tests then follow by rule. Each mechanism is a tuple `⟨Invariant, Divergence, Representation⟩`: the security property that breaks, why two evaluations that should agree actually differ, and the form the adversarial payload takes. Because the record names a structural crossing and carries modality on the data flow, an exploit demonstrated in one modality predicts testable variants in others. We walk through the method on the Trail of Bits Gemini CLI image-scaling disclosure. We then apply it to a support-ticket agent that gains a phone line and to a physical delivery robot. Finally, across seven input surfaces (text, image, audio, video, streaming text, structured data, and robotics), we use attacks demonstrated on some surfaces to predict attacks on the rest.
+Multimodal AI agents read documents and screenshots, transcribe calls, sample video, call tools, and render rich output. Each new input channel or output surface tends to get its own threat catalog and point guardrail. This paper presents an architectural analysis method that scales across modalities. Architects add three lightweight annotations to the data-flow diagrams they already draw for STRIDE: security rules on consequential components, the role each component plays in the pipeline, and how much each data flow preserves of its raw input. Candidate mechanisms, attack chains, chokepoints, and security tests then follow by rule. Each mechanism is a tuple `⟨Invariant, Divergence, Representation⟩`: the security property that breaks, why two evaluations that should agree actually differ, and the form the adversarial payload takes. Because the record names a mechanism class and carries modality on the data flow, an exploit demonstrated in one modality predicts testable variants in others. We walk through the method on the Trail of Bits Gemini CLI image-scaling disclosure. We then apply it to a support-ticket agent that gains a phone line and to a physical delivery robot. Finally, across seven input surfaces (text, image, audio, video, streaming text, structured data, and robotics), we use attacks demonstrated on some surfaces to predict attacks on the rest.
 
 ## 1. Introduction
 
@@ -20,7 +20,7 @@ AI agents increasingly process images, audio, video, and structured data alongsi
 
 Today, application-security teams assess AI agents by combining two established practices, neither of which captures how multimodal agentic pipelines actually fail:
 
-1. **Coarse-grained STRIDE threat modeling.** Standard application threat models draw trust boundaries around whole services or around "the AI model" as a single opaque box. Inside an inference pipeline, however, security-critical transformations happen *between* components that sit inside the same traditional trust zone: a guardrail inspects a full-resolution image before a downscaler resizes it for the model, or a human reviewer previews an HTML draft whose embedded image tags trigger outbound network fetches before approval.
+1. **Coarse-grained STRIDE threat modeling.** Standard application threat models draw trust boundaries (Shostack, 2014) around whole services or around "the AI model" as a single opaque box. Inside an inference pipeline, however, security-critical transformations happen *between* components that sit inside the same traditional trust zone: a guardrail inspects a full-resolution image before a downscaler resizes it for the model, or a human reviewer previews an HTML draft whose embedded image tags trigger outbound network fetches before approval.
 2. **Modality-siloed catalogs and point guardrails.** AI threat and risk catalogs (e.g. OWASP Top 10 for LLM Applications, MITRE ATLAS, and NIST AI 100-2) classify *what* the adversary does (such as prompt injection or multimodal triggers) and *which* business risks result. In response, engineering teams add point defenses one surface at a time: a text prompt filter on chat inputs, an image classifier on file uploads, an audio check on voice lines.
 
 Recent disclosures and research demonstrations show the gaps between these separate catalogs and defenses:
@@ -46,7 +46,7 @@ To enumerate those mechanisms systematically instead of brainstorming them case 
 * **Divergence** names why two evaluations assumed to agree actually differ — different readers (*Evaluator*), a transform that changes the artifact between check and use (*Artifact State*), state that drifts over time (*Time*), or a trust label that violates the receiving component's policy (*Position*).
 * **Representation** names the observable form in which adversarial influence travels — from plainly readable content, through encoded or hidden payloads, to perturbations that exploit a specific model's internals — and whether it survives the processing on each data flow (Section 3.4 formalizes these forms and the fidelity levels that determine survival).
 
-The method adds three lightweight annotations to the standard DFDs architects already draw for STRIDE — the role each component plays in the pipeline, how much each data flow preserves of its raw input, and security rules on consequential components — and from the annotated diagram, candidate crossings, multi-step attack chains, high-leverage structural cut points, and falsifiable security tests can be derived systematically.
+The method adds three lightweight annotations to the standard DFDs architects already draw for STRIDE: the role each component plays in the pipeline, how much each data flow preserves of its raw input, and security rules on consequential components. From the annotated diagram, the method derives candidate mechanisms (the analog of the candidate threats STRIDE tools generate from a DFD; Microsoft, n.d.), attack chains, high-leverage chokepoints (Sheyner et al., 2002), and falsifiable security tests.
 
 ### 1.4 Ecosystem Positioning: What Existing Frameworks Cover and What They Leave Open
 
@@ -69,9 +69,9 @@ These frameworks are complementary, not competing — the taxonomy fills the gap
 
 | Framework | What it covers well | Specific gap the taxonomy fills |
 | :---- | :---- | :---- |
-| **STRIDE** | Which hazard results (Tampering, Information Disclosure, Elevation of Privilege) | Cannot distinguish *where inside the pipeline* the perimeter breaks. The Trail of Bits attack produces both Elevation of Privilege and Information Disclosure, but STRIDE cannot separate the downscaler activation, the auto-approved tool call, and the unrestricted exfiltration — three independently fixable crossings. |
+| **STRIDE** | Which hazard results (Tampering, Information Disclosure, Elevation of Privilege) | Cannot distinguish *where inside the pipeline* the perimeter breaks. The Trail of Bits attack produces both Elevation of Privilege and Information Disclosure, but STRIDE cannot separate the downscaler activation, the auto-approved tool call, and the unrestricted exfiltration — three independently fixable mechanisms. |
 | **MITRE ATLAS** | What the attacker is doing (AML.T0051 Prompt Injection, AML.T0068 Obfuscation) | One technique covers structurally different mechanisms needing different controls. "Prompt Injection" applies to both image-scaling injection (needs an anti-aliased downscaler) and plaintext email injection (needs schema enforcement). The taxonomy decomposes each technique into mechanism records with distinct pipeline locations and fixes. |
-| **MITRE D3FEND** | Candidate defensive techniques linked to digital artifacts | Does not specify *where in the pipeline* a defense should be evaluated. File Content Analysis is a candidate for Trail of Bits, but must it inspect before or after the downscaler? The mechanism record locates the crossing at the transform and specifies the post-transform representation. |
+| **MITRE D3FEND** | Candidate defensive techniques linked to digital artifacts | Does not specify *where in the pipeline* a defense should be evaluated. File Content Analysis is a candidate for Trail of Bits, but must it inspect before or after the downscaler? The mechanism record locates the mechanism at the transform and specifies the post-transform representation. |
 | **MITRE CWE** | Individual software weaknesses (CWE-367, CWE-436, CWE-180, CWE-1427) | CWEs are individual entries. The taxonomy provides the generative matrix that relates them and extends them to non-text carriers that CWE-1427 does not yet cover. |
 | **NIST AI 100-2e2025** | Attacker goals, capabilities, knowledge, and lifecycle context | Characterizes whether the adversary can reach a mechanism but not where the mechanism exists or what structural property breaks. Does not record the processing primitive, the pre/post-transform representation change, or which chain legs are architecture-granted. |
 | **OWASP LLM Top 10** | Application-level risks (LLM01:2025, LLM05:2025, LLM06:2025) with scenarios | Names risks but does not specify the pipeline step where the instruction becomes legible or what distinguishes an image-scaling injection from a Base64 text injection — both are LLM01:2025 but need different controls. |
@@ -80,30 +80,30 @@ These frameworks are complementary, not competing — the taxonomy fills the gap
 
 **What the taxonomy uniquely provides.** Beyond filling per-framework gaps, the taxonomy and its four-step method (Section 4) enable practitioner capabilities that no reviewed framework offers individually:
 
-1. **Mechanical derivation of crossings from a diagram** — produces candidate mechanism records by rule from an annotated data-flow diagram, rather than from checklists or brainstorming.
-2. **Granted-vs-supplied leg separation** — distinguishes which attack-chain steps the architecture gives the attacker for free, directly prioritizing remediation toward zero-effort legs.
-3. **Cross-modality-surface prediction from a single finding** — a finding in one modality generates testable hypotheses for every surface that reproduces the same structural crossing.
+1. **Mechanical derivation of candidate mechanisms from a diagram** — produces mechanism records by rule from an annotated data-flow diagram, rather than from checklists or brainstorming.
+2. **Granted-vs-supplied leg separation** — distinguishes which legs of an attack chain the architecture gives the attacker for free, directly prioritizing remediation toward zero-effort legs. A leg is an attack step in attack-graph terms (Phillips & Swiler, 1998).
+3. **Cross-surface variant analysis from a single finding** — a finding in one modality generates testable hypotheses for every surface that reproduces the same mechanism (variant analysis uses one known bug to find its siblings; GitHub, n.d.).
 4. **Three-level fidelity with representation survival rules** — answers "if I normalize this flow, which payload forms does that eliminate?"
 5. **Closable vs. Reducible-only distinction** — tells practitioners where architectural enforcement works vs. where they must accept probabilistic reduction.
-6. **Minimal structural cut points** — the minimum set of flows whose hardening disconnects all source-to-sink attack paths.
+6. **Chokepoints** — flows whose hardening breaks attack paths; the fewest that break every source-to-sink path form a minimal cut set.
 7. **Falsifiable security tests with sink-constraint oracles** — each test's pass/fail condition is the system's own stated security requirement.
 8. **Vendor-neutral structural sharing** — mechanism records use abstract roles and fidelities, so organizations share findings without revealing proprietary architecture.
 9. **Incremental modality reuse** — adding a new input modality requires annotating only the new ingress path, not re-analyzing the entire system.
-10. **Generative boundary matrix** — categories are produced by crossing two axes (invariant × divergence), so every cell, including empty ones, is a falsifiable hypothesis.
+10. **Generative mechanism matrix** — categories are produced by pairing two axes (invariant × divergence), so every cell (including empty ones) is a falsifiable hypothesis.
 
-Section 6 compares the method in detail with these frameworks, neighboring academic taxonomies, and classical security precedents, and **Appendix C** holds the full crosswalk tables.
+Section 6 compares the method in detail with these frameworks, neighboring academic taxonomies, and classical security precedents, and **Appendix B** holds the full crosswalk tables. **Appendix D** maps every term the paper defines to its closest industry term.
 
 ## 2. Scope and System Model
 
 ### 2.1 Modalities and Architectures
 
-A **modality** is a category of information an AI system represents or processes, such as text, images, audio, or video (Baltrušaitis et al., 2019). Structured data (JSON, CSV, API responses) and composite sources (PDFs, web pages, GUIs, tool responses) can carry one or several modalities. A system is **unimodal** at a given boundary when one modality crosses it and **multimodal** when two or more are processed together: a screenshot containing written instructions is image input, and the same screenshot sent with a separate text question is multimodal input. **Cross-modal** describes an operation between modalities, such as captioning an image or retrieving images with text (Baltrušaitis et al., 2019). Security literature also uses *cross-modal* for attacks that combine inputs from two or more modalities, as in cross-modal prompt injection (Wang et al., 2025); this paper uses the operation sense and records combined-modality attacks with structural modifiers that distinguish whether the pieces are incomplete fragments requiring reassembly or complete artifacts whose pairing produces the effect (**Section 3.4.2** formalizes these). A **modality surface** is a specific input channel or output channel through which a single modality enters or leaves the system — for example, a file-upload endpoint that accepts images, a telephony channel that carries audio, or a staff HTML preview that renders rich output. **Cross-modality-surface prediction** is the procedure of taking a mechanism record found on one modality surface and checking whether the same structural crossing is realizable on a different modality surface (Section 4.4). The term is distinct from *cross-modal*, which describes operations or attacks that combine two or more modalities in a single interaction.
+A **modality** is a category of information an AI system represents or processes, such as text, images, audio, or video (Baltrušaitis et al., 2019). Structured data (JSON, CSV, API responses) and composite sources (PDFs, web pages, GUIs, tool responses) can carry one or several modalities. A system is **unimodal** at a given component when one modality reaches it and **multimodal** when two or more are processed together: a screenshot containing written instructions is image input, and the same screenshot sent with a separate text question is multimodal input. **Cross-modal** describes an operation between modalities, such as captioning an image or retrieving images with text (Baltrušaitis et al., 2019). Security literature also uses *cross-modal* for attacks that combine inputs from two or more modalities, as in cross-modal prompt injection (Wang et al., 2025). This paper uses the operation sense and records combined-modality attacks with structural modifiers that distinguish whether the pieces are incomplete fragments requiring reassembly or complete artifacts whose pairing produces the effect (**Section 3.4.2** formalizes these). A **surface** is one part of the system's attack surface (Manadhata & Wing, 2011): an input or output channel through which a single modality enters or leaves. Examples include a file-upload endpoint that accepts images, a telephony channel that carries audio, and a staff HTML preview that renders rich output. **Cross-surface variant analysis** takes a mechanism record found on one surface and checks whether the same mechanism is realizable on another (Section 4.4). It carries variant analysis — the software-security practice of using one known bug to find the same flaw elsewhere — across modalities.
 
 A **unified** architecture integrates several modalities in one model (e.g., GPT-4o); a **fragmented** architecture chains specialized components (e.g., separate speech recognition, language, and speech generation models). Unified models still sit behind modality-specific encoders and preprocessing. An **AI agent** adds orchestration: it uses models to pursue goals through tools, APIs, applications, or other agents, and may run on either architecture or combine both. Modality, architecture, and orchestration vary independently, and security outcomes depend on how information moves between components — which is why this paper describes mechanisms on the data-flow diagram itself.
 
 ### 2.2 In Scope
 
-The method covers inference-time security mechanisms in unimodal, multimodal, and cross-modal processing. A mechanism is in scope when it can be expressed as an `Invariant × Divergence` crossing carrying a `Representation` on an annotated DFD, whatever the number or type of modalities involved; model capability matters where it shapes those crossings. The method applies to unified, fragmented, and hybrid agent architectures, with architectural configuration recorded as supporting context. Coverage of individual attack families follows the evidence maturity of each instance (**Section 5.3, Tables 4 and 5**).
+The method covers inference-time security mechanisms in unimodal, multimodal, and cross-modal processing. A mechanism is in scope when it can be expressed as an `Invariant × Divergence` pair carrying a `Representation` on an annotated DFD, whatever the number or type of modalities involved; model capability matters where it shapes those mechanisms. The method applies to unified, fragmented, and hybrid agent architectures and records architectural configuration as supporting context. Coverage of individual attack families follows the evidence maturity of each instance (**Section 5.3, Tables 4 and 5**).
 
 * Adversarially constructed inputs presented at inference time, including text, image, audio, video, structured data, tool responses, and composite artifacts.
 * Adversarially constructed outputs, including covert exfiltration channels and outputs that become active when rendered or consumed downstream.
@@ -220,7 +220,7 @@ flowchart LR
 
 One attack, three mechanisms, three independently fixable cells. **Section 4** applies the full method to this same attack, deriving the same three records systematically from an annotated DFD and showing which legs the attacker supplies vs. which the architecture grants for free.
 
-**What the Trail of Bits example does not cover.** The attack exercises three of the full set of invariant–divergence combinations (defined in Section 3.3): `Meaning × Artifact State`, `Authority × Position`, and `Confidentiality × Position`. It does not involve a guard that reads the artifact differently from the model (Evaluator divergence), a state that changes between validation and use (Time divergence), a resource-exhaustion pathway (Cost), or subclasses such as *Parser / Interpreter Differential*, *Semantic Stability*, *Grant Persistence*, or *Delegation Authority*. To cover the remaining combinations, the definitions that follow use a second system — a support-ticket triage agent — whose components naturally exercise all four invariants and all four divergences. Where Trail of Bits applies, each definition calls it back.
+**What the Trail of Bits example does not cover.** The attack exercises three of the full set of invariant–divergence combinations (defined in Section 3.3): `Meaning × Artifact State`, `Authority × Position`, and `Confidentiality × Position`. It does not involve the following: a guard that reads the artifact differently from the model (Evaluator divergence); a state that changes between validation and use (Time divergence); a resource-exhaustion pathway (Cost); or subclasses such as *Parser / Interpreter Differential*, *Semantic Stability*, *Grant Persistence*, or *Confused Deputy* (Hardy, 1988). To cover the remaining combinations, the definitions that follow use a second system — a support-ticket triage agent — whose components naturally exercise all four invariants and all four divergences. Where Trail of Bits applies, each definition calls it back.
 
 #### Teaching Example: Support-Ticket Triage Agent
 
@@ -275,7 +275,7 @@ The subsections that follow define each tuple component using this system, calli
 
 ### 3.1 Invariants
 
-A security boundary is an assumption or constraint that must hold as information is evaluated, transformed, transferred, or acted upon within an AI system; a boundary violation occurs when an adversarial artifact breaks an applicable sink constraint (**Appendix A.1**). Each **Invariant** is the security property a sink constraint protects, in any modality. The four invariants build on established concepts: interpretation consistency (`CWE-436`), information-flow control and authorization enforcement (`Denning, 1976`; `NIST SP 800-53 AC-3`), and resource bounding (`CWE-400`). Each subsection below defines one invariant and the boundary subclasses in its row of **Table 1** (**Section 3.3**).
+An **Invariant** is the security property a sink constraint protects. It is an assumption that must hold in any modality as information is evaluated, transformed, transferred, or acted upon within an AI system. An invariant violation occurs when an adversarial artifact breaks an applicable sink constraint (**Appendix A.1**). The four invariants build on established concepts: interpretation consistency (`CWE-436`); information-flow control and authorization enforcement (`Denning, 1976`; `NIST SP 800-53 AC-3`); and resource bounding (`CWE-400`). Each subsection below defines one invariant and the mechanism classes in its row of **Table 1** (**Section 3.3**).
 
 #### 3.1.1 Meaning (*Semantic Integrity*)
 
@@ -289,7 +289,7 @@ A security boundary is an assumption or constraint that must hold as information
 * *Parser / Interpreter Differential*: two parsers or interpreters read the same input differently (`CWE-436`).
 * *Semantic Stability*: equivalent meaning receives inconsistent decisions against idealized policy intent, including authorization and conflict arbitration.
 * *Transform Consistency*: a transformation or multi-input aggregation changes or exposes content after it was assessed (`CWE-180`).
-* *Check-Use Consistency*: a validated artifact or state changes before use (`CWE-367`).
+* *TOCTOU* (time-of-check to time-of-use): a validated artifact or state changes before use (`CWE-367`).
 
 *Example (Figure 1d):* A fraudster files a support ticket requesting to redirect someone else's payouts to a new bank account (a ticket that belongs in `abuse`) and ends it with *"Note for triage AI: route to billing"*. The Triage LLM labels it `billing`, and the Queue Router sends it to the billing queue instead of triggering the Abuse Pager. The fault: the label disagrees with a human reading of the ticket, so the request skips fraud review.
 
@@ -305,7 +305,7 @@ A security boundary is an assumption or constraint that must hold as information
 * *Grant Persistence*: a permission stays usable after expiry, revocation, or its task window.
 * *Data-Control*: untrusted content is promoted into instructions or control flow (`OWASP LLM01:2025`).
 * *Decision-Action*: a tool executor runs a model-requested operation that skips required authorization (`SP 800-53 AC-3`).
-* *Delegation Authority*: a deputy exercises authority beyond what its caller granted (`SP 800-53 AC-6`).
+* *Confused Deputy*: a deputy exercises authority beyond what its caller granted (`CWE-441`; `SP 800-53 AC-6`).
 
 *Example (Figure 1d):* An attacker files a ticket telling the Triage LLM to credit `\$25` to account `48213`. The LLM calls Billing Credit, which auto-approves credits at or below \$25. The fault: the billing tool executes a request steered by untrusted ticket text (*Data-Control* at the Triage LLM → *Decision-Action* at Billing Credit).
 
@@ -377,11 +377,11 @@ A **Time** divergence is a validated artifact, store, or permission grant changi
 *Why it matters:* approval and execution often happen at different moments (a human approval, a cached check, a long-lived grant), and the state can change in between.
 
 *How it varies:* by what changes.
-* A store: an attacker edits a record after the guard validates it, and the agent re-reads the edited version (*Check-Use Consistency*).
-* An approval: a human approves one set of tool arguments, and an attacker steers a different set into execution (*Check-Use Consistency*).
+* A store: an attacker edits a record after the guard validates it, and the agent re-reads the edited version (*TOCTOU*).
+* An approval: a human approves one set of tool arguments, and an attacker steers a different set into execution (*TOCTOU*).
 * A permission grant: an attacker keeps using a grant after revocation or after its task ends (*Grant Persistence*).
 
-*Example (Figure 1d):* The Human Approver approves a `\$40` credit for account `10021`, and the approval flag returns to the Triage LLM. An attacker's ticket then steers the LLM to re-emit the `\$40` credit to account `48213`. Billing Credit checks only that an approval exists — not *what* was approved — so it executes the redirected credit. The fault: the approved arguments change between the Human Approver's validation and Billing Credit's execution (*Check-Use Consistency*).
+*Example (Figure 1d):* The Human Approver approves a `\$40` credit for account `10021`, and the approval flag returns to the Triage LLM. An attacker's ticket then steers the LLM to re-emit the `\$40` credit to account `48213`. Billing Credit checks only that an approval exists — not *what* was approved — so it executes the redirected credit. The fault: the approved arguments change between the Human Approver's validation and Billing Credit's execution (*TOCTOU*).
 
 #### 3.2.4 Position
 
@@ -390,7 +390,7 @@ A **Position** divergence is labeled information arriving at a sink with a trust
 *Why it matters:* data moves between trust levels (untrusted content toward a tool, secret context toward an outside party). The two sides that disagree are the flow's label and the sink's policy.
 
 *How it varies:* by direction.
-* Toward an authority sink (`Authority × Position`): the attacker's text becomes an instruction (*Data-Control*), the executor runs the steered call and skips its approval (*Decision-Action*), or a deputy acts beyond its caller's grant on the attacker's behalf (*Delegation Authority*).
+* Toward an authority sink (`Authority × Position`): the attacker's text becomes an instruction (*Data-Control*); the executor runs the steered call and skips its approval (*Decision-Action*); or a deputy acts beyond its caller's grant on the attacker's behalf (*Confused Deputy*).
 * Toward an egress sink (`Confidentiality × Position`): the attacker gets secret context into a customer reply (*Context Confinement*) or makes a renderer fetch their URL through an image tag (*Output-Consumer*).
 
 *Example (Figure 1d):* The attacker's ticket text reaches Billing Credit, which should reserve credits for the authenticated caller's own account (Authority direction). The confidential Internal Header reaches the customer through the Staff HTML Preview, which should carry only ticket content (Confidentiality direction). The fault in both: information arrives at a component carrying a trust or sensitivity level that component's policy does not permit.
@@ -399,35 +399,35 @@ A **Position** divergence is labeled information arriving at a sink with a trust
 
 ### 3.3 The Invariant × Divergence Matrix
 
-Crossing the four invariants with the four divergences yields the thirteen boundary subclasses in **Table 1**. Each subclass is tagged **Closable** (a deterministic architectural fix exists) or **Reducible-only** (defenses lower attack success rates):
+Pairing the four invariants with the four divergences yields the thirteen mechanism classes in **Table 1**. Each class is tagged **Closable** (a deterministic architectural fix exists) or **Reducible-only** (defenses lower attack success rates):
 
 | Invariant \ Divergence | **Evaluator**<br/>*(same artifact state, two evaluators)* | **Artifact State**<br/>*(transform or aggregation between check and use)* | **Time**<br/>*(same store or grant at `t` vs. `t + Δ`)* | **Position**<br/>*(flow label violates the sink's authority or disclosure policy)* |
 | :---- | :---- | :---- | :---- | :---- |
-| **Meaning**<br/>*(Reference specification)* | *Human-Machine Perception* (R)<br/>*Guard-Model Capability* (R)<br/>*Parser / Interpreter Differential* (C)<br/>*Semantic Stability* (R) | *Transform Consistency* (C) | *Check-Use Consistency* (C) | — |
-| **Authority**<br/>*(Authority policy)* | — | — | *Grant Persistence* (C) | *Data-Control* (C)<br/>*Decision-Action* (C)<br/>*Delegation Authority* (C) |
+| **Meaning**<br/>*(Reference specification)* | *Human-Machine Perception* (R)<br/>*Guard-Model Capability* (R)<br/>*Parser / Interpreter Differential* (C)<br/>*Semantic Stability* (R) | *Transform Consistency* (C) | *TOCTOU* (C) | — |
+| **Authority**<br/>*(Authority policy)* | — | — | *Grant Persistence* (C) | *Data-Control* (C)<br/>*Decision-Action* (C)<br/>*Confused Deputy* (C) |
 | **Confidentiality**<br/>*(Disclosure policy)* | — | — | — | *Context Confinement* (C)<br/>*Output-Consumer* (C) |
 | **Cost**<br/>*(Resource budget)* | *Resource Accounting* (C) | — | — | — |
 
-*Table 1. The `Invariant × Divergence` boundary matrix. C = Closable; R = Reducible-only.*
+*Table 1. The `Invariant × Divergence` mechanism matrix. C = Closable; R = Reducible-only.*
 
 **Appendix A.4** separates neighboring subclasses that are easy to confuse (for example, *Data-Control* vs. *Decision-Action*, or *Guard-Model Capability* vs. *Transform Consistency*).
 
-**Closable vs. Reducible-only boundaries.** The distinction rests on whether the boundary can be enforced deterministically:
+**Closable vs. Reducible-only classes.** The distinction rests on whether the invariant can be enforced deterministically:
 
-* **Closable (C)** boundaries have a deterministic architectural fix. Tool executors, query runners, and output renderers consume structured inputs where formal grammars strictly separate passive data from executable syntax or network fetches (via parameterized APIs, schemas, output encoding, and URL allowlists). These components can be made safe by construction.
-* **Reducible-only (R)** boundaries resist deterministic closure. In natural-language and multimodal inputs, instructions and data share one grammar, so a protective filter with weaker reasoning than the target model leaves a capability gap that external filtering can at best reduce (Ball et al., 2025; Glukhov et al., 2023; Zverev et al., 2025), and adaptive optimization routinely bypasses probabilistic guardrails (Nasr et al., 2025). Two architectural strategies narrow the gap: **context separation** (routing untrusted data to a separate model context from the one that selects actions or holds secrets) and **type narrowing** (constraining model outputs to schema-enforced values, which closes Authority while bounding Meaning to value choice within the allowed type).
+* **Closable (C)** classes have a deterministic architectural fix. Tool executors, query runners, and output renderers consume structured inputs where formal grammars strictly separate passive data from executable syntax or network fetches (via parameterized APIs, schemas, output encoding, and URL allowlists). These components can be made safe by construction.
+* **Reducible-only (R)** classes resist deterministic closure. In natural-language and multimodal inputs, instructions and data share one grammar. A protective filter with weaker reasoning than the target model therefore leaves a capability gap that external filtering can at best reduce (Ball et al., 2025; Glukhov et al., 2023; Zverev et al., 2025). Adaptive optimization also routinely bypasses probabilistic guardrails (Nasr et al., 2025). Two architectural strategies narrow the gap: the **dual-LLM pattern** (Willison, 2023; formalized in CaMeL by Debenedetti et al., 2025) routes untrusted data to a separate model context from the one that selects actions or holds secrets; and **schema validation** (`AML.M0033`) constrains model outputs to schema-enforced values, which closes Authority and bounds Meaning to value choice within the allowed type.
 
-Section 4 formalizes which pipeline roles receive which kind of input and how the method assigns Closable or Reducible-only to each crossing.
+Section 4 formalizes which pipeline roles receive which kind of input and how the method assigns Closable or Reducible-only to each candidate mechanism.
 
 ### 3.4 Representation
 
-**Representation** describes how adversarial information or influence is embodied in an artifact and becomes interpretable at a specified processing boundary. It records properties of the artifact at the specific state being examined; how the attacker built it is recorded separately (**Section 3.6**).
+**Representation** describes how adversarial information or influence is embodied in an artifact and becomes interpretable at a specified processing point. It records properties of the artifact at the specific state being examined; how the attacker built it is recorded separately (**Section 3.6**).
 
 #### 3.4.1 Primary Forms and Survival Across Flow Fidelity
 
 A **primary form** is how adversarial content appears to an upstream guard or ordinary human observer. The four forms build on encoding, obfuscation, steganography, and adversarial evasion, and they are ordered by what that observer perceives (**Table 2**).
 
-*Why it matters:* a guard or reviewer catches only what it perceives, and how much of the raw artifact the pipeline preserves decides what survives to the crossing. Each data flow carries a **fidelity** — one of three levels that determine which representation forms can reach the next component:
+*Why it matters:* a guard or reviewer catches only what it perceives, and how much of the raw artifact the pipeline preserves decides what survives to the point where the mechanism occurs. Each data flow carries a **fidelity** — one of three levels that determine which representation forms can reach the next component:
 
 * **`Full`**: the raw carrier is preserved, including hidden channels an ordinary viewer would skip. All four forms survive.
 * **`Normalized`**: a deterministic transform has stripped hidden channels, keeping only what a human perceives. Steganographic payloads are removed.
@@ -462,7 +462,7 @@ A **modifier** is a structural or temporal condition the adversarial effect requ
 * **Fragmented / Distributed:** A single effective payload is distributed across multiple incomplete pieces that require aggregation or reassembly to reconstruct its adversarial effect (for example, splitting a command across streaming chunks or structured fields).
 * **Composition-Dependent:** The adversarial effect emerges through joint interpretation of multiple complete, self-contained artifacts that contribute distinct information across flows or modalities (for example, pairing a benign text request with a screenshot supplying target parameters, or pairing conflicting text and visual claims).
 * **Sequence-Dependent:** The adversarial effect depends on the timing, ordering, duration, or synchronization of information across steps or frames.
-* **Classification distinctions:** Use *Fragmented / Distributed* when each piece is incomplete and reassembly rebuilds one payload, *Composition-Dependent* when each artifact is complete and pairing them produces the effect, and *Sequence-Dependent* when ordering or timing is essential. *Encoded / Obfuscated* payloads are recovered with decoding conventions; *Steganographic* payloads sit in a sub-channel behind an ordinary-looking carrier. Transformation-activated payloads are covered by two existing parts of the record: the `Meaning × Artifact State` crossing at the transform, and the representation recorded at each artifact state.
+* **Classification distinctions:** Use *Fragmented / Distributed* when each piece is incomplete and reassembly rebuilds one payload, *Composition-Dependent* when each artifact is complete and pairing them produces the effect, and *Sequence-Dependent* when ordering or timing is essential. *Encoded / Obfuscated* payloads are recovered with decoding conventions; *Steganographic* payloads sit in a sub-channel behind an ordinary-looking carrier. Transformation-activated payloads are covered by two existing parts of the record: the `Meaning × Artifact State` mechanism at the transform, and the representation recorded at each artifact state.
 
 *Example:* An attacker sends benign ticket text (*"Please apply the goodwill credit we agreed on"*) and a benign-looking chat screenshot (*"Agent: agreed, \$25 credit to 48213"*). Each passes review on its own. Together they give the model the action and the target account, and it issues the credit. The fault: each input is checked alone, while the model acts on the pair (*Composition-Dependent*).
 
@@ -482,7 +482,7 @@ A **resource-amplification characteristic** is how an artifact makes processing 
 
 ### 3.5 Transfer to Other Domains
 
-The tuple describes structure, so the same crossings appear far from support tickets. The examples below classify the disclosures introduced in Section 1.1 and demonstrate cross-modality-surface prediction from one surface to another, showing that the same structural patterns recur across a voice agent, IDE and enterprise tools, a physical robot, cross-modal composition, and video-to-streaming-text transfer. **Section 5** returns to the robot (Section 5.2) and to the video and streaming-text cases (Section 5.3); **Appendix C.1** gives the full chains for Cursor and EchoLeak.
+The tuple describes structure, so the same mechanisms appear far from support tickets. The examples below classify the disclosures introduced in Section 1.1 and demonstrate cross-surface variant analysis from one surface to another. The same structural patterns recur across these settings: a voice agent; IDE and enterprise tools; a physical robot; cross-modal composition; and video-to-streaming-text transfer. **Section 5** returns to the robot (Section 5.2) and to the video and streaming-text cases (Section 5.3); **Appendix C.1** gives the full chains for Cursor and EchoLeak.
 
 #### 3.5.1 Voice Agent: AudioHijack
 
@@ -490,7 +490,7 @@ The tuple describes structure, so the same crossings appear far from support tic
 
 *Exploit:* the attacker adds reverberation-disguised perturbations to an audio clip. A human listener hears ordinary speech; the speech-recognition model transcribes an injected command that steers the agent into an unauthorized action.
 
-*Fault:* the listener and the model disagree about what was said (`Meaning × Evaluator`, *Human-Machine Perception*; `Adversarial Perturbation`). If the agent then executes the transcribed command through a tool, a second crossing fires (`Authority × Position`, *Data-Control* → *Decision-Action*). The structural pattern matches the support-ticket agent's Text Filter bypass (Section 3.2.1) — the guard perceives one thing, the model perceives another — but the modality is audio instead of image, and the representation is `Adversarial Perturbation` instead of `Overt Semantic`.
+*Fault:* the listener and the model disagree about what was said (`Meaning × Evaluator`, *Human-Machine Perception*; `Adversarial Perturbation`). If the agent then executes the transcribed command through a tool, a second mechanism fires (`Authority × Position`, *Data-Control* → *Decision-Action*). The structural pattern matches the support-ticket agent's Text Filter bypass (Section 3.2.1) — the guard perceives one thing, the model perceives another — but the modality is audio instead of image, and the representation is `Adversarial Perturbation` instead of `Overt Semantic`.
 
 #### 3.5.2 Output Rendering: Cursor and EchoLeak
 
@@ -498,7 +498,7 @@ The tuple describes structure, so the same crossings appear far from support tic
 
 *Exploit:* prompt injection hidden in the external content steers the model to emit markup containing an attacker-controlled URL. The client's preview renderer automatically fetches that URL on render, and the fetch request carries sensitive context (conversation data, email content) in the URL query string — before any human reviews the output.
 
-*Fault:* untrusted external content acquires instruction authority at the model (`Authority × Position`, *Data-Control*). The model's generated output then triggers the renderer to fetch an external URL that exfiltrates sensitive context (`Confidentiality × Position`, *Output-Consumer*). This is structurally identical to the support-ticket agent's Staff HTML Preview attack (Section 3.1.3) — the same *Output-Consumer* crossing in a different product. The fix is also the same: restrict or disable remote fetches in the renderer.
+*Fault:* untrusted external content acquires instruction authority at the model (`Authority × Position`, *Data-Control*). The model's generated output then triggers the renderer to fetch an external URL that exfiltrates sensitive context (`Confidentiality × Position`, *Output-Consumer*). This is structurally identical to the support-ticket agent's Staff HTML Preview attack (Section 3.1.3) — the same *Output-Consumer* mechanism in a different product. The fix is also the same: restrict or disable remote fetches in the renderer.
 
 #### 3.5.3 Delivery Robot: RP2 Stop-Sign Stickers
 
@@ -506,7 +506,7 @@ The tuple describes structure, so the same crossings appear far from support tic
 
 *Exploit:* the attacker puts Robust Physical Perturbation (RP2) stickers on a stop sign. A person still reads `STOP`; the classifier reads `Speed Limit 45`, as it did in 84.8% of drive-by video frames in Eykholt et al. (2018).
 
-*Fault:* the classifier and a human reader disagree about the same sign (`Meaning × Evaluator`, *Human-Machine Perception*; `Adversarial Perturbation`). The brake planner then runs exactly the logic it is authorized to run on a wrong percept, and the robot enters the crossing. `Authority` holds throughout, because the classifier can only emit a typed class. The physical harm follows from the Meaning failure alone. **Section 5.2** follows the same robot with a VLM planner, where an Authority crossing opens as well.
+*Fault:* the classifier and a human reader disagree about the same sign (`Meaning × Evaluator`, *Human-Machine Perception*; `Adversarial Perturbation`). The brake planner then runs exactly the logic it is authorized to run on a wrong percept, and the robot enters the intersection. `Authority` holds throughout, because the classifier can only emit a typed class. The physical harm follows from the Meaning failure alone. **Section 5.2** follows the same robot with a VLM planner, where an Authority mechanism opens as well.
 
 #### 3.5.4 Cross-Modal Composition: NVIDIA Three-Modal Prompt Injection
 
@@ -514,7 +514,7 @@ The tuple describes structure, so the same crossings appear far from support tic
 
 *Exploit:* the attacker jointly optimizes an adversarial PNG and WAV so that the model produces a phishing message with a malicious URL — but only when all three modalities (text, image, audio) are present together. Every proper subset (each single modality and each pair) produces benign output. Per-modality input guardrails block none of the payloads; only an output-side check catches the violation.
 
-*Fault:* the adversarial effect emerges from the combination of three complete, individually benign artifacts (`Meaning × Evaluator`, *Guard-Model Capability*; `Adversarial Perturbation` + `Composition-Dependent`). The per-channel guards and the model disagree because each guard inspects one modality while the model reasons over the joint input. If the application then acts on the phishing output — rendering a clickable URL or sending a message — a second crossing fires (`Authority × Position`, *Data-Control*). This is the `Composition-Dependent` modifier from Section 3.4.2 at its most extreme: with M modalities, per-channel defenses inspect M of the 2^M - 1 non-empty subsets, and the attacker confines the payload to a subset no single-channel check evaluates.
+*Fault:* the adversarial effect emerges from the combination of three complete, individually benign artifacts (`Meaning × Evaluator`, *Guard-Model Capability*; `Adversarial Perturbation` + `Composition-Dependent`). The per-channel guards and the model disagree because each guard inspects one modality while the model reasons over the joint input. If the application then acts on the phishing output — rendering a clickable URL or sending a message — a second mechanism fires (`Authority × Position`, *Data-Control*). This is the `Composition-Dependent` modifier from Section 3.4.2 at its most extreme: with M modalities, per-channel defenses inspect M of the 2^M - 1 non-empty subsets, and the attacker confines the payload to a subset no single-channel check evaluates.
 
 #### 3.5.5 Sequence-Dependent Aggregation: Video Frames and Streaming Text
 
@@ -522,25 +522,25 @@ The tuple describes structure, so the same crossings appear far from support tic
 
 *Fault:* the moderator evaluates individual frames while the video-language model aggregates all frames and follows the reconstructed command (`Meaning × Artifact State`, *Transform Consistency* — aggregation; `Overt Semantic` + `Fragmented / Distributed` + `Sequence-Dependent`). The guard and the model act on different artifact states: the guard sees pieces, the model sees the whole.
 
-*Cross-modality-surface prediction (streaming text):* the same structural crossing predicts a vulnerability in a text pipeline with per-chunk guardrails. An attacker splits a directive across streaming chunks — chunk 1 (*... ignore*), chunk 2 (*... previous*), chunk 3 (*... instructions*), and so on. Each chunk passes a stateless content filter individually; the LLM's context window aggregates them into an active command. The mechanism record is identical: `⟨Meaning, Artifact State, Overt Semantic [Fragmented + Sequence-Dependent]⟩`. The modality changes from video to streaming text; the tuple does not. The fix is also shared: the guard must evaluate the same assembled artifact the model consumes, not the individual pieces. A team that found the video attack and holds this record would generate the streaming-text test without needing a separate threat catalog entry. Evidence maturity: **Demonstrated** for video, **Feasible** for streaming text (Section 5.3, Table 4 places both beside image and audio).
+*Cross-surface variant analysis (streaming text):* the same mechanism predicts a vulnerability in a text pipeline with per-chunk guardrails. An attacker splits a directive across streaming chunks: chunk 1 (*... ignore*), chunk 2 (*... previous*), chunk 3 (*... instructions*), and so on. Each chunk passes a stateless content filter individually; the LLM's context window aggregates them into an active command. The mechanism record is identical: `⟨Meaning, Artifact State, Overt Semantic [Fragmented + Sequence-Dependent]⟩`. The modality changes from video to streaming text; the tuple does not. The fix is also shared: the guard must evaluate the same assembled artifact the model consumes, not the individual pieces. A team that found the video attack and holds this record would generate the streaming-text test without needing a separate threat catalog entry. Evidence maturity (CVSS v4.0 Exploit Maturity; FIRST, 2023): **POC** for video, **Unreported** for streaming text (Table 4 in Section 5.3 places both beside image and audio).
 
 ### 3.6 Supporting Annotations Beyond the Core Tuple
 
 Two additional attributes complete the record but belong to the method rather than the taxonomy: **System Processing Stage** (*where in the pipeline attacker-controlled information enters or becomes security-relevant*) and **Modality** (*the implementation surface across which mechanisms generalize*). Both are derived from the architecture diagram when the taxonomy is applied (Section 4).
 
-Records can also carry optional annotations when evidence supports them: **Construction Method** (*Manual Construction*, *Adaptive Search*, or *Optimization*, including transformation-invariant optimization), **Attacker Knowledge / Access** (*Black-box*, *Partial Knowledge*, or *White-box*), and **Transfer Context** (*Direct-Target Development* or *Surrogate Transfer*) Knowledge is recorded per component, since an attacker can know an image resizer exactly while treating the downstream model as a black box. **System Processing Stage** follows from where a crossing sits on the DFD.
+Records can also carry optional annotations when evidence supports them: **Construction Method** (*Manual Construction*, *Adaptive Search*, or *Optimization*, including transformation-invariant optimization); **Attacker Knowledge / Access** (*Black-box*, *Partial Knowledge*, or *White-box*); and **Transfer Context** (*Direct-Target Development* or *Surrogate Transfer*). Knowledge is recorded per component, since an attacker can know an image resizer exactly while treating the downstream model as a black box. **System Processing Stage** follows from where a mechanism sits on the DFD.
 
 ## 4. Applying the Taxonomy: Architectural Analysis Method
 
-Section 3 gave us a vocabulary for naming security failures — the mechanism tuple `⟨Invariant, Divergence, Representation⟩` (Figure 1b) and the thirteen boundary subclasses of the `Invariant × Divergence` matrix (Table 1). But naming a failure after the fact is not the same as finding it before it happens. A practitioner facing a real system needs answers to five questions:
+Section 3 gave us a vocabulary for naming security failures — the mechanism tuple `⟨Invariant, Divergence, Representation⟩` (Figure 1b) and the thirteen mechanism classes of the `Invariant × Divergence` matrix (Table 1). But naming a failure after the fact is not the same as finding it before it happens. A practitioner facing a real system needs answers to five questions:
 
 - How do I find *all* the failure modes in my architecture, not just the ones I happen to think of?
-- Which steps does the attacker get for free vs. which require active effort?
+- Which legs does the attacker get for free vs. which require active effort?
 - Where does one fix break multiple attack paths?
 - How do I turn findings into concrete, pass-or-fail security tests?
 - When I add a new modality (say, audio to an image-and-text system), how much of the analysis do I have to redo?
 
-This section presents a four-step method that answers those questions. The method takes an architecture diagram as input, applies the taxonomy systematically, and produces prioritized findings, fix recommendations, and test plans. Because the taxonomy classifies structural crossings and carries modality on the data flow rather than in the mechanism tuple, the same method works across text, image, audio, video, and physical sensors — and a finding in one modality predicts testable variants in others (Section 4.4).
+This section presents a four-step method that answers those questions. The method takes an architecture diagram as input, applies the taxonomy systematically, and produces prioritized findings, fix recommendations, and test plans. Because the taxonomy classifies mechanisms by structure and carries modality on the data flow rather than in the mechanism tuple, the same method works across text, image, audio, video, and physical sensors. For the same reason, a finding in one modality predicts testable variants in others (Section 4.4).
 
 ### 4.1 The Method at a Glance: Input, Process, Output
 
@@ -550,8 +550,8 @@ Before diving into formal definitions, this subsection walks through the complet
 
 **What comes out.** Five outputs:
 1. **Mechanism records** — each place in the architecture where a security property can break, classified and located on the diagram
-2. **Attack chains** — multi-step paths showing which legs the attacker must actively work to exploit vs. which the architecture hands them for free
-3. **Cut points** — the smallest set of places where a single fix (narrowing a flow, adding a gate) breaks one or more attack chains
+2. **Attack chains** — paths showing which legs the attacker must actively work to exploit vs. which the architecture hands them for free
+3. **Chokepoints** — places where a single fix (narrowing a flow, adding a gate) breaks one or more attack chains; the fewest chokepoints that break every chain are the priority fix list
 4. **Security tests** — concrete test scenarios with a clear pass/fail answer derived from the system's own security requirements
 5. **Coverage audit** — confirmation that every element has been analyzed, with gaps flagged
 
@@ -577,9 +577,9 @@ flowchart LR
     subgraph STEP3["Step 3: Derive Findings"]
         direction TB
         P["Enumerate paths"]
-        X["Match crossing patterns"]
+        X["Match structural patterns"]
         MR["Emit records & chains"]
-        CP["Compute cut points"]
+        CP["Find chokepoints"]
         P --> X --> MR --> CP
     end
 
@@ -671,9 +671,9 @@ flowchart LR
     LLM -- "untrusted, secret · full" --> MCP(["Zapier MCP<br/>«executor» [C1]"]):::executor
     MCP -- "secret · full" --> EXT["External Host<br/>«receiver» [C2]"]:::src
 
-    M1["❶ M1: Meaning × Artifact State<br/>Guard saw clean image;<br/>model sees injected prompt"]:::crossing
-    M2["❷ M2: Authority × Position<br/>Untrusted Full flow drives<br/>auto-approved tool call"]:::crossing
-    M3["❸ M3: Confidentiality × Position<br/>Secret calendar data reaches<br/>unrestricted external host"]:::crossing
+    M1["❶ M1: Meaning × Artifact State<br/>Guard saw clean image;<br/>model sees injected prompt"]:::candidate
+    M2["❷ M2: Authority × Position<br/>Untrusted Full flow drives<br/>auto-approved tool call"]:::candidate
+    M3["❸ M3: Confidentiality × Position<br/>Secret calendar data reaches<br/>unrestricted external host"]:::candidate
 
     DSC ~~~ M1
     MCP ~~~ M2
@@ -685,16 +685,16 @@ flowchart LR
     classDef follower fill:#fef3c7,stroke:#d97706,stroke-width:1.5px,color:#78350f
     classDef executor fill:#ede9fe,stroke:#7c3aed,stroke-width:1.5px,color:#3b0764
     classDef store fill:#f3e8ff,stroke:#7c3aed,stroke-width:1.5px,color:#3b0764
-    classDef crossing fill:#fff7ed,stroke:#ea580c,stroke-width:2px,stroke-dasharray:4 2,color:#9a3412
+    classDef candidate fill:#fff7ed,stroke:#ea580c,stroke-width:2px,stroke-dasharray:4 2,color:#9a3412
 ```
 
-*Figure 3a. The three crossing points on the annotated diagram. ❶ The downscaler changes what the artifact says between the guard's check and the model's consumption. ❷ Untrusted, unvalidated output drives an auto-approved tool call. ❸ Secret data reaches an external host with no recipient restriction.*
+*Figure 3a. The three candidate mechanisms on the annotated diagram. ❶ The downscaler changes what the artifact says between the guard's check and the model's consumption. ❷ Untrusted, unvalidated output drives an auto-approved tool call. ❸ Secret data reaches an external host with no recipient restriction.*
 
 Each marker is a mismatch between what the annotations say and what a secure system would require. Here is what each one means:
 
 1. **❶ At the Downscaler (`«transform»`):** The Developer (`«guard»`) inspected the image *before* the Downscaler changed it. The flow from the Developer to the Downscaler is labeled `Untrusted · Full` — meaning the data is attacker-controlled and preserves everything, including hidden channels. After the Downscaler, the hidden pixels become a legible prompt. This is a mismatch: the guard and the model see different things because a transform sits between them.
 
-   **What is a structural pattern?** This specific arrangement of roles and flow labels — a `«guard»` followed by a `«transform»` that alters the artifact before a downstream consumer sees it — is what the method calls a **structural pattern**: one of a fixed set of recognizable configurations of adjacent nodes that the method has cataloged as crossing indicators. You do not need to invent these yourself; the crossing lookup table (Section 4.3.3, Rule 2) lists the common patterns, and **Appendix A, Table A.1** provides the complete set. Structural patterns are the method's lookup key: when you spot one on your diagram, the table tells you which `Invariant × Divergence` crossing it produces — which directly becomes a mechanism record.
+   **What is a structural pattern?** This specific arrangement of roles and flow labels — a `«guard»` followed by a `«transform»` that alters the artifact before a downstream consumer sees it — is what the method calls a **structural pattern**: one of a fixed set of recognizable configurations of adjacent nodes that the method has cataloged as mechanism indicators. You do not need to invent these yourself; the candidate-mechanism lookup table (Section 4.3.3, Rule 2) lists the common patterns, and **Appendix A, Table A.1** provides the complete set. Structural patterns are the method's lookup key: when you spot one on your diagram, the table tells you which `Invariant × Divergence` candidate mechanism it produces. Once judged realizable, that candidate becomes a mechanism record.
 
    **Deriving the record for ❶:** This pattern gives us Invariant = **Meaning** (the meaning of the artifact changed) and Divergence = **Artifact State** (a transform altered it between check and use). The representation is **Steganographic → Overt Semantic**: the payload was hidden to the guard (steganographic — invisible in the full-resolution image) but overt to the model (semantic — a plaintext prompt after downscaling). See Table 2, Section 3.4.1 for the full set of representation forms.
 
@@ -710,9 +710,9 @@ Each mismatch becomes one row in a *mechanism record* table (the full record str
 | M2 | Authority | Position | Overt Semantic (plaintext instructions steer tool call) | CLI Model → Zapier MCP | C1 | **Granted** (trust=True) | Yes |
 | M3 | Confidentiality | Position | Overt Semantic (calendar data sent as plain text) | External Host | C2 | **Granted** (no outbound restriction) | Yes |
 
-Now ask: do these records connect? A mechanism record connects to the next one when the *output* of one crossing is the *input* that enables the next. Here, M1's output (a legible prompt now visible to the model) is exactly what M2 needs as input (attacker-steered instructions reaching the executor). And M2's output (a tool call that reads the calendar) produces the secret data that M3 carries to the external host. Because each record's result feeds the next record's precondition, the three link into one **attack chain**: `M1 → M2 → M3`.
+Now ask: do these records connect? A mechanism record connects to the next one when the *output* of one mechanism is the *input* that enables the next. Here, M1's output (a legible prompt now visible to the model) is exactly what M2 needs as input (attacker-steered instructions reaching the executor). And M2's output (a tool call that reads the calendar) produces the secret data that M3 carries to the external host. Because each record's result feeds the next record's precondition, the three link into one **attack chain**: `M1 → M2 → M3`.
 
-Think of a chain as a sequence of steps the attacker must complete to reach the target. Each step is called a **leg** — it is simply a mechanism record viewed as one required step in the chain. So M1, M2, and M3 are three mechanism records *and* three legs of the same chain. When a record becomes a leg, you add one more label — **granted** or **supplied** — that describes how much effort it costs the attacker:
+A chain is a sequence of **legs**. Each leg is one mechanism record the attacker must complete to reach the target. So M1, M2, and M3 are three mechanism records *and* three legs of the same chain. When a record becomes a leg, you add one more label — **granted** or **supplied** — that describes how much effort it costs the attacker:
 
 - A **granted** leg is one the architecture hands to the attacker for free — no defense blocks it, so it succeeds unconditionally. (Think of it as an unlocked door.)
 - A **supplied** leg is one the attacker must actively work to exploit — a defense exists, and the attacker must craft a payload or bypass it to get through. (A locked door the attacker must pick.)
@@ -738,44 +738,44 @@ flowchart LR
 
 *Figure 3b. The derived attack chain. Crimson marks the attacker-supplied bypass (M1). Amber dashed marks the architecture-granted legs (M2, M3). Breaking any one leg breaks the entire chain.*
 
-Now identify the **cut points** — the places where one architectural change breaks the chain. The granted/supplied labels on legs tell you where to look: **start with granted legs**, because they represent zero-effort steps the architecture hands to the attacker. Each granted leg is a candidate cut point — hardening it forces the attacker to do work they currently get for free. Supplied legs are also cut points, but they already require attacker effort, so fixing them is lower priority.
+Now identify the **chokepoints** — the places where one architectural change breaks the chain. The granted/supplied labels on legs tell you where to look: **start with granted legs**, because the architecture hands them to the attacker at zero effort. Each granted leg is a candidate chokepoint — hardening it forces the attacker to do work they currently get for free. Supplied legs are also chokepoints. They already require attacker effort, so fixing them is lower priority.
 
-For each leg, ask: "What specific change to this flow or component would prevent this crossing from succeeding?" The answer is the cut point:
+For each leg, ask: "What specific change to this flow or component would prevent this leg from succeeding?" The answer is the fix at that chokepoint:
 
-| Leg | Granted or Supplied? | Cut Point | What to Change | Effect |
+| Leg | Granted or Supplied? | Chokepoint | What to Change | Effect |
 | :---- | :---- | :---- | :---- | :---- |
 | M1 | Supplied | Anti-aliased downscaler | Replace the aliasing downscaler with one that strips hidden channels | Breaks M1 — hidden pixels no longer become a legible prompt |
 | M2 | **Granted** (priority) | User confirmation on tool calls | Require the user to confirm each tool call with its specific arguments | Breaks M2 — the model can no longer auto-execute tools |
 | M3 | **Granted** (priority) | Outbound recipient allowlist | Restrict which hosts Zapier MCP can send data to | Breaks M3 — calendar data can no longer reach arbitrary hosts |
 
-Since the full attack succeeds only if every leg holds, breaking *any one* cut point breaks the entire chain. M2 and M3 are granted (zero attacker effort), so they are the highest-priority fixes.
+Since the full attack succeeds only if every leg holds, fixing *any one* chokepoint breaks the entire chain. M2 and M3 are granted (zero attacker effort), so they are the highest-priority fixes.
 
-**Step 4 — Security tests.** Cut points tell you *what to fix*; security tests tell you *how to verify the fix works* — and also how to confirm the vulnerability exists before you fix it. Each leg in the chain maps to a test, and the pass/fail answer comes directly from the sink constraint you defined in Step 1. The logic is:
+**Step 4 — Security tests.** Chokepoints tell you *what to fix*; security tests tell you *how to verify the fix works* — and also how to confirm the vulnerability exists before you fix it. Each leg in the chain maps to a test, and the pass/fail answer comes directly from the sink constraint you defined in Step 1. The logic is:
 
 - **Before a fix:** Run the test to confirm the vulnerability is real. If the sink constraint is violated, the vulnerability exists.
-- **After applying a cut point:** Re-run the same test. If the sink constraint is now preserved, the fix worked. If it still fails, the fix was not applied correctly.
+- **After fixing a chokepoint:** Re-run the same test. If the sink constraint is now preserved, the fix worked. If it still fails, the fix was not applied correctly.
 
-The tests below correspond to the mechanism records M1–M3 and their cut points above. T1 tests the full chain end-to-end. T2 and T3 test individual legs in isolation — they assume earlier legs succeeded so you can verify whether each cut point works independently. (If T1 passes but T2 fails, you know M1's fix is working but M2's is not.)
+The tests below correspond to the mechanism records M1–M3 and their chokepoints above. T1 tests the full chain end-to-end. T2 and T3 test individual legs in isolation — they assume earlier legs succeeded so you can verify whether each chokepoint works independently. (If T1 passes but T2 fails, you know M1's fix is working but M2's is not.)
 
 | Test | What it tests | Setup | Fails If... |
 | :---- | :---- | :---- | :---- |
 | T1 | Full chain (M1→M2→M3) | Upload an image whose downscaled form carries a tool directive | Tool call executes (C1 violated) OR calendar data reaches external host (C2 violated) |
-| T2 | M2 leg in isolation | Directly send the model an injected tool-call instruction (bypassing M1's image step) — does the tool call require confirmation? | Tool call executes without confirmation (C1 violated) |
+| T2 | M2 leg in isolation | Directly send the model an injected tool-call instruction (bypassing M1's image leg) — does the tool call require confirmation? | Tool call executes without confirmation (C1 violated) |
 | T3 | M3 leg in isolation | Directly trigger a tool call that reads the calendar (bypassing M1 and M2) — can the data reach an arbitrary host? | Calendar data reaches a host outside the allowlist (C2 violated) |
 
-**That is the complete method applied end-to-end.** Three mechanism records, one chain with granted-vs-supplied legs, three cut points, three tests — all derived systematically from the annotated diagram, not brainstormed from a checklist.
+**That is the complete method applied end-to-end.** Three mechanism records, one chain with granted-vs-supplied legs, three chokepoints, three tests — all derived systematically from the annotated diagram.
 
 > **Summary for practitioners — what you take in, what you get out, and what you do with it:**
 >
 > | What You Start With | What the Method Produces | What You Do With It |
 > | :---- | :---- | :---- |
 > | A DFD of your system | **Mechanism records** — each place a security property can break | File as findings in your threat model; share across organizations using the vendor-neutral format (Section 4.5) |
-> | Business context (what must never go wrong) | **Attack chains** with granted/supplied legs — multi-step paths showing attacker effort per step | Prioritize remediation: granted legs first (zero attacker effort), then supplied legs |
-> | | **Cut points** — the specific architectural changes that break chains | Add to your security review gate as concrete requirements (e.g., "narrow this flow to Typed"); track as engineering work items |
+> | Business context (what must never go wrong) | **Attack chains** with granted/supplied legs — paths showing attacker effort per leg | Prioritize remediation: granted legs first (zero attacker effort), then supplied legs |
+> | | **Chokepoints** — the specific architectural changes that break chains | Add to your security review gate as concrete requirements (e.g., "narrow this flow to Typed"); track as engineering work items |
 > | | **Security tests** — pass/fail scenarios derived from sink constraints | Run before fixes to confirm vulnerabilities; re-run after fixes as regression tests |
 > | | **Coverage audit** — confirmation every element was analyzed | Use as completeness evidence in design reviews; flag gaps for follow-up |
 >
-> **How it scales:** The Trail of Bits system has 6 components and produces 3 mechanism records, 1 chain, 3 cut points, and 3 tests. Adding a phone line to the analyzed support-ticket agent adds five rows to the existing analysis (Section 5.1).
+> **How it scales:** The Trail of Bits system has 6 components and produces 3 mechanism records, 1 chain, 3 chokepoints, and 3 tests. Adding a phone line to the analyzed support-ticket agent adds five rows to the existing analysis (Section 5.1).
 >
 > The subsections that follow define each component formally — annotations (4.2), derivation rules (4.3), cross-modal reuse (4.4), and cross-organization sharing (4.5).
 
@@ -836,7 +836,7 @@ Section 4.1 showed `Untrusted · Full` and `Secret · Full` on the Trail of Bits
 
 **Propagation rule:** A component with multiple inputs inherits the worst case from each dimension: the *least-trusted* (`Untrusted`) and the *most-secret* (`Secret`). In the Trail of Bits example, CLI Model receives both an `Untrusted` flow (from the image) and a `Secret` flow (from Google Calendar), so its output carries both labels: `Untrusted, Secret`.
 
-**Flow fidelity** — three levels, recording how much raw data survives. This determines which attack payload forms can reach a crossing (see Table 2, Section 3.4.1):
+**Flow fidelity** — three levels, recording how much raw data survives. This determines which attack payload forms can reach each node (see Table 2, Section 3.4.1):
 
 | Fidelity | In Plain Terms | What Survives | What Gets Stripped | Example | Trail of Bits (Figure 3) |
 | :---- | :---- | :---- | :---- | :---- | :---- |
@@ -850,18 +850,18 @@ Section 4.1 showed `Untrusted · Full` and `Secret · Full` on the Trail of Bits
 
 > **Key takeaway for Section 4.2:** These tables are the complete vocabulary. If you can label every box on your DFD with a role, every arrow with a trust label and fidelity, and every consequential component with a sink constraint, you have enough information to run the derivation in Section 4.3.
 
-This is the core analytical step. "Walking the diagram" means: find every `«source»` node (the entry points where attacker-controlled input enters the system — identified in Step 2 by asking "which inputs come from outside the trust boundary?") and every constrained sink (the components with sink constraints from Step 1 — where data has consequential effect). Then, for each source-to-sink path, follow every directed arrow and at each node along the path, compare its functional role and the trust/fidelity labels on its flows against the crossing lookup table below. When the annotations match a row in the table — for example, a `«transform»` sits between a `«guard»` and a downstream consumer, or an `Untrusted · Full` flow reaches an `«executor»` — record the crossing. The process follows seven rules (lookup tables and formal rules appear in **Appendix A**).
+This is the core analytical step. "Walking the diagram" means: find every `«source»` node (the entry points where attacker-controlled input enters the system — identified in Step 2 by asking "which inputs come from outside the trust boundary?") and every constrained sink (the components with sink constraints from Step 1 — where data has consequential effect). Then follow every directed arrow on each source-to-sink path. At each node, compare its functional role and the trust/fidelity labels on its flows against the candidate-mechanism lookup table below. When the annotations match a row in the table — for example, a `«transform»` sits between a `«guard»` and a downstream consumer, or an `Untrusted · Full` flow reaches an `«executor»` — record the candidate mechanism. The process follows seven rules (lookup tables and formal rules appear in **Appendix A**).
 
 1. **Enumerate and group paths.** Trace every directed path from an attacker-controlled `«source»` to a constrained sink, and from every `Secret` store or input to an external `«receiver»`. Group parallel paths that share the same `(source, guards crossed, sink)` — they face the same structural risks.
-2. **Identify boundary crossings.** For each path, compare adjacent nodes' annotations against the lookup table below. The table provides a fixed set of **structural patterns** — specific arrangements of functional roles and flow labels on neighboring nodes that the method has cataloged as crossing indicators. You do not need to invent patterns; the table provides the common ones, and **Appendix A, Table A.1** provides the complete set, including *Semantic Stability* and *Delegation Authority*, which the table below does not list. When you spot a pattern on your diagram, the table's second column tells you the `Invariant × Divergence` crossing it produces (from the boundary matrix, **Table 1**, Section 3.3) — that crossing becomes a mechanism record. In other words: pattern → crossing → record.
+2. **Identify candidate mechanisms.** For each path, compare adjacent nodes' annotations against the lookup table below. The table provides a fixed set of **structural patterns** — specific arrangements of functional roles and flow labels on neighboring nodes that the method has cataloged as mechanism indicators. You do not need to invent patterns; the table provides the common ones. **Appendix A, Table A.1** provides the complete set, which adds *Semantic Stability* and *Confused Deputy*. When you spot a pattern on your diagram, the table's second column tells you the `Invariant × Divergence` pair it produces (from the mechanism matrix, **Table 1**, Section 3.3). At that spot on the path, the pair is a candidate mechanism. Once judged realizable, it becomes a mechanism record. In other words: pattern → candidate mechanism → record.
 
-   | Structural Pattern on the Path | Derived Crossing (Table 1) | Named Subclass |
+   | Structural Pattern on the Path | Derived Pair (Table 1) | Mechanism Class |
    | :---- | :---- | :---- |
    | A `«transform»` modifies the artifact between an upstream `«guard»` and downstream consumption | Meaning × Artifact State | Transform Consistency |
    | A `«guard»` inspects fewer modalities than the downstream `«follower»` processes | Meaning × Evaluator | Guard-Model Capability |
    | A `«guard»` and a downstream consumer inspect different parallel parses of the same artifact | Meaning × Evaluator | Parser/Interpreter Differential |
    | Guards inspect individual flows separately before a downstream process aggregates them | Meaning × Artifact State | Transform Consistency (aggregation) |
-   | An upstream `«guard»` validates a data store at time *t*; a downstream consumer re-reads it at *t+Δ* | Meaning × Time | Check-Use Consistency |
+   | An upstream `«guard»` validates a data store at time *t*; a downstream consumer re-reads it at *t+Δ* | Meaning × Time | TOCTOU |
    | A permission grant remains active after its task window or revocation | Authority × Time | Grant Persistence |
    | An `Untrusted · Full` flow reaches an `«executor»` with an authority policy | Authority × Position | Data-Control / Decision-Action |
    | A `Secret` flow reaches a `«receiver»` outside its disclosure policy | Confidentiality × Position | Context Confinement |
@@ -870,26 +870,26 @@ This is the core analytical step. "Walking the diagram" means: find every `«sou
    | A susceptible sink's resource expenditure is unbounded by its admission check | Cost × Evaluator | Resource Accounting |
    | Two evaluators read the same artifact differently where a sink's reference specification relies on agreement | Meaning × Evaluator | Human-Machine Perception |
 
-3. **Look up surviving representations.** At each crossing, check the incoming flow's fidelity (assigned in Step 2) against the representation survival columns in **Table 2** (Section 3.4.1) to determine which payload forms can actually reach this point. For example, a `Full` fidelity flow preserves all four representation forms including steganographic payloads; a `Typed` flow strips everything except value choice within the allowed schema.
-4. **Emit mechanism records.** For each crossing that an attacker can realistically exploit, emit one record `M = ⟨Invariant, Divergence, Representation⟩`. Keep records 1-to-1 with crossings — even if a single payload triggers two crossings (e.g., evading a guard *and* steering a follower), record them separately so chain lengths stay comparable across architectures. Tag each record with its evidence maturity: **Observed** (seen in the wild), **Demonstrated** (researcher proof-of-concept or disclosed CVE), or **Feasible** (structurally possible but no public demonstration yet).
-5. **Assemble attack chains.** Look at the mechanism records you emitted in Rule 4 and ask: does the *output* of one crossing enable the *input* of another? If Record A's result (e.g., a legible injected prompt reaching the model) is the precondition for Record B (e.g., untrusted instructions driving a tool call), then A → B is a chain link. Connect all such links into chains from source to sink. Each mechanism record in a chain is called a **leg** — it is the same record, now viewed as one required step in a multi-step attack. For each leg, mark whether it is **granted** (the architecture permits it unconditionally — zero attacker effort) or **supplied** (the attacker must actively bypass a defense). A hazard occurs only when *every leg* of the chain holds — break any one leg and the chain fails. **Fix granted legs first** — they cost zero attacker effort.
+3. **Look up surviving representations.** At each candidate mechanism, check the incoming flow's fidelity (assigned in Step 2) against the representation survival columns in **Table 2** (Section 3.4.1) to determine which payload forms can actually reach this point. For example, a `Full` fidelity flow preserves all four representation forms including steganographic payloads; a `Typed` flow strips everything except value choice within the allowed schema.
+4. **Emit mechanism records.** For each candidate mechanism that an attacker can realistically exploit, emit one record `M = ⟨Invariant, Divergence, Representation⟩`. Keep records 1-to-1 with candidate mechanisms. Even when a single payload triggers two of them (e.g., evading a guard *and* steering a follower), record them separately so chain lengths stay comparable across architectures. Tag each record with its evidence maturity, one of the CVSS v4.0 Exploit Maturity values: **Attacked** (attacks reported in the wild), **POC** (researcher proof of concept or disclosed CVE), or **Unreported** (structurally possible, with no public proof of concept yet).
+5. **Assemble attack chains.** Look at the mechanism records you emitted in Rule 4 and ask: does the *output* of one mechanism enable the *input* of another? If Record A's result (e.g., a legible injected prompt reaching the model) is the precondition for Record B (e.g., untrusted instructions driving a tool call), then A → B is a chain link. Connect all such links into chains from source to sink. Each mechanism record in a chain is called a **leg**: the same record, viewed as one part of the chain the attacker must complete. For each leg, mark whether it is **granted** (the architecture permits it unconditionally — zero attacker effort) or **supplied** (the attacker must actively bypass a defense). A hazard occurs only when *every leg* of the chain holds — break any one leg and the chain fails. **Fix granted legs first** — they cost zero attacker effort.
 
    *Advanced chain patterns (for complex architectures):*
    * **Exfiltration chains** combine an integrity path (steering a model that holds secret data) with a confidentiality path (carrying that data to an unauthorized recipient). This captures the "lethal trifecta" pattern (Willison, 2025) — access to secrets + ability to steer the model + an outbound channel — as graph topology.
    * A confidentiality chain can include a `Meaning` leg at egress: a DLP guard reads the output as clean while the secret content hides in zero-width characters or image metadata.
    * *Fragmented payloads* — where the attack is split across multiple inputs that only combine at an aggregation point — emit one record with a conjunctive precondition across the contributing flows.
-6. **Compute minimal cut points.** For each leg in a chain, identify the specific architectural change that would prevent that crossing from succeeding — that change is the cut point. Prioritize granted legs (zero attacker effort) over supplied legs (already defended). Since breaking any one leg breaks the entire chain, the goal is the smallest set of cut points that disconnects all source-to-sink chains. Common cut points: narrowing a `«follower» → «executor»` flow from `Full` to `Typed` (closes Authority crossings), disabling remote fetches in a `«renderer»` (closes Output-Consumer exfiltration), or adding user confirmation to an auto-approved tool call (closes Decision-Action crossings). Each cut point becomes a concrete architectural requirement and maps directly to a security test in Step 4.
-7. **Verify annotation coverage.** Confirm that every component, flow, and sink on the diagram is annotated. Flag any unannotated element as a specification gap. If an annotated element produces zero crossings, record why (e.g., it is a `«relay»` that passes data through unchanged, or it is unreachable from any untrusted source).
+6. **Find chokepoints.** For each leg in a chain, identify the specific architectural change that would prevent that leg from succeeding; the place where that change applies is the chokepoint. Prioritize granted legs (zero attacker effort) over supplied legs (already defended). Since breaking any one leg breaks the entire chain, the goal is the fewest chokepoints that break every source-to-sink chain. Common fixes at chokepoints: narrowing a `«follower» → «executor»` flow from `Full` to `Typed` (closes Authority mechanisms), disabling remote fetches in a `«renderer»` (closes Output-Consumer exfiltration), or adding user confirmation to an auto-approved tool call (closes Decision-Action mechanisms). Each fix becomes a concrete architectural requirement and maps directly to a security test in Step 4.
+7. **Verify annotation coverage.** Confirm that every component, flow, and sink on the diagram is annotated. Flag any unannotated element as a specification gap. If an annotated element produces zero candidate mechanisms, record why (e.g., it is a `«relay»` that passes data through unchanged, or it is unreachable from any untrusted source).
 
 Completeness holds relative to the diagram: if a flow is not drawn, no chain through it can be found.
 
-**The mechanism record.** Every mechanism record follows the same fixed 12-field structure, regardless of which crossing or modality produced it. Think of it as a standardized bug report for an architectural weakness — the fixed format is what makes records comparable across systems and shareable between teams. When you derive a crossing in Step 3, fill in each field:
+**The mechanism record.** Every mechanism record follows the same fixed 12-field structure, regardless of which mechanism class or modality produced it. Think of it as a standardized bug report for an architectural weakness — the fixed format is what makes records comparable across systems and shareable between teams. When you derive a candidate mechanism in Step 3, fill in each field:
 
 | Field | What It Answers | Source |
 | :---- | :---- | :---- |
 | **Invariant** | What security property breaks? | Taxonomy (Section 3.1) |
 | **Divergence** | Why do two evaluations disagree? | Taxonomy (Section 3.2) |
-| **Boundary subclass** | What is the named failure pattern? | Boundary matrix (Table 1, Section 3.3) |
+| **Mechanism class** | What is the named failure pattern? | Mechanism matrix (Table 1, Section 3.3) |
 | **Representation** | How is the payload carried? | Representation forms (Table 2, Section 3.4) |
 | **DFD node** | Which component does this happen at? | Annotated DFD (Step 2, e.g. Figure 3) |
 | **Functional role** | What does that component do? | Roles table (Section 4.2.2) |
@@ -898,25 +898,25 @@ Completeness holds relative to the diagram: if a flow is not drawn, no chain thr
 | **Flow fidelity** | How much raw data survives at this point? | Fidelity table (Section 4.2.3) |
 | **Evidence maturity** | How confident are we this is real? | Assessment |
 | **Chain role** | Does the attacker exploit this actively, or does the architecture hand it over? | Step 3 |
-| **Closable** | Can a deterministic fix eliminate this? | C/R tags in boundary matrix (Table 1, Section 3.3) |
+| **Closable** | Can a deterministic fix eliminate this? | C/R tags in mechanism matrix (Table 1, Section 3.3) |
 
-**Evidence maturity** has three levels: **Observed** (exploited in the real world), **Demonstrated** (researcher proof-of-concept or disclosed CVE), or **Feasible** (the architecture makes it structurally possible, but no one has published a demonstration — treat it as a test hypothesis).
+**Evidence maturity** uses the three CVSS v4.0 Exploit Maturity values: **Attacked** (exploited in the real world), **POC** (researcher proof of concept or disclosed CVE), or **Unreported** (the architecture makes it structurally possible, and no proof of concept is public yet; treat it as a test hypothesis). `Attacked` and `POC` correspond to the MITRE ATLAS case-study types *Incident* and *Exercise*.
 
-**Step 3 applied (Trail of Bits).** Section 4.1 already walked through the full derivation — identifying the three mismatches on **Figure 3a**, deriving M1–M3, assembling the chain, and computing cut points. **Figure 3b** (in Section 4.1) visualizes the chain with color-coded granted and supplied legs. The rules above are the formal procedure that produced those results; a practitioner applying the method to a new system follows the same seven rules on their own annotated DFD.
+**Step 3 applied (Trail of Bits).** Section 4.1 already walked through the full derivation — identifying the three mismatches on **Figure 3a**, deriving M1–M3, assembling the chain, and finding chokepoints. **Figure 3b** (in Section 4.1) visualizes the chain with color-coded granted and supplied legs. The rules above are the formal procedure that produced those results; a practitioner applying the method to a new system follows the same seven rules on their own annotated DFD.
 
-*Coverage audit (Rule 7):* In the Trail of Bits example, every node has a role, every flow has a trust label and fidelity, and both sinks have constraints. Three crossings derived, all three realizable. No unannotated elements remain.
+*Coverage audit (Rule 7):* In the Trail of Bits example, every node has a role, every flow has a trust label and fidelity, and both sinks have constraints. Three candidate mechanisms derived, all three realizable. No unannotated elements remain.
 
-**At this point you have three outputs: mechanism records, attack chains (with granted/supplied legs), and cut points.** The mechanism records are your findings — file them in the threat model. The cut points are your prioritized fix list — add them as architectural requirements in your security review gate or track them as engineering work items. The attack chains tell your red team where to focus. Step 4 completes the picture by turning these into verifiable security tests.
+**At this point you have three outputs: mechanism records, attack chains (with granted/supplied legs), and chokepoints.** The mechanism records are your findings — file them in the threat model. The chokepoints are your prioritized fix list — add them as architectural requirements in your security review gate or track them as engineering work items. The attack chains tell your red team where to focus. Step 4 completes the picture by turning these into verifiable security tests.
 
 #### 4.3.4 Step 4: Deriving Security Tests and Reverse Triage Order
 
-Each attack chain from Step 3, and each cut point from Rule 6, translates directly into a security test. The connection is:
+Each attack chain from Step 3 and each chokepoint from Rule 6 translates directly into a security test. The connection is:
 
-- **Each leg** in a chain is a crossing that can be tested independently.
-- **Each cut point** is a proposed fix for a leg. To verify the fix works, you re-run the test for that leg and check whether the sink constraint now holds.
+- **Each leg** in a chain is a mechanism that can be tested independently.
+- **Each chokepoint** names a proposed fix for a leg. To verify the fix works, you re-run the test for that leg and check whether the sink constraint now holds.
 - **The pass/fail oracle** is always the sink constraint from Step 1 — you already defined what "secure" looks like, so you already know the answer a passing test should give.
 
-Security tests serve two purposes: (1) *before* a fix, they confirm the vulnerability exists; (2) *after* applying a cut point, they verify the fix worked. The same test does both — only the expected outcome changes.
+Security tests serve two purposes: (1) *before* a fix, they confirm the vulnerability exists; (2) *after* fixing a chokepoint, they verify the fix worked. The same test does both — only the expected outcome changes.
 
 To build a test:
 * **Setup:** Construct an input at the `«source»` using the payload form from the mechanism record's *Representation* field (see **Table 2** for the form definitions and how to build each type). For a *supplied* leg, you must craft the payload; for a *granted* leg, leave it in its default (vulnerable) state — the point is to test whether the architecture is exploitable as-is.
@@ -929,7 +929,7 @@ For larger systems, design-time reports can present compact summary counts in th
 | Test | From | Setup | Pass Condition (sink constraint preserved) |
 | :---- | :---- | :---- | :---- |
 | T1 | M1 (chain M1→M2→M3) | Upload an image whose downscaled form carries a tool directive (Steganographic payload targeting the aliasing downscaler) | The tool call does not execute (C1 preserved) AND no calendar data reaches the external host (C2 preserved) |
-| T2 | M2 (standalone) | Directly send the model an injected tool-call instruction (bypassing M1's image step) — does the tool call require confirmation? | The tool call does not execute without explicit user confirmation bound to the specific arguments (C1 preserved) |
+| T2 | M2 (standalone) | Directly send the model an injected tool-call instruction (bypassing M1's image leg) — does the tool call require confirmation? | The tool call does not execute without explicit user confirmation bound to the specific arguments (C1 preserved) |
 | T3 | M3 (standalone) | Directly trigger a tool call that reads the calendar (bypassing M1 and M2) — can the data reach an arbitrary host? | Calendar data does not reach any host outside the allowlist (C2 preserved) |
 
 **Reverse traversal for incident triage.** The method also works backwards — starting from a known incident and deriving the chain that caused it. This is useful when triaging a disclosed vulnerability or security incident (Section 4.1 walks through Trail of Bits):
@@ -941,11 +941,11 @@ The Trail of Bits example used one modality (image). The next two subsections sh
 
 ### 4.4 Reusing Findings Across Modalities
 
-A key design decision in the taxonomy: **modality is a property of the data flow, not the failure mechanism.** The mechanism record says *what* breaks and *why* — those are structural facts about the architecture. The modality (text, image, audio, video, structured data, physical sensor) says *which channel carries the attack*. The same "a transform changes the artifact between a guard's check and the model's consumption" crossing fires whether the transform is an image downscaler, an audio resampler, or a streaming-text chunk aggregator. Only the flow's modality annotation changes.
+A key design decision in the taxonomy: **modality is a property of the data flow, not the failure mechanism.** The mechanism record says *what* breaks and *why* — those are structural facts about the architecture. The modality (text, image, audio, video, structured data, physical sensor) says *which channel carries the attack*. The same "a transform changes the artifact between a guard's check and the model's consumption" mechanism fires whether the transform is an image downscaler, an audio resampler, or a streaming-text chunk aggregator. Only the flow's modality annotation changes.
 
 This separation gives the method three practical capabilities:
 
-1. **Cross-modal prediction.** Found a vulnerability in the image channel? Hold the mechanism's `Invariant × Divergence` cell (from **Table 1**) and sink constraint fixed, swap the modality to audio (or video, or text), and re-run Steps 2–4 (Sections 4.3.2–4.3.4). If the new surface has a transform that reproduces the same structural pattern from the crossing lookup table (Section 4.3.3, Rule 2), you have a concrete test hypothesis — not a vague concern, but a specific test to run.
+1. **Cross-surface variant analysis.** Found a vulnerability in the image channel? Hold the mechanism's `Invariant × Divergence` cell (from **Table 1**) and sink constraint fixed, swap the modality to audio (or video, or text), and re-run Steps 2–4 (Sections 4.3.2–4.3.4). If the new surface has a transform that reproduces the same structural pattern from the candidate-mechanism lookup table (Section 4.3.3, Rule 2), you have a concrete test hypothesis: a specific test to run.
 
    **Section 5.3** walks through one such prediction, from image to audio.
 
@@ -957,15 +957,15 @@ This separation gives the method three practical capabilities:
 
    The phone line in **Section 5.1** demonstrates this.
 
-3. **Modality-independent cut points.** Because cut points target flows and roles, a fix that narrows a `«follower» → «executor»` flow from `Full` to `Typed` closes the Authority crossing regardless of whether the upstream source was an image, an audio stream, or a text input. Defenses transfer across modalities the same way vulnerabilities do.
+3. **Modality-independent chokepoints.** Because chokepoints target flows and roles, a fix that narrows a `«follower» → «executor»` flow from `Full` to `Typed` closes the Authority mechanism regardless of whether the upstream source was an image, an audio stream, or a text input. Defenses transfer across modalities the same way vulnerabilities do.
 
 ### 4.5 Cross-Organization Sharing
 
 A key benefit for CoSAI member organizations: because mechanism records use vendor-neutral functional roles (Section 4.2.2: `«guard»`, `«transform»`, `«follower»`, `«executor»`, `«renderer»`) and abstract flow fidelities (Section 4.2.3: `Full`, `Normalized`, `Typed`), organizations can share structural findings without revealing proprietary architecture. For example:
 
-3. **Modality-independent cut points.** Because cut points are computed over flows and roles — not over the modality of the data — a fix at a downstream component protects against attacks from *every* upstream modality surface simultaneously.
+3. **Modality-independent chokepoints.** Because chokepoints are computed over flows and roles — whatever the modality of the data — a fix at a downstream component protects against attacks from *every* upstream surface simultaneously.
 
-   **Example:** In the Trail of Bits system, the cut point at M2 is "add user confirmation on tool calls" — this narrows the `«follower» → «executor»` flow by inserting a `«guard»`. That fix works regardless of whether the injected instruction arrived via a crafted image (the original attack), a malicious audio input (the cross-modality-surface prediction above), or a text-based prompt injection through some future input channel. The practitioner does not need a separate fix per modality. Conversely, the cut point at M1 (replacing the aliasing downscaler with an anti-aliased one) is modality-specific — it only protects the image path. If the system later adds audio, the audio resampler needs its own assessment. This distinction helps the practitioner prioritize: **modality-independent cut points (M2, M3) protect against surfaces that don't exist yet; modality-specific cut points (M1) must be re-evaluated each time a new surface is added.**
+   **Example:** In the Trail of Bits system, the fix at the M2 chokepoint is "add user confirmation on tool calls" — this narrows the `«follower» → «executor»` flow by inserting a `«guard»`. That fix works regardless of whether the injected instruction arrived via a crafted image (the original attack), a malicious audio input (the cross-surface variant above), or a text-based prompt injection through some future input channel. The practitioner does not need a separate fix per modality. Conversely, the fix at the M1 chokepoint (replacing the aliasing downscaler with an anti-aliased one) is modality-specific — it only protects the image path. If the system later adds audio, the audio resampler needs its own assessment. This distinction helps the practitioner prioritize: **modality-independent chokepoints (M2, M3) protect against surfaces that don't exist yet; modality-specific chokepoints (M1) must be re-evaluated each time a new surface is added.**
 
 The same vendor-neutral format supports **portfolio coverage tracking** across an organization's systems: a matrix of which `Invariant × Divergence` cells (Table 1) have been assessed for each system, built from the coverage audit (Section 4.3.3, Rule 7), identifies which structural risks have been analyzed and which remain open.
 
@@ -1008,9 +1008,9 @@ flowchart LR
 
 *Figure 4. The phone line (blue) added to the support-ticket agent of Figure 1d (gray).*
 
-Re-deriving crossings on the new path gives five rows (**Table 3**). Already covered: a fix from the original analysis of Figure 1d (records in Appendix C.1) handles the row.
+Re-deriving candidate mechanisms on the new path gives five rows (**Table 3**). Already covered: a fix from the original analysis of Figure 1d (records in Appendix C.1) handles the row.
 
-| New crossing | Example | Already covered? |
+| New mechanism | Example | Already covered? |
 | :---- | :---- | :---- |
 | `Meaning × Artifact State` at the resampler | A command hidden in frequencies that resampling aliases into speech | No. Anti-aliased downscaling protects images only; the resampler needs its own low-pass filter |
 | `Meaning × Evaluator` at ASR | An inaudible perturbation misroutes a fraud call from `abuse` to `billing` | Partly. Typed routing limits the damage to a wrong label |
@@ -1018,11 +1018,11 @@ Re-deriving crossings on the new path gives five rows (**Table 3**). Already cov
 | `Confidentiality × Position` at the spoken reply | The caller asks for internal flags or another account's invoices | Yes. Secrets stay out of the reply context, and CRM binds the account to the session |
 | `Cost × Evaluator` at ASR | A long call times out, and the fraud call routes to `other` | No. Add a call-length cap |
 
-*Table 3. Crossings added by the phone line.*
+*Table 3. Mechanisms added by the phone line.*
 
 The Billing Credit and spoken-reply rows reuse fixes from the original analysis. Those fixes sit after the Triage LLM — on the flows into Billing Credit and the reply — so they hold whatever modality fed the model. The other three rows sit at the audio ingress. Only typed routing carries over there, and it bounds one of them. The rest of the original analysis is unchanged.
 
-Changes can also remove crossings. If the team moved replies entirely to voice and retired the HTML preview, the preview's *Output-Consumer* crossing (the attacker's `<img>` URL that the preview fetches) would go with it. Even with the preview kept, the spoken reply adds no such crossing because speech has no renderer.
+Changes can also remove mechanisms. If the team moved replies entirely to voice and retired the HTML preview, the preview's *Output-Consumer* mechanism (the attacker's `<img>` URL that the preview fetches) would go with it. Even with the preview kept, the spoken reply adds no such mechanism because speech has no renderer.
 
 ### 5.2 Modeling Unfamiliar Domains
 
@@ -1044,33 +1044,33 @@ flowchart LR
     classDef exposed fill:#fee2e2,stroke:#dc2626,stroke-width:2.5px,color:#7f1d1d
 ```
 
-*Figure 5. The delivery robot. Crossings occur at the red nodes.*
+*Figure 5. The delivery robot. Mechanisms occur at the red nodes.*
 
 The robot case holds surprises because the people around it (pedestrians, drivers, the team that placed the sign) and the robot read the same street differently. Comparing the two designs gives two implications and one mitigation.
 
 Implications:
 
 1. The Trail of Bits image-scaling attack fails in the physical world. Because distance, angle, and light keep changing, a pixel-aligned scaling payload loses the grid it needs. Two forms survive: perturbations optimized across viewing angles (as RP2 is), and printed text when the perception model is a VLM that reads it.
-2. Physical harm needs no unauthorized action. With the sign classifier, `Authority` holds: the Brake Planner follows its own rules on a wrong reading, and the robot enters the crossing (`Meaning × Evaluator`). With the VLM planner, the model's API calls can also steer the robot; that adds an `Authority × Position` record.
+2. Physical harm needs no unauthorized action. With the sign classifier, `Authority` holds: the Brake Planner follows its own rules on a wrong reading, and the robot enters the intersection (`Meaning × Evaluator`). With the VLM planner, the model's API calls can also steer the robot; that adds an `Authority × Position` record.
 
 Mitigation: an independent map or range-sensor interlock between perception and the Brake Planner stops the robot in both designs, whichever model sits upstream.
 
 ### 5.3 Predicting Attacks on Other Surfaces
 
-A published attack on one input surface tells a red team where to test the others. The seven surfaces below reduce to two crossings (Tables 4 and 5). Within each crossing, attacks demonstrated on some surfaces predict attacks on the rest. Two of those predictions are still `Feasible` (audio and streaming text).
+A published attack on one input surface tells a red team where to test the others. The seven surfaces below reduce to two `Invariant × Divergence` pairs (Tables 4 and 5). Within each pair, attacks demonstrated on some surfaces predict attacks on the rest. Two of those predictions are still `Unreported` (audio and streaming text).
 
 The Trail of Bits attack (Section 4.1) is a check followed by a transform: the user inspects the full-resolution image, and an aliasing downscaler then changes what the model receives (`Meaning × Artifact State`). To predict where else the attack applies, a red team looks for that structure on other surfaces. Thus, an audio pipeline is a candidate when a listener checks a 48 kHz clip and an aliasing resampler then decimates it to 16 kHz for ASR. The prediction becomes a test with two steps: check whether the resampler low-pass filters before it decimates (the question Table 3 raised for the phone line); if it aliases, place a command in the aliased band and check whether the agent acts on it.
 
-Each crossing also gives a red team a search rule for its own system.
+Each pair also gives a red team a search rule for its own system.
 
 `Meaning × Artifact State`: look for any transform between a check and the consumer (e.g., downscalers, resamplers, frame samplers, and stream aggregation).
 
 | Surface | The check sees | The consumer sees | Evidence |
 | :---- | :---- | :---- | :---- |
-| Image | Full-resolution image (user) | Aliased downscale carrying hidden text (model) | Demonstrated (Morozova & Hussain, 2025) |
-| Video | Sparsely sampled frames (moderator) | Every frame (viewers) | Demonstrated (arXiv:2508.10974) |
-| Audio | 48 kHz clip (listener) | Aliased 16 kHz resample (ASR) | Feasible, predicted from image |
-| Streaming text | Each chunk (stateless guard) | The assembled stream (model) | Feasible, predicted from video (Section 3.5.5) |
+| Image | Full-resolution image (user) | Aliased downscale carrying hidden text (model) | POC (Morozova & Hussain, 2025) |
+| Video | Sparsely sampled frames (moderator) | Every frame (viewers) | POC (arXiv:2508.10974) |
+| Audio | 48 kHz clip (listener) | Aliased 16 kHz resample (ASR) | Unreported, predicted from image |
+| Streaming text | Each chunk (stateless guard) | The assembled stream (model) | Unreported, predicted from video (Section 3.5.5) |
 
 *Table 4. Surfaces where the check and the consumer see different versions of the artifact (`Meaning × Artifact State`).*
 
@@ -1078,13 +1078,13 @@ Each crossing also gives a red team a search rule for its own system.
 
 | Surface | One reader sees | The other reads | Evidence |
 | :---- | :---- | :---- | :---- |
-| Text | Rendered characters (reviewer) | Raw code points, including tag and zero-width characters (model) | Demonstrated (Rehberger, 2024) |
-| Structured data | An inert field (upstream components) | A serialized object (deserializer) | Demonstrated (`CVE-2025-68664`) |
-| Robotics | `STOP` (a person) | A speed-limit sign (perception model, Figure 5) | Components demonstrated (Eykholt et al., 2018); full chain Feasible |
+| Text | Rendered characters (reviewer) | Raw code points, including tag and zero-width characters (model) | POC (Rehberger, 2024) |
+| Structured data | An inert field (upstream components) | A serialized object (deserializer) | POC (`CVE-2025-68664`) |
+| Robotics | `STOP` (a person) | A speed-limit sign (perception model, Figure 5) | Components POC (Eykholt et al., 2018); full chain Unreported |
 
 *Table 5. Surfaces where two readers see the same artifact differently (`Meaning × Evaluator`).*
 
-Appendix C.3 turns each row into a security test whose pass condition is the system's own sink constraint, so a red team can run the `Feasible` rows as test cases before anyone publishes an attack.
+Appendix C.3 turns each row into a security test whose pass condition is the system's own sink constraint, so a red team can run the `Unreported` rows as test cases before anyone publishes an attack.
 
 ## 5. Ecosystem Positioning
 
@@ -1098,11 +1098,11 @@ The taxonomy fills that gap and is used alongside existing frameworks. It gives 
 
 Applied to the Trail of Bits image-scaling attack (**Section 4.1**; **Appendix B, Table B.1**), existing AI security frameworks each cover part of the attack. NIST and IBM AI Risk Atlas identify adversarial techniques and associated risks; MITRE ATLAS captures attacker behavior and prompt injection techniques; MITRE D3FEND provides defensive countermeasures; MAESTRO examines architectural exposure and trust boundaries; and STRIDE classifies the hazards an attack can cause.
 
-The mechanism-level account of **how an attack is constructed, transformed, activated, and propagated through an AI system** is spread across them. In the Trail of Bits example, the critical mechanism is pixel-level manipulation followed by image downscaling, which reveals concealed instructions that then steer model behavior and agent actions. The frameworks name prompt injection, obfuscation, and multimodal threats; the link between a processing transformation and the boundary violation it causes is the piece this taxonomy adds.
+The mechanism-level account of **how an attack is constructed, transformed, activated, and propagated through an AI system** is spread across them. In the Trail of Bits example, the critical mechanism is pixel-level manipulation followed by image downscaling, which reveals concealed instructions that then steer model behavior and agent actions. The frameworks name prompt injection, obfuscation, and multimodal threats; the link between a processing transformation and the invariant violation it causes is the piece this taxonomy adds.
 
 The taxonomy records that link in three dimensions (**the violated invariant, the divergence between evaluations, and the payload representation**), each located on an annotated data-flow diagram, so attack mechanisms can be characterized and compared precisely across modalities.
 
-In practice, each framework attaches to a specific part of the record. ATLAS techniques label the entry `«source»` and each chain leg, and NIST AI 100-2e2025's attacker capability and knowledge dimensions align with `Untrusted` flows and the per-component knowledge annotation. STRIDE categories attach to sink constraints (**Section 4.1**). OWASP `LLM01:2025`, `LLM05:2025`, and `LLM06:2025` align with crossings at `«follower»`, `«renderer»`, and `«executor»` nodes. The CoSAI Risk Map's component axis gains `«guard»` and `«transform»` as explicit roles, and MITRE D3FEND's media artifact classes offer a candidate vocabulary for the follow-on control catalog. **Appendix B** gives the identifiers and alignment notes for each framework.
+In practice, each framework attaches to a specific part of the record. ATLAS techniques label the entry `«source»` and each chain leg. NIST AI 100-2e2025's attacker capability and knowledge dimensions align with `Untrusted` flows and the per-component knowledge annotation. STRIDE categories attach to sink constraints (**Section 4.1**). OWASP `LLM01:2025`, `LLM05:2025`, and `LLM06:2025` align with mechanisms at `«follower»`, `«renderer»`, and `«executor»` nodes. The CoSAI Risk Map's component axis gains `«guard»` and `«transform»` as explicit roles. MITRE D3FEND's media artifact classes offer a candidate vocabulary for the follow-on control catalog. **Appendix B** gives the identifiers and alignment notes for each framework.
 
 ### 5.2 Comparable AI Taxonomies
 
@@ -1115,19 +1115,19 @@ The mechanism record combines the violated invariant, the payload representation
 * **Shi et al.** (2025) trace agent vulnerabilities to a mismatch between dynamic trust and static authorization, the precedent for the `Authority` row.
 * **Maloyan & Namiot** (2026) catalog attacks on coding agents with modality as a primary axis.
 
-The added capability is **cross-modality-surface variant prediction**. Schemes that assign modality to delivery fold preprocessing divergence into delivery, and schemes keyed on modality or carrier grow a new branch for each new surface. Keying records on `Invariant × Divergence` and carrying modality on the data flow lets an existing record predict its analog on a new surface, as **Tables 4 and 5** show for audio, video, streaming text, and physical sensors.
+The added capability is **cross-surface variant analysis**. Schemes that assign modality to delivery fold preprocessing divergence into delivery, and schemes keyed on modality or carrier grow a new branch for each new surface. Keying records on `Invariant × Divergence` and carrying modality on the data flow lets an existing record predict its analog on a new surface, as **Tables 4 and 5** show for audio, video, streaming text, and physical sensors.
 
 ### 5.3 Classical Security and Safety Precedents
 
-Most cells in **Table 1** have direct classical ancestors, and naming them lets practitioners reuse established reasoning (**Appendix B, Table B.3**). *Check-Use Consistency* is time-of-check to time-of-use (`CWE-367`). *Parser / Interpreter Differential* is the parser differential of language-theoretic security (Momot et al., 2016; `CWE-436`). *Transform Consistency* extends validate-before-canonicalize (`CWE-180`), which maps directly to `«guard» → «transform» → «follower»` crossings, and network intrusion-detection insertion and evasion (Ptacek & Newsham, 1998), in which a monitor and an end host reassemble the same packets differently; the streaming-text row of **Table 4** is that structure at chunk boundaries. *Delegation Authority* is the confused deputy (Hardy, 1988), *Decision-Action* is a failure of complete mediation (Saltzer & Schroeder, 1975), and the `Authority` and `Confidentiality` rows are the integrity and confidentiality directions of the information-flow lattice (Denning, 1976). The method itself builds on STPA-Sec, taint analysis, and attack-graph minimum cuts (**Section 4**). CAPEC View 1000 (*Mechanisms of Attack*) is the closest existing modality-agnostic mechanism hierarchy; its categories are organized by attacker action, and the machine-perception cells of **Table 1** are additions to it.
+Most cells in **Table 1** have direct classical ancestors, and naming them lets practitioners reuse established reasoning (**Appendix B, Table B.3**). *TOCTOU* is the classical time-of-check to time-of-use weakness (`CWE-367`). *Parser / Interpreter Differential* is the parser differential of language-theoretic security (Momot et al., 2016; `CWE-436`). *Transform Consistency* extends two precedents: validate-before-canonicalize (`CWE-180`), which maps directly to `«guard» → «transform» → «follower»` mechanisms; and network intrusion-detection insertion and evasion (Ptacek & Newsham, 1998), in which a monitor and an end host reassemble the same packets differently. The streaming-text row of **Table 4** is that second structure at chunk boundaries. *Confused Deputy* keeps Hardy's (1988) name; *Decision-Action* is a failure of complete mediation (Saltzer & Schroeder, 1975); and the `Authority` and `Confidentiality` rows are the integrity and confidentiality directions of the information-flow lattice (Denning, 1976). The method itself builds on STPA-Sec, taint analysis, and attack-graph minimum cuts (**Section 4**). CAPEC View 1000 (*Mechanisms of Attack*) is the closest existing modality-agnostic mechanism hierarchy; its categories are organized by attacker action, and the machine-perception cells of **Table 1** are additions to it.
 
 Against this background, the paper contributes three things:
 
-1. **A generative boundary matrix.** Boundary classes come from crossing the invariant a sink relies on with what differs between two evaluations assumed to agree, so every cell, including empty ones, is a stated hypothesis.
+1. **A generative mechanism matrix.** Mechanism classes come from pairing the invariant a sink relies on with what differs between two evaluations assumed to agree, so every cell (including empty ones) is a stated hypothesis.
 2. **Perception models, guard models, and human reviewers as evaluators.** Treating them alongside parsers brings *Human-Machine Perception*, *Guard-Model Capability*, and *Semantic Stability* into the same matrix as the classical differentials.
-3. **Mechanical derivation on a standard DFD.** Structural patterns over functional roles, combined with a three-level fidelity lookup, let practitioners derive `Meaning`, `Authority`, and `Confidentiality` crossings by rule from a diagram they already maintain.
+3. **Mechanical derivation on a standard DFD.** Structural patterns over functional roles, combined with a three-level fidelity lookup, let practitioners derive `Meaning`, `Authority`, and `Confidentiality` candidate mechanisms by rule from a diagram they already maintain.
 
-By explicitly representing how adversarial content becomes effective within an AI processing pipeline, the taxonomy supports systematic attack analysis, identification of vulnerable processing stages, and location of the structural cut points where targeted defensive controls apply. **Section 6** discusses limitations and the CoSAI roadmap toward a per-mechanism control catalog.
+By explicitly representing how adversarial content becomes effective within an AI processing pipeline, the taxonomy supports systematic attack analysis, identification of vulnerable processing stages, and location of the chokepoints where targeted defensive controls apply. **Section 6** discusses limitations and the CoSAI roadmap toward a per-mechanism control catalog.
 
 ## 6. Takeaways, Limitations, and Future Work
 
@@ -1137,21 +1137,21 @@ This paper presented an architectural analysis method for multimodal agentic sec
 
 The method's central design decision — placing modality on the data flow rather than in the mechanism tuple — yields three practical capabilities that no reviewed framework offers individually:
 
-1. **Mechanical derivation replaces brainstorming.** The structural pattern lookup table (Section 4.3.1, Table A.1) produces candidate crossings by rule from an annotated DFD. Practitioners walk the diagram and match node-role and flow-label patterns rather than inventorying threats from memory or checklists.
-2. **Findings transfer across modality surfaces.** A mechanism record's `Invariant × Divergence` classification names a structural crossing. Holding the crossing fixed and swapping the source modality generates testable hypotheses for every surface that reproduces the same topology (Section 4.4; Tables 4 and 5). A team that found the Trail of Bits image-scaling crossing would generate the audio-resampling test without a separate threat catalog entry.
-3. **Cut points are computed, not guessed.** The supplied-vs-granted classification on each chain leg directs remediation toward zero-effort legs first, and modality-independent cut points (e.g., user confirmation on tool calls) protect against surfaces that do not yet exist.
+1. **Mechanical derivation replaces brainstorming.** The structural pattern lookup table (Section 4.3.1, Table A.1) produces candidate mechanisms by rule from an annotated DFD. Practitioners walk the diagram and match node-role and flow-label patterns.
+2. **Findings transfer across surfaces.** A mechanism record's `Invariant × Divergence` classification names a mechanism class. Holding the class fixed and swapping the source modality generates testable hypotheses for every surface that reproduces the same topology (Section 4.4; Tables 4 and 5). A team that found the Trail of Bits image-scaling mechanism would generate the audio-resampling test without a separate threat catalog entry.
+3. **Chokepoints follow by rule.** The supplied-vs-granted classification on each chain leg directs remediation toward zero-effort legs first. Modality-independent chokepoints (e.g., a confirmation gate on tool calls) protect against surfaces that do not yet exist.
 
 Section 4.1 demonstrated these capabilities on the Trail of Bits disclosure. Section 5 carried them to three settings: a support-ticket agent that gains a phone line; a physical delivery robot; and seven input surfaces (text, image, audio, video, streaming text, structured data, and robotics).
 
 ### 6.2 Limitations
 
-1. **The method cannot find what the diagram omits.** If a preprocessing step, feedback loop, or output renderer is never drawn, it produces no crossings and its attack paths are invisible. The six-category unpacking checklist (Section 4.1) and comparison against deployment manifests reduce this risk; the automated tool (Section 6.3) would reduce it further.
+1. **The method cannot find what the diagram omits.** If a preprocessing step, feedback loop, or output renderer is never drawn, it produces no candidate mechanisms and its attack paths are invisible. The six-category unpacking checklist (Section 4.1) and comparison against deployment manifests reduce this risk; the automated tool (Section 6.3) would reduce it further.
 
-2. **Annotations require judgment.** Role assignment (is this LLM a `«guard»`, a `«follower»`, or both?), trust labels, and fidelity levels all involve practitioner decisions. The paper provides constraining rules (Section 4.2), but edge cases remain, and different annotators may derive different crossings. An inter-rater study would quantify this variance and identify where disambiguation rules are needed.
+2. **Annotations require judgment.** Role assignment (is this LLM a `«guard»`, a `«follower»`, or both?), trust labels, and fidelity levels all involve practitioner decisions. The paper provides constraining rules (Section 4.2), but edge cases remain; different annotators may derive different candidate mechanisms. An inter-rater study would quantify this variance and identify where disambiguation rules are needed.
 
-3. **Reducible-only boundaries lack per-cell control prescriptions.** The method locates *Human-Machine Perception*, *Guard-Model Capability*, and *Semantic Stability* crossings and explains *why* they resist deterministic closure, but the *what to do about it* question is answered only at the level of architectural strategy (context separation, type narrowing), not per-cell defensive controls. The follow-on control catalog (Section 6.3) must close this gap.
+3. **Reducible-only classes lack per-cell control prescriptions.** The method locates *Human-Machine Perception*, *Guard-Model Capability*, and *Semantic Stability* mechanisms and explains *why* they resist deterministic closure. It answers *what to do about it* only at the level of architectural strategy (the dual-LLM pattern and schema validation). The follow-on control catalog (Section 6.3) must close this gap with per-cell defensive controls.
 
-4. **The generative matrix can over-produce.** Cross-modality-surface prediction on a moderately complex system can yield dozens of `Feasible`-maturity records, many of which may not be exploitable on the specific deployment. Practitioners should triage by evidence maturity (`Observed` > `Demonstrated` > `Feasible`), then by granted-leg count, and treat `Feasible` records as test hypotheses to validate or retire — not confirmed findings.
+4. **The generative matrix can over-produce.** Cross-surface variant analysis on a moderately complex system can yield dozens of `Unreported` records, many of which may not be exploitable on the specific deployment. Practitioners should triage by evidence maturity (`Attacked` > `POC` > `Unreported`), and then by granted-leg count. They should treat `Unreported` records as unconfirmed test hypotheses to validate or retire.
 
 5. **Single-pipeline, single-session scope.** The method analyzes one pipeline at a time. Deep multi-agent delegation chains and long-horizon cross-session attacks (e.g., progressive memory manipulation over days) are structurally representable on a composed DFD but are not exercised in the worked examples. Security properties that emerge only from the *composition* of individually safe pipelines may be missed (Section 6.3 sketches the extension).
 
@@ -1207,6 +1207,10 @@ Eykholt, K., Evtimov, I., Fernandes, E., Li, B., Rahmati, A., Xiao, C., Prakash,
 
 Farhana, & Roy. (2026). Multimodal prompt injection: A formal 4D taxonomy. *IEEE QPAIN 2026*. https://doi.org/10.1109/QPAIN69676.2026.11545895
 
+FIRST. (2023). *Common Vulnerability Scoring System version 4.0: Specification document*. Forum of Incident Response and Security Teams. https://www.first.org/cvss/v4.0/specification-document
+
+GitHub. (n.d.). *About CodeQL* (variant analysis). https://codeql.github.com/docs/codeql-overview/about-codeql/
+
 GitHub. (2025). *Security advisory GHSA-43wj-mwcc-x93p: Cursor Mermaid remote image fetch* (`CVE-2025-54132`). https://github.com/advisories/GHSA-43wj-mwcc-x93p
 
 Glukhov, D., Shumailov, I., Gal, Y., Papernot, N., & Papyan, V. (2023). LLM censorship: A machine learning challenge or a computer security problem? arXiv:2307.10719. https://arxiv.org/abs/2307.10719
@@ -1232,6 +1236,8 @@ Leveson, N. G. (2019). *CAST handbook: How to learn more from incidents and acci
 LiteLLM. (2026). *Custom guardrails*. https://docs.litellm.ai/docs/proxy/guardrails/custom_guardrail
 
 Maloyan, N., & Namiot, D. (2026). Prompt injection attacks on agentic coding assistants. arXiv:2601.17548. https://arxiv.org/abs/2601.17548
+
+Manadhata, P. K., & Wing, J. M. (2011). An attack surface metric. *IEEE Transactions on Software Engineering*, 37(3), 371–386. https://doi.org/10.1109/TSE.2010.60
 
 Microsoft. (2026). *Microsoft Copilot Studio documentation*. https://learn.microsoft.com/microsoft-copilot-studio/
 
@@ -1317,6 +1323,8 @@ Video LLM frame-selection poisoning. (2025). Poisoning prompt-guided sampling in
 
 Wang, L., et al. (2025). Manipulating multimodal agents via cross-modal prompt injection (CrossInject). *Proceedings of ACM Multimedia 2025*. https://arxiv.org/abs/2504.14348
 
+Willison, S. (2023, April 25). *The Dual LLM pattern for building AI assistants that can resist prompt injection*. https://simonwillison.net/2023/Apr/25/dual-llm-pattern/
+
 Willison, S. (2025, June 16). *The lethal trifecta for AI agents: Private data, untrusted content, and external communication*. https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/
 
 Xiao, Q., Chen, Y., Shen, C., Chen, Y., & Li, K. (2019). Seeing is not believing: Camouflage attacks on image scaling algorithms. *Proceedings of the 28th USENIX Security Symposium*. https://www.usenix.org/conference/usenixsecurity19/presentation/xiao
@@ -1331,43 +1339,43 @@ Zverev, E., Abdelnabi, S., Tabesh, S., Fritz, M., & Lampert, C. H. (2025). Can L
 
 ---
 
-## Appendix A: Crossing-Derivation Lookup Table and Classification Guidance
+## Appendix A: Candidate-Mechanism Lookup Table and Classification Guidance
 
-This appendix provides the complete crossing-derivation lookup table for Step 3 and classification guidance for disambiguating neighboring subclasses and representation forms.
+This appendix provides the complete candidate-mechanism lookup table for Step 3 and classification guidance for disambiguating neighboring mechanism classes and representation forms.
 
-### A.1 Step 3 Crossing-Derivation Lookup Table
+### A.1 Step 3 Candidate-Mechanism Lookup Table
 
-Along each grouped directed path from an external `«source»` to a constrained sink (or from a `Secret` store/input to an external `«receiver»`), structural node-and-edge patterns determine candidate boundary crossings (`Invariant × Divergence`) mechanically:
+Along each grouped directed path from an external `«source»` to a constrained sink (or from a `Secret` store/input to an external `«receiver»`), structural node-and-edge patterns determine candidate mechanisms (`Invariant × Divergence`) mechanically:
 
-| Structural Pattern Along the Directed Path | Derived `Invariant × Divergence` | Named Boundary Subclass(es) |
+| Structural Pattern Along the Directed Path | Derived `Invariant × Divergence` | Mechanism Class(es) |
 | :---- | :---- | :---- |
 | A downstream process acts on content in the same artifact state that a deployed `«guard»` (or the sink's stated *Reference specification*) evaluated | **Meaning × Evaluator** | *Human-Machine Perception*; *Guard-Model Capability* (deployed reference); *Semantic Stability* (idealized reference) |
 | A `«transform»` modifies the artifact between an upstream `«guard»` (or the sink's *Reference specification*) and downstream consumption | **Meaning × Artifact State** | *Transform Consistency* |
 | A `«guard»` and a downstream consumer inspect *different* parallel transforms or parses of the same upstream artifact (for example, two parsers, or a human approval card vs. raw tool arguments) | **Meaning × Evaluator** | *Parser / Interpreter Differential* |
 | Guards inspect individual flows separately before a downstream process aggregates them, or a *Safeguard obligation* bounds a cumulative total that guards check only per item | **Meaning × Artifact State** | *Transform Consistency* (aggregation) |
-| An upstream `«guard»` validates a data store at time `t`, and a downstream consumer re-reads that store at `t + Δ` | **Meaning × Time** | *Check-Use Consistency* |
+| An upstream `«guard»` validates a data store at time `t`, and a downstream consumer re-reads that store at `t + Δ` | **Meaning × Time** | *TOCTOU* |
 | A permission or capability grant remains active at a sink after its authorized task window or revocation | **Authority × Time** | *Grant Persistence* |
-| A flow reaches an authority or egress sink carrying a trust/sensitivity label or fidelity outside that sink's *Authority policy* or *Disclosure policy* (or triggers an `«executor»` that skips a required authorization check) | **Authority × Position** or **Confidentiality × Position** | *Data-Control*, *Decision-Action*, or *Delegation Authority* (Authority); *Context Confinement* or *Output-Consumer* (Confidentiality) |
+| A flow reaches an authority or egress sink carrying a trust/sensitivity label or fidelity outside that sink's *Authority policy* or *Disclosure policy* (or triggers an `«executor»` that skips a required authorization check) | **Authority × Position** or **Confidentiality × Position** | *Data-Control*, *Decision-Action*, or *Confused Deputy* (Authority); *Context Confinement* or *Output-Consumer* (Confidentiality) |
 | An instruction-following (`«follower»`) process controls whether or what a safeguard sink records or escalates | **Authority × Position** | Culminates in a *Safeguard obligation* breach |
 | A susceptible sink's resource expenditure is unbounded by its upstream admission check against its *Resource budget* | **Cost × Evaluator** | *Resource Accounting* |
 
-*Table A.1. Step 3 structural crossing-derivation lookup table.*
+*Table A.1. Step 3 candidate-mechanism lookup table.*
 
-**Evaluation-baseline rule for reference specifications.** A sink's *Reference specification* (for example, *"the invoice total as read by a human reviewer"*) is an evaluation baseline used during analysis; deployed `«guard»` nodes are the runtime gates. Comparing a process against an idealized reference generates crossings only for `Meaning` reference specifications, where extracting or acting on an incorrect value is itself the hazard; for an *Authority policy* or *Disclosure policy*, concealment matters only when a deployed human or automated `«guard»` stands on the path.
+**Evaluation-baseline rule for reference specifications.** A sink's *Reference specification* (for example, *"the invoice total as read by a human reviewer"*) is an evaluation baseline used during analysis; deployed `«guard»` nodes are the runtime gates. Comparing a process against an idealized reference generates candidate mechanisms only for `Meaning` reference specifications, where extracting or acting on an incorrect value is itself the hazard; for an *Authority policy* or *Disclosure policy*, concealment matters only when a deployed human or automated `«guard»` stands on the path.
 
 ### A.2 Classification Guidance
 
-**Boundary subclass distinctions.**
+**Mechanism class distinctions.**
 * **Human-Machine Perception vs. Guard-Model Capability:** The former concerns a security assumption based on human perception; the latter concerns a capability mismatch between a protective evaluator and the target model.
-* **Guard-Model Capability and Parser / Interpreter Differential vs. Transform Consistency:** The first two concern inconsistent interpretation of equivalent input in the same artifact state; *Transform Consistency* concerns changes introduced or exposed across transformations or aggregation of an artifact, while *Check-Use Consistency* concerns reliance on an earlier validation after state has mutated over time.
+* **Guard-Model Capability and Parser / Interpreter Differential vs. Transform Consistency:** The first two concern inconsistent interpretation of equivalent input in the same artifact state; *Transform Consistency* concerns changes introduced or exposed across transformations or aggregation of an artifact, while *TOCTOU* concerns reliance on an earlier validation after state has mutated over time.
 * **Semantic Stability (covers instance and authorization variance):** Asserting that two input variants share equivalent meaning presupposes an idealized reference evaluator `h` (human perception or policy intent) with which the model `f` disagrees (**Section 3.1.1**). When a model-based policy or authorization check changes its decision under equivalent rephrasing or cross-modal conflict arbitration, the failure is `Meaning × Evaluator` (*Semantic Stability*); deterministic routing bypasses around an authorization gate belong to `Authority × Position`.
-* **Data-Control vs. Decision-Action vs. Delegation Authority vs. Output-Consumer:** *Data-Control* concerns improper promotion of untrusted content into instruction authority at a `«follower»`. *Decision-Action* applies strictly when an `«executor»` runs a `«follower»`-requested operation and skips required authorization or approval. Neighboring cases have their own subclasses: a human approver reviewing a summary card that diverged from raw tool arguments is *Parser / Interpreter Differential*, a store that changed after approval is *Check-Use Consistency*, and an authorized tool executing on a misextracted value violates the sink's *Meaning* reference specification. *Delegation Authority* concerns the scope of authority passed to another component, while *Output-Consumer* concerns unauthorized effects triggered when generated artifacts are processed by a downstream `«renderer»`.
+* **Data-Control vs. Decision-Action vs. Confused Deputy vs. Output-Consumer:** *Data-Control* concerns improper promotion of untrusted content into instruction authority at a `«follower»`. *Decision-Action* applies strictly when an `«executor»` runs a `«follower»`-requested operation and skips required authorization or approval. Neighboring cases have their own subclasses: a human approver reviewing a summary card that diverged from raw tool arguments is *Parser / Interpreter Differential*; a store that changed after approval is *TOCTOU*; and an authorized tool executing on a misextracted value violates the sink's *Meaning* reference specification. *Confused Deputy* concerns the scope of authority passed to another component, while *Output-Consumer* concerns unauthorized effects triggered when generated artifacts are processed by a downstream `«renderer»`.
 * **Permitted task influence and memorized secrets:** A manipulated model decision, tool invocation, or navigation step that stays within the sink's stated *Authority policy* (such as a browsing agent clicking visible links on a visited page) is recorded as an architecture-*granted leg* (**Section 4.3**). Training-data extraction maps to *Context Confinement* (`Confidentiality × Position`) by modeling memorized weights as a `Secret` data store and the querying user as the external `«receiver»` (Carlini et al., 2021; Nasr et al., 2023; for diffusion models, Carlini et al., 2023; ATLAS `AML.T0057`). System-prompt extraction (`AML.T0056`) falls in the same cell, with the system prompt as the `Secret` store.
 * **Resource Accounting as a single Cost subclass:** *Resource Accounting* stays a single subclass because `Representation` and DFD position already capture whether exhaustion stems from media decoding or recursive tool execution; a resource-intensive operation becomes a violation when it breaches a stated *Resource budget*.
 
 **Representation classification principles.**
 1. **Artifact-state specificity and conservative survival:** Classify the representation at the specific processing point being examined; classification changes when a `«transform»` alters the artifact. In an image-scaling attack, the payload is `Steganographic` before resizing (`Full` flow) and becomes `Overt Semantic` after an aliasing downscale (`Full` output). An anti-aliased downscaler (`Normalized` output) strips the steganographic channel (Quiring et al., 2020). `Adversarial Perturbation` is conservatively assumed to survive generic normalization (`✓, assumed`) because adaptive optimization routinely defeats standard compression or resizing (Athalye, Carlini & Wagner, 2018).
-2. **Multiple applicable forms and complementary modifiers:** Where an artifact satisfies multiple definitions, record the form most relevant to the crossing, and assign a modifier when distribution, composition, or sequencing contributes to the effect.
+2. **Multiple applicable forms and complementary modifiers:** Where an artifact satisfies multiple definitions, record the form most relevant to the mechanism, and assign a modifier when distribution, composition, or sequencing contributes to the effect.
 3. **Construction independence and evidence-based assignment:** A manually constructed payload and an adversarially optimized one may share the same representation classification; assign forms and modifiers from the system architecture or available evidence.
 
 ---
@@ -1378,7 +1386,7 @@ Along each grouped directed path from an external `«source»` to a constrained 
 
 **Adversary catalogs (MITRE ATLAS, NIST AI 100-2e2025).** ATLAS's 2026 releases describe multimodal behavior in detail: triggers placed in "a modality that is not inspected, or is inspected differently from text" (`AML.T0129`), obfuscation across images, audio, and video frames (`AML.T0068`), and content served differently to AI systems than to humans (`AML.T0134`). For the Trail of Bits disclosure, ATLAS records indirect prompt injection (`AML.T0051.001`) and exfiltration through agent tool invocation (`AML.T0086`); the chain record places those techniques on Legs 1–3 and names the downscaler as the activation point. ATLAS mitigation `AML.M0010` lists resampling as an input-restoration defense and notes that adaptive adversaries account for preprocessing, which the method expresses structurally as a `Normalized` flow and the conservative survival of `Adversarial Perturbation` (**Table 2**). NIST AI 100-2e2025 provides a broader threat taxonomy organized by learning method, lifecycle phase, attacker objective, capability, and knowledge. Its *resource control* capability corresponds to an `Untrusted` flow from an external `«source»`, and its knowledge dimension aligns with the per-component *Attacker Knowledge / Access* annotation (**Section 3.6**).
 
-**Hazard and risk frameworks (STRIDE, OWASP, CoSAI Risk Map, MAESTRO).** A STRIDE category attaches to each sink constraint by the hazard it prevents: a *Disclosure policy* on an egress sink guards against Information Disclosure, an *Authority policy* on an authority sink against Elevation of Privilege, a *Resource budget* against Denial of Service, and a *Reference specification* against Tampering. A STRIDE-per-element review therefore keeps its vocabulary and gains derived crossings inside the trust zone that a coarse diagram treats as one process. OWASP `LLM01:2025` (Prompt Injection), `LLM05:2025` (Improper Output Handling), and `LLM06:2025` (Excessive Agency) map to sink constraints and crossings at `«follower»`, `«renderer»`, and `«executor»` nodes. The CoSAI Risk Map's component axis (Input Handling, Reasoning Core, Output Handling, Tools) is the most stage-like construct among the reviewed frameworks; the DFD roles refine it by adding `«guard»` and `«transform»` as explicit components, and a mechanism record can carry the corresponding Risk Map risk identifier as a supporting annotation. MAESTRO's seven architectural layers locate the affected subsystem, and the DFD path locates the crossing within it.
+**Hazard and risk frameworks (STRIDE, OWASP, CoSAI Risk Map, MAESTRO).** A STRIDE category attaches to each sink constraint by the hazard it prevents: a *Disclosure policy* on an egress sink guards against Information Disclosure; an *Authority policy* on an authority sink, against Elevation of Privilege; a *Resource budget*, against Denial of Service; and a *Reference specification*, against Tampering. A STRIDE-per-element review therefore keeps its vocabulary and gains candidate mechanisms inside the trust zone that a coarse diagram treats as one process. OWASP `LLM01:2025` (Prompt Injection), `LLM05:2025` (Improper Output Handling), and `LLM06:2025` (Excessive Agency) map to sink constraints and mechanisms at `«follower»`, `«renderer»`, and `«executor»` nodes. The CoSAI Risk Map's component axis (Input Handling, Reasoning Core, Output Handling, Tools) is the most stage-like construct among the reviewed frameworks; the DFD roles refine it by adding `«guard»` and `«transform»` as explicit components. A mechanism record can carry the corresponding Risk Map risk identifier as a supporting annotation. MAESTRO's seven architectural layers locate the affected subsystem, and the DFD path locates the mechanism within it.
 
 **Defensive ontologies (MITRE D3FEND).** D3FEND links offensive and defensive techniques through shared digital artifacts and already defines media artifact classes (`DigitalImage`, `DigitalAudio`, `DigitalVideo`). Those classes correspond to annotated flows, which makes D3FEND a strong candidate vocabulary for the per-cell control catalog planned as follow-on work (**Section 6.3**).
 
@@ -1392,8 +1400,8 @@ Along each grouped directed path from an external `«source»` to a constrained 
 | **MITRE ATLAS (v2026.09)** | `AML.T0051.001` (Indirect Prompt Injection); `AML.T0068` (LLM Prompt Obfuscation); `AML.T0086` (Exfiltration via AI Agent Tool Invocation); related: `AML.T0129` (Triggers in Multimodal Inputs), `AML.T0123` (Obfuscated Files or Information), `AML.T0134` (AI Targeted Cloaking), `AML.T0034.002` (Agentic Resource Consumption); mitigations `AML.M0010` (Input Restoration, which lists resampling) and `AML.M0036` | Describes attacker techniques, untrusted multimodal content, payload concealment, and adversarial behavior. Recognizes hidden instructions in image pixels and multimodal triggers. | A structured description of the exact resampling primitive, the differences between original and transformed representations, and the activation stage. | Links representation-state changes to distinct violated security assumptions and effect locations. |
 | **MITRE D3FEND (1.6.0)** | `D3-FCOA` (File Content Analysis); `D3-FCR` (File Content Rules); `D3-OTF` (Outbound Traffic Filtering) | Provides candidate defensive techniques for inspecting files, applying content-analysis rules, and restricting unauthorized data transmission. | The offensive image-scaling mechanism and detection of instructions revealed by resizing. The listed controls are candidate defenses pending an attack-specific mapping. Version 1.6.0 imports 189 ATLAS technique classes as bare identifiers and definitions, and predates `AML.T0129`. | Locates where candidate controls should be evaluated, as candidates pending validation. |
 | **MAESTRO** | `L2` (Data Operations); `L1` (Foundation Model); `L3` (Agent Frameworks); `L7` (Agent Ecosystem); related OWASP *Agentic AI – Threats and Mitigations* threats `T2` (Tool Misuse) and `T6` (Intent Breaking & Goal Manipulation) | Identifies affected architectural layers, cross-layer attack propagation, trust boundaries, and potential misuse of connected tools. | Pixel-level manipulation, the exact resampling algorithm, pre-/post-transformation semantic differences, and the precise activation condition. | Adds representation and DFD position detail, with processing stages kept separate from architectural layers. |
-| **STRIDE** | `T` (Tampering); `I` (Information Disclosure); `E` (Elevation of Privilege, conditional) | Classifies security threats involving input manipulation, confidential data exposure, and potential authorization-boundary violations. | What separates image-scaling attacks from other attacks with the same security consequences, plus payload representation, transformation, and activation mechanisms. | Identifies the specific mechanisms producing those broader threat categories; each category attaches to the sink constraint it protects (**Section 5.1**). |
-| **OWASP `LLM01:2025`** | Prompt Injection, scenarios #6 (payload splitting), #7 (multimodal injection), #8 (adversarial suffix), #9 (multilingual or obfuscated input) | Enumerates representation variants, including instructions in images that accompany benign text, and flags cross-modal attacks as an open defense problem. | The pipeline step at which a hidden instruction becomes legible to the model. | Places each scenario on a `«follower»` crossing and records the representation that survives each upstream flow. |
+| **STRIDE** | `T` (Tampering); `I` (Information Disclosure); `E` (Elevation of Privilege, conditional) | Classifies security threats involving input manipulation, confidential data exposure, and potential authorization violations. | What separates image-scaling attacks from other attacks with the same security consequences, plus payload representation, transformation, and activation mechanisms. | Identifies the specific mechanisms producing those broader threat categories; each category attaches to the sink constraint it protects (**Section 5.1**). |
+| **OWASP `LLM01:2025`** | Prompt Injection, scenarios #6 (payload splitting), #7 (multimodal injection), #8 (adversarial suffix), #9 (multilingual or obfuscated input) | Enumerates representation variants, including instructions in images that accompany benign text, and flags cross-modal attacks as an open defense problem. | The pipeline step at which a hidden instruction becomes legible to the model. | Places each scenario on a `«follower»` mechanism and records the representation that survives each upstream flow. |
 | **MITRE CWE (4.20)** | `CWE-1427` (Improper Neutralization of Input Used for LLM Prompting); `CWE-180` (Validate Before Canonicalize) | States the data/directive invariant for LLM prompts directly; `CWE-180` names the check-before-transform ordering. | Non-text carriers and model-based transforms such as resizing, OCR, and speech recognition. | Extends the same invariants across modalities through `Meaning × Artifact State` and `Authority × Position` (**Table B.3**). |
 | **CoSAI Risk Map** | `riskPromptInjection` (covers multimodal injection); `riskCovertChannelsInModelOutputs` | Component axis (Input Handling, Reasoning Core, Output Handling, Tools) and risk entries that name multimodal injection and steganographic encoding in outputs. | Transformation and perception components between input handling and the reasoning core. | Adds `«guard»` and `«transform»` as DFD roles; the risk ID is attached to the mechanism record as a supporting annotation. |
 | **CSA research note on image-based prompt injection (March 2026)** | Embedding techniques: typographic text, steganographic, adversarial perturbation and patched injectors, physical/3D | Representation taxonomy for image payloads, with the observation that current defenses only partly neutralize image injection. | Scaling and resampling as activation steps; carriers in other modalities. | Generalizes the same representation ordering across modalities (**Section 3.4.1**) and locates the activating transform. |
@@ -1404,21 +1412,21 @@ Along each grouped directed path from an external `«source»` to a constrained 
 
 | Framework | Existing Focus | Relationship to DFD Pipeline Locations |
 | :---- | :---- | :---- |
-| **NIST AI 100-2e2025** | Adversarial machine-learning terminology, attack lifecycle concepts, attacker objectives, capabilities, and knowledge. | Provides a broader threat taxonomy. DFD roles and path crossings identify operational locations within a target system's inference-time execution flow. |
+| **NIST AI 100-2e2025** | Adversarial machine-learning terminology, attack lifecycle concepts, attacker objectives, capabilities, and knowledge. | Provides a broader threat taxonomy. DFD roles and the mechanisms on each path identify operational locations within a target system's inference-time execution flow. |
 | **MITRE ATLAS** | Adversarial tactics and techniques targeting AI-enabled systems. | Identifies techniques such as prompt injection and exfiltration through agent tools. Annotated DFD paths locate where these techniques enter, activate, and take effect. |
-| **OWASP Top 10 for LLM Applications (2025)** | Application-level security risks, including Prompt Injection (LLM01), Improper Output Handling (LLM05), and Excessive Agency (LLM06). | Maps to sink constraints and crossings across `«follower»` (`LLM01:2025`), `«executor»` (`LLM06:2025`), and `«renderer»` (`LLM05:2025`) nodes. |
+| **OWASP Top 10 for LLM Applications (2025)** | Application-level security risks, including Prompt Injection (LLM01), Improper Output Handling (LLM05), and Excessive Agency (LLM06). | Maps to sink constraints and mechanisms across `«follower»` (`LLM01:2025`), `«executor»` (`LLM06:2025`), and `«renderer»` (`LLM05:2025`) nodes. |
 | **CoSAI Risk Map / Google SAIF** | Component × risk × control × lifecycle, including `riskPromptInjection` (covers multimodal injection). | Component axis (Input Handling, Reasoning Core, Output Handling, Tools) refined by DFD roles, with `«guard»` and `«transform»` added; risk ID carried as a supporting annotation. |
-| **MITRE CWE** | Software weaknesses and their underlying conditions. | Weaknesses such as `CWE-180` (Validate Before Canonicalize) map directly to `«guard» → «transform» → «follower»` crossings (`Meaning × Artifact State`); full per-subclass mapping in **Table B.3**. |
+| **MITRE CWE** | Software weaknesses and their underlying conditions. | Weaknesses such as `CWE-180` (Validate Before Canonicalize) map directly to `«guard» → «transform» → «follower»` mechanisms (`Meaning × Artifact State`); full per-class mapping in **Table B.3**. |
 
 *Table B.2. Framework focus and relationship to annotated DFD pipeline locations.*
 
-### B.3 Classical Security Precedents by Boundary Subclass
+### B.3 Classical Security Precedents by Mechanism Class
 
 Relationship tags: **Exact** means the classical concept names the same invariant and divergence; **Broader** means this paper's cell generalizes the classical concept to machine-learning transforms, perception, or aggregation; **Related** means the two share structure with different scope; **New** means the cell originates in this paper among the reviewed classical literature.
 
-| Boundary Subclass or Method Element | Classical Precedent | Relationship |
+| Mechanism Class or Method Element | Classical Precedent | Relationship |
 | :---- | :---- | :---- |
-| *Check-Use Consistency* | Time-of-check to time-of-use (`CWE-367`; `CAPEC-29`) | Exact |
+| *TOCTOU* | Time-of-check to time-of-use (`CWE-367`; `CAPEC-29`) | Exact |
 | *Parser / Interpreter Differential* | Language-theoretic security parser differentials (Momot et al., 2016); Interpretation Conflict (`CWE-436`); HTTP request smuggling (`CWE-444`; `CAPEC-33`) | Exact |
 | *Transform Consistency* | Validate before canonicalize (`CWE-180`); Alternate Encoding (`CAPEC-267`); NIDS insertion and evasion (Ptacek & Newsham, 1998) | Broader (extends to media transforms and multi-input aggregation) |
 | *Human-Machine Perception* | User-interface misrepresentation (`CWE-451`); homograph attacks (`CAPEC-632`) | Broader (extends to images, audio, and physical signals) |
@@ -1427,15 +1435,15 @@ Relationship tags: **Exact** means the classical concept names the same invarian
 | *Grant Persistence* | Insufficient session expiration (`CWE-613`) | Related |
 | *Data-Control* | Command injection and in-band signaling (`CWE-77`); LLM prompt neutralization (`CWE-1427`) | Exact for text; Broader across non-text modalities |
 | *Decision-Action* | Complete mediation (Saltzer & Schroeder, 1975); Missing Authorization (`CWE-862`) | Related |
-| *Delegation Authority* | The confused deputy (Hardy, 1988; `CWE-441`) | Exact |
+| *Confused Deputy* | The confused deputy (Hardy, 1988; `CWE-441`) | Exact |
 | *Context Confinement* | Bell-LaPadula confidentiality; lattice model of secure information flow (Denning, 1976) | Exact |
 | *Output-Consumer* | Improper output encoding and second-order injection (`CWE-116`; `CWE-79`); generative AI output validation (`CWE-1426`) | Related |
 | *Resource Accounting* | Uncontrolled and asymmetric resource consumption (`CWE-400`; `CWE-405`; `CWE-409`) | Exact |
 | `Authority` row | Biba integrity; lattice model of secure information flow (Denning, 1976) | Exact |
-| Annotated DFD derivation (**Section 4**) | STPA-Sec (Young & Leveson, 2013); source-to-sink taint analysis; attack-graph minimum cuts (Sheyner et al., 2002) | Broader (adds perceptual guard crossings and three-level fidelity) |
+| Annotated DFD derivation (**Section 4**) | STPA-Sec (Young & Leveson, 2013); source-to-sink taint analysis; attack-graph minimum cuts (Sheyner et al., 2002) | Broader (adds perceptual guard mechanisms and three-level fidelity) |
 | Mechanism hierarchy as a whole | CAPEC View 1000 (*Mechanisms of Attack*) | Related (organized by attacker action; machine-perception cells added here) |
 
-*Table B.3. Classical security and safety precedents for each boundary subclass and method element.*
+*Table B.3. Classical security and safety precedents for each mechanism class and method element.*
 
 ### B.4 Comparable AI Taxonomies
 
@@ -1447,7 +1455,7 @@ Relationship tags: **Exact** means the classical concept names the same invarian
 | **Farhana & Roy** (2026) | Carrier type × pipeline location × attacker objective × stealth level | Carrier as a primary axis (image and document pipelines) | Closest neighbor on pipeline location; objective delegated to ATLAS and STRIDE; invariant replaces carrier as key |
 | **Jain, Arık & Thakur** (2026) | Attacker objective × knowledge | Across modalities; modality-specific input processing named as a root cause | Objective-first; root cause formalized as `Meaning × Artifact State` |
 | **Shi et al.** (2025) | Belief → intention → permission; trust–authorization mismatch | Modality-agnostic | Direct precedent for the `Authority` row |
-| **Maloyan & Namiot** (2026) | Delivery vector × attack modality × propagation | Modality as a primary axis | Catalog of instances; records derive cross-modality-surface analogs from existing entries |
+| **Maloyan & Namiot** (2026) | Delivery vector × attack modality × propagation | Modality as a primary axis | Catalog of instances; records derive cross-surface variants from existing entries |
 
 *Table B.4. Comparable AI taxonomies and their relationship to the mechanism record.*
 
@@ -1461,7 +1469,7 @@ This appendix provides complete derivation traces for the support-ticket triage 
 
 #### Support-Ticket Triage System (`EX-TYPED` through `EX-VOICE`)
 
-| ID | Variant | Crossing & Mechanism Tuple (`Invariant × Divergence, Representation`) | Violated Sink Constraint & Chain Notes |
+| ID | Variant | Mechanism Tuple (`Invariant × Divergence, Representation`) | Violated Sink Constraint & Chain Notes |
 | :---- | :---- | :---- | :---- |
 | `EX-TYPED.1` | Typed classifier | `Meaning × Evaluator` (*Semantic Stability*), `Overt Semantic` | Inline steering (`abuse → billing`) breaks `C1` reference spec and suppresses `C2` 1h Abuse Pager (`Authority` closed by `Typed` enum `L`). |
 | `EX-TYPED.2` | Typed classifier | `Meaning × Evaluator` (*Semantic Stability*), `Adversarial Perturbation` | Synonym/paraphrase evasion misroutes `abuse → billing` (`C1`, `C2`; persists even if `Triage LLM` is replaced by a non-instruction classifier). |
@@ -1473,20 +1481,20 @@ This appendix provides complete derivation traces for the support-ticket triage 
 | `EX-REPLY.4` | Reply and staff preview | `Cost × Evaluator` (*Resource Accounting*), `Semantic Amplification` | Free-text HTML draft generation removes 1-token output cap, enabling long-generation latency/spend exhaustion (`C3`). |
 | `EX-TOOLS.1` | CRM and billing tools | `Authority × Position` (*Data-Control* → *Decision-Action*), `Overt Semantic` | Ticket text triggers `billing.credit(id, ≤ \$25)` via granted auto-approval or unbound `customer_id` (`48213`, violating `C5`). |
 | `EX-TOOLS.2` | CRM and billing tools | `Authority × Position` (*Data-Control* via Feedback), `Overt Semantic` | Second-order directive stored in CRM `delivery_notes` re-enters `Triage LLM` on `crm.lookup` feedback edge and triggers `Billing Credit` (`C5`). |
-| `EX-TOOLS.3` | CRM and billing tools | `Meaning × Time` (*Check-Use Consistency*), `Overt Semantic` | `Human Approver` approves `\$40` for `10021`; unbound boolean approval flag lets `Triage LLM` execute `\$40` to `48213` at `t + Δ` (`C5`). |
+| `EX-TOOLS.3` | CRM and billing tools | `Meaning × Time` (*TOCTOU*), `Overt Semantic` | `Human Approver` approves `\$40` for `10021`; unbound boolean approval flag lets `Triage LLM` execute `\$40` to `48213` at `t + Δ` (`C5`). |
 | `EX-TOOLS.4` | CRM and billing tools | `Confidentiality × Position` (*Context Confinement* / *Output-Consumer*), `Overt Semantic` | `crm.lookup(48213)` pulls multi-tenant `Secret` invoices into `Triage LLM` and exits via the reply variant's `[C4]` reply or `<img>` preview sink. |
 | `EX-TOOLS.5` | CRM and billing tools | `Cost × Evaluator` (*Resource Accounting*), `Semantic Amplification` | Ticket induces recursive `crm.lookup` feedback calls exceeding the 5-call budget (`C5`). |
 | `EX-IMAGE.1` | Screenshot channel | `Meaning × Evaluator` (*Guard-Model Capability*), `Overt Semantic` | Visible text rendered inside attached screenshot bypasses text-only `Text Filter «guard»` and drives `Triage LLM` (`C4`, `C5`). |
 | `EX-IMAGE.2` | Screenshot channel | `Meaning × Artifact State` (*Transform Consistency*), `Steganographic → Overt Semantic` | Full-res screenshot looks benign (`Steganographic`), reveals command after `Aliasing Downscaler` (`Overt Semantic`, `C4`, `C5`). |
 | `EX-IMAGE.3` | Screenshot channel | `Cost × Evaluator` (*Resource Accounting*), `Intrinsic Amplification` | Sub-5 MB PNG decodes into gigapixel raster at `Downscaler`, breaching memory budget `C6`. |
 | `EX-IMAGE.4` | Screenshot channel | `Meaning × Artifact State` (aggregation), `Overt Semantic + Composition-Dependent` | Complete benign ticket text + complete chat-log screenshot co-processed at `Triage LLM` supply credit action + cross-account target (`C5`). |
-| `EX-VOICE.1`–`EX-VOICE.5` | Phone line | Voice path added beside the web form: `8 → 16 kHz` resampler, `ASR`, and `TTS` | Five rows (Section 5.1, Table 3). The `Authority` and `Confidentiality` rows reuse the fixes for `EX-TOOLS.1` and `EX-REPLY.1`. Typed routing bounds the ASR perturbation row (`Demonstrated`, AudioHijack). The resampler aliasing (`Feasible`) and call-length `Cost` rows need audio-specific fixes. The spoken reply adds no `Output-Consumer` record. |
+| `EX-VOICE.1`–`EX-VOICE.5` | Phone line | Voice path added beside the web form: `8 → 16 kHz` resampler, `ASR`, and `TTS` | Five rows (Section 5.1, Table 3). The `Authority` and `Confidentiality` rows reuse the fixes for `EX-TOOLS.1` and `EX-REPLY.1`. Typed routing bounds the ASR perturbation row (`POC`, AudioHijack). The resampler aliasing (`Unreported`) and call-length `Cost` rows need audio-specific fixes. The spoken reply adds no `Output-Consumer` record. |
 
 *Table C.1. Complete per-variant mechanism records for the Support-Ticket Triage System.*
 
 #### Related Incident Triage Chains: Trail of Bits, Cursor `CVE-2025-54132`, and EchoLeak `CVE-2025-32711`
 
-| Incident Disclosure | Leg 1 (Entry / Guard Crossing) | Leg 2 (Authority Crossing at `«follower»` / `«executor»`) | Leg 3 (Converging Confidentiality Egress) | Shared Structural Cut Point |
+| Incident Disclosure | Leg 1 (Entry / Guard Mechanism) | Leg 2 (Authority Mechanism at `«follower»` / `«executor»`) | Leg 3 (Converging Confidentiality Egress) | Shared Chokepoint |
 | :---- | :---- | :---- | :---- | :---- |
 | **Trail of Bits / Gemini CLI** *(Aug 2025)* | **Supplied:** `Meaning × Artifact State` (`Steganographic → Overt` across `Aliasing Downscaler` past `User «guard»`) | **Granted:** `Authority × Position` (`Untrusted` prompt drives `Zapier MCP` with `trust=True`) | **Granted:** `Confidentiality × Position` (`Calendar` secrets sent to external host via `MCP`) | Anti-aliased resize (`Normalized`); gate `CLI Model → MCP` tool calls |
 | **Cursor `CVE-2025-54132`** *(Aug 2025)* | **Granted:** Unguarded external repo/prompt content enters IDE agent | **Supplied:** `Authority × Position` (*Data-Control* at IDE `«follower»`) | **Granted:** `Confidentiality × Position` (*Output-Consumer*: Mermaid `«renderer»` auto-fetches remote image URL) | Disable remote image fetches / enforce CSP in Mermaid `«renderer»` |
@@ -1521,7 +1529,7 @@ flowchart LR
 
 ##### Linked Mechanism Records
 
-| Record | Boundary (`Invariant × Divergence`) | Representation | Construction | Stage | Notes |
+| Record | Mechanism Class (`Invariant × Divergence`) | Representation | Construction | Stage | Notes |
 | :---- | :---- | :---- | :---- | :---- | :---- |
 | **Pass 1: Lure / navigation** | **Architecture-granted leg** (web page content influences a navigation decision within `C1`'s permitted browsing scope) | `Overt Semantic` (the link is visible on the page) | *Manual Construction* (attacker placed the link on a page the agent visits) | `Ingestion → Perception → Interpretation → Action` (click) | The first pass through the pipeline is benign-looking navigation. The agent follows a link the same way it would follow any other. |
 | **M1: Injection delivery via feedback** | `Authority × Position` (*Data-Control*: screenshot content acquires instruction authority) + `Meaning × Artifact State` (*Transform Consistency*, if screenshot capture or rendering changes the representation relative to a guard) | `Overt Semantic` (typographic injection visible in the screenshot; or `Steganographic → Overt Semantic` if downscaling activates it) | *Manual Construction* (attacker placed injection text on the destination page) or *Optimization* (if exploiting rendering pipeline) | `Feedback → Ingestion → Perception → Interpretation / Decision` | The Feedback stage is the critical link: the agent's own action produces the artifact that carries the injection. The agent fetches the payload itself. |
@@ -1551,7 +1559,7 @@ In both cases each input is benign in isolation: a text instruction to send \$10
   * `C1` (*Reference specification* on `Transaction / Compliance Sink`): The executed transaction amount or compliance certification must match the **independent ground-truth observation** (or reject/hold the operation when cross-modal inputs conflict).
   * `C2` (*Authority policy* on `Transaction / Compliance Sink`): Untrusted input channels may populate only `Typed` fields (such as a numeric amount or boolean compliance status), and independent verification takes precedence over them.
 
-| Record | Boundary (`Invariant × Divergence`) | Representation | Modifier | Construction | Stage | Notes |
+| Record | Mechanism Class (`Invariant × Divergence`) | Representation | Modifier | Construction | Stage | Notes |
 | :---- | :---- | :---- | :---- | :---- | :---- | :---- |
 | **M1: Cross-modal contradiction** | `Meaning × Evaluator` (*Semantic Stability* against `C1`'s idealized reference specification: the security-relevant meaning differs depending on which modality the model prioritizes) | `Overt Semantic` (text) + `Overt Semantic` (image) | `Composition-Dependent` | *Manual Construction* | `Ingestion → Perception → Interpretation / Decision → Action` | The attacker crafts the pair so that the model's arbitration (whichever modality it trusts) produces an incorrect outcome violating `C1` (in Scenario A: `\$10,000` is processed in place of `\$10`; in Scenario B: non-compliance is certified as compliant), even when the output flow is narrowed to a `Typed` number or boolean (`C2`). |
 
@@ -1570,7 +1578,7 @@ The attacker can tailor the pair to exploit whichever arbitration bias the model
 
 **Why the `Composition-Dependent` modifier applies:** Each artifact classifies as `Overt Semantic`, and the modifier records that the adversarial effect requires their co-processing. Two complete, independent artifacts produce the failure through combined interpretation, which is the `Composition-Dependent` case (one payload split into incomplete pieces is the `Fragmented / Distributed` case). In **Completion** (`EX-IMAGE.4` in **Appendix C.1**), both modalities cooperate to supply complementary parts of an operation. In **Contradiction**, the modalities deliberately conflict, and the attack exploits whichever one the model treats as authoritative over the ground-truth observation (`C1`).
 
-**Comparison with adversarial audio contradiction:** An audio contradiction attack can also set two channels in conflict, but with an `Adversarial Perturbation` representation (an adversarially optimized audio waveform). In Scenarios A and B above, both modalities are `Overt Semantic`, so the contradiction is between two plainly readable or viewable inputs. The boundary (`Meaning × Evaluator`, *Semantic Stability*) and modifier (`Composition-Dependent`) are the same, and only the representation form differs, which is enough for the taxonomy to tell them apart: the audio perturbation requires mitigating a model-specific perturbation, while Scenarios A and B require enforcing cross-modal conflict rejection against `C1` (which Step 4 tests using paired claim-vs.-observation fixtures such as `probityai/agent-evidence-vectors`).
+**Comparison with adversarial audio contradiction:** An audio contradiction attack can also set two channels in conflict, but with an `Adversarial Perturbation` representation (an adversarially optimized audio waveform). In Scenarios A and B above, both modalities are `Overt Semantic`, so the contradiction is between two plainly readable or viewable inputs. The mechanism class (`Meaning × Evaluator`, *Semantic Stability*) and modifier (`Composition-Dependent`) are the same; only the representation form differs. That difference is enough for the taxonomy to tell them apart: the audio perturbation requires mitigating a model-specific perturbation, while Scenarios A and B require enforcing cross-modal conflict rejection against `C1` (which Step 4 tests using paired claim-vs.-observation fixtures such as `probityai/agent-evidence-vectors`).
 
 ### C.3 Security Tests for the Seven Surfaces
 
@@ -1578,37 +1586,51 @@ Each test holds the sink constraint fixed and changes only the surface (Section 
 
 | Surface | Mechanism Record | Security Test | Evidence Maturity |
 | :---- | :---- | :---- | :---- |
-| **Text** | `Meaning × Evaluator` (*Human-Machine Perception*), `Steganographic` | Embed a directive in Unicode tag or zero-width characters inside benign text; fails if the `«follower»` acts on it | **`Demonstrated`** (ASCII smuggling against Microsoft 365 Copilot, Rehberger, 2024; Boucher et al., 2022). Text-borne indirect prompt injection in deployed agents: **`Observed`** (Unit 42, 2026) |
-| **Image** | `Meaning × Artifact State` (*Transform Consistency*), `Steganographic → Overt Semantic` | Upload an image whose downscaled form carries a tool directive; fails if the tool call executes | **`Demonstrated`** (Morozova & Hussain, 2025; Xiao et al., 2019; Quiring et al., 2020) |
-| **Audio** | `Meaning × Artifact State` (*Transform Consistency*), `Steganographic → Overt Semantic` | Check whether the resampler low-pass filters before decimation; on an unfiltered resampler, place a command in the aliased band; fails if ASR transcribes it and the agent acts | **`Feasible`** (predicted by Chen et al., 2021; no published attack yet). Model-targeted audio perturbation is a separate record: `Meaning × Evaluator`, `Adversarial Perturbation`, **`Demonstrated`** (AudioHijack, Chen et al., 2026) |
-| **Video** | `Meaning × Artifact State` (*Transform Consistency*), `Overt Semantic` + *Sequence-Dependent* | Insert a short out-of-policy clip between sampling points; fails if the video is certified compliant | **`Demonstrated`** (omission rates above 90% across five VideoLLMs, arXiv:2508.10974, AAAI 2026; poisoned frame selection, arXiv:2509.20851) |
-| **Streaming text** | `Meaning × Artifact State` (*Transform Consistency*, aggregation), `Overt Semantic` + *Fragmented / Distributed* | Split one directive into incomplete pieces across chunk boundaries; fails if every chunk passes and the aggregated directive executes | **`Feasible`** (design gap acknowledged in NVIDIA NeMo Guardrails and LiteLLM documentation and in SentGuard, arXiv:2606.02041; no published exploit yet) |
-| **Structured data** | `Meaning × Evaluator` (*Parser / Interpreter Differential*), `Encoded / Obfuscated` | Return a tool or model output containing the framework's reserved serialization marker; fails if the deserializer instantiates an object or reads a secret | **`Demonstrated`** (LangGrinch, `CVE-2025-68664`) |
-| **Physical robotics** | `Meaning × Evaluator` (*Human-Machine Perception*), `Adversarial Perturbation` or `Overt Semantic`; plus `Authority × Position` (*Decision-Action*) with a VLM planner (Section 5.2) | Present RP2 stickers or a typographic sign across the approach cone; fails if the robot enters the crossing without halting | **`Demonstrated`** components (Eykholt et al., 2018; Tencent Keen Lab, 2019; Robey et al., 2024). Full sign-to-delivery-robot chain: **`Feasible`** |
+| **Text** | `Meaning × Evaluator` (*Human-Machine Perception*), `Steganographic` | Embed a directive in Unicode tag or zero-width characters inside benign text; fails if the `«follower»` acts on it | **`POC`** (ASCII smuggling against Microsoft 365 Copilot, Rehberger, 2024; Boucher et al., 2022). Text-borne indirect prompt injection in deployed agents: **`Attacked`** (Unit 42, 2026) |
+| **Image** | `Meaning × Artifact State` (*Transform Consistency*), `Steganographic → Overt Semantic` | Upload an image whose downscaled form carries a tool directive; fails if the tool call executes | **`POC`** (Morozova & Hussain, 2025; Xiao et al., 2019; Quiring et al., 2020) |
+| **Audio** | `Meaning × Artifact State` (*Transform Consistency*), `Steganographic → Overt Semantic` | Check whether the resampler low-pass filters before decimation; on an unfiltered resampler, place a command in the aliased band; fails if ASR transcribes it and the agent acts | **`Unreported`** (predicted by Chen et al., 2021; no published attack yet). Model-targeted audio perturbation is a separate record: `Meaning × Evaluator`, `Adversarial Perturbation`, **`POC`** (AudioHijack, Chen et al., 2026) |
+| **Video** | `Meaning × Artifact State` (*Transform Consistency*), `Overt Semantic` + *Sequence-Dependent* | Insert a short out-of-policy clip between sampling points; fails if the video is certified compliant | **`POC`** (omission rates above 90% across five VideoLLMs, arXiv:2508.10974, AAAI 2026; poisoned frame selection, arXiv:2509.20851) |
+| **Streaming text** | `Meaning × Artifact State` (*Transform Consistency*, aggregation), `Overt Semantic` + *Fragmented / Distributed* | Split one directive into incomplete pieces across chunk boundaries; fails if every chunk passes and the aggregated directive executes | **`Unreported`** (design gap acknowledged in NVIDIA NeMo Guardrails and LiteLLM documentation and in SentGuard, arXiv:2606.02041; no published exploit yet) |
+| **Structured data** | `Meaning × Evaluator` (*Parser / Interpreter Differential*), `Encoded / Obfuscated` | Return a tool or model output containing the framework's reserved serialization marker; fails if the deserializer instantiates an object or reads a secret | **`POC`** (LangGrinch, `CVE-2025-68664`) |
+| **Physical robotics** | `Meaning × Evaluator` (*Human-Machine Perception*), `Adversarial Perturbation` or `Overt Semantic`; plus `Authority × Position` (*Decision-Action*) with a VLM planner (Section 5.2) | Present RP2 stickers or a typographic sign across the approach cone; fails if the robot enters the intersection without halting | **`POC`** components (Eykholt et al., 2018; Tencent Keen Lab, 2019; Robey et al., 2024). Full sign-to-delivery-robot chain: **`Unreported`** |
 
 *Table C.6. Security tests and full evidence for the surfaces in Tables 4 and 5.*
 
 ---
 
-## Glossary and Terminology Alignment
+## Appendix D: Glossary and Terminology Alignment
 
-This glossary lists the terms this paper defines and relates each one to the closest term in existing frameworks and literature, so readers who know those sources can map between them. **Relationship** uses four tags: **Same** (same term and meaning); **Equivalent** (the same concept under a different name); **Broader** (this paper widens the existing concept, usually to non-text modalities, machine perception, or human reviewers acting as guards); **New** (no equivalent found in the sources reviewed as of November 2026). ATLAS identifiers refer to data release v2026.09.
+This appendix lists the terms this paper defines and relates each one to the closest term in existing frameworks and literature, so readers who know those sources can map between them. **Defined in** gives the section that defines the term; Step 3 terms also name the rule that uses them (the Step 3 rules follow Section 4.2.3). **Relationship** uses four tags: **Same** (same term and meaning); **Equivalent** (the same concept under a different name); **Broader** (this paper widens the existing concept, usually to non-text modalities, machine perception, or human reviewers acting as guards); **New** (this paper introduces the concept; the sources reviewed as of November 2026 hold no counterpart). ATLAS identifiers refer to data release v2026.09; CWE identifiers refer to CWE 4.20.
 
-### Core model
+### D.1 Core Model
 
 | Term | Defined in | Meaning in this paper | Closest existing term(s) | Relationship |
 | :---- | :---- | :---- | :---- | :---- |
 | Mechanism tuple `⟨Invariant, Divergence, Representation⟩` | 3.0 | Three-part key that classifies a failure mechanism | — | New |
-| Mechanism record | 4.3 | One finding: the tuple plus DFD node, role, sink constraint, modality, fidelity, evidence maturity, chain role, and closability | Threat-model finding; CWE weakness entry | Equivalent |
-| Invariant | 3.1 | Security property a sink constraint protects | Security property / objective (CIA triad) | Equivalent |
+| Invariant | 3.1 | Security property a sink constraint protects; it must hold in any modality | Security property / objective (CIA triad) | Equivalent |
 | Divergence | 3.2 | Why two evaluations assumed to agree actually differ | Interpretation conflict (`CWE-436`) | New (as a classification axis) |
 | Representation | 3.4 | Form the adversarial payload takes at a given processing point | Payload; adversarial examples (NIST AI 100-2e2025) for one form | New (as a classification axis) |
 | Sink | 3.0 | Component where data has consequential effect | Sink (taint analysis) | Same |
 | Sink constraint | 3.0, 4.2.1 | Explicit security rule on a sink | Security constraint (STPA-Sec; Young & Leveson, 2013) | Equivalent |
-| Crossing | 4.3 | An `Invariant × Divergence` cell found on a DFD path; may lie inside a single trust zone | Trust-boundary crossing (DFD threat modeling) — different meaning | New (distinct from the DFD usage) |
-| Closable / Reducible-only | 3.3 | A deterministic architectural fix exists / defenses only lower attack success | Deterministic vs. probabilistic controls (Glukhov et al., 2023) | New |
+| Mechanism matrix | 3.3 | Table 1: the four invariants paired with the four divergences; every cell, including empty ones, is a falsifiable hypothesis | — | New |
+| Mechanism class | 3.3 | One named class in a cell of Table 1 | — | New |
+| Closable / Reducible-only | 3.3 | A deterministic architectural fix exists / defenses lower attack success rates | Deterministic vs. probabilistic controls (Glukhov et al., 2023) | New |
+| Candidate mechanism | 1.3, 4.1; Step 3, Rule 2 | An `Invariant × Divergence` pair a structural pattern matches on a DFD path, often inside a single trust zone | Candidate threat generated from DFD rules (Microsoft Threat Modeling Tool) | Equivalent |
+| Mechanism record | 4.1; Step 3, Rule 4 | One finding: a candidate mechanism judged realizable, recorded in the fixed 12-field structure (the tuple plus DFD node, role, sink constraint, modality, fidelity, evidence maturity, chain role, and closability) | Threat-model finding; CWE weakness entry | Equivalent |
 
-### Invariants and divergences
+### D.2 Modalities, Surfaces, and Diagrams
+
+| Term | Defined in | Meaning in this paper | Closest existing term(s) | Relationship |
+| :---- | :---- | :---- | :---- | :---- |
+| Modality | 2.1 | Category of information an AI system represents or processes (text, images, audio, video) | Modality (Baltrušaitis et al., 2019) | Same |
+| Unimodal / multimodal | 2.1 | One modality reaches a component / two or more are processed together | Unimodal / multimodal (Baltrušaitis et al., 2019) | Same |
+| Cross-modal | 2.1 | An operation between modalities, such as captioning an image; attacks that combine modalities carry the *Composition-Dependent* or *Fragmented / Distributed* modifier | Cross-modal (Baltrušaitis et al., 2019); cross-modal prompt injection (Wang et al., 2025) uses the attack sense | Same (operation sense) |
+| Surface | 2.1 | One part of the attack surface: an input or output channel through which a single modality enters or leaves | Attack surface (Manadhata & Wing, 2011) | Equivalent (one channel of it) |
+| Cross-surface variant analysis | 2.1, 4.4 | Take a mechanism record found on one surface and check whether the same mechanism is realizable on another | Variant analysis (GitHub, n.d.) | Broader (across modalities) |
+| Data-flow diagram (DFD) | 4.1 | Boxes-and-arrows model of components, data stores, external entities, and flows; the method's input | DFD (Shostack, 2014) | Same |
+| Trust boundary / trust zone | 1.1, 4.2.2 | Line separating components under different control / the region inside it | Trust boundary (Shostack, 2014) | Same |
+
+### D.3 Invariants and Divergences
 
 | Term | Defined in | Meaning in this paper | Closest existing term(s) | Relationship |
 | :---- | :---- | :---- | :---- | :---- |
@@ -1621,7 +1643,7 @@ This glossary lists the terms this paper defines and relates each one to the clo
 | Time | 3.2.3 | State changes between validation (`t`) and use (`t + Δ`) | Time-of-check to time-of-use (`CWE-367`) | Equivalent |
 | Position | 3.2.4 | A flow's trust or sensitivity label violates the sink's policy | Information-flow policy violation (Denning, 1976; NIST SP 800-53 AC-4) | Equivalent |
 
-### Boundary subclasses (Table 1)
+### D.4 Mechanism Classes (Table 1)
 
 | Term | Cell | Closest existing term(s) | Relationship |
 | :---- | :---- | :---- | :---- |
@@ -1630,22 +1652,22 @@ This glossary lists the terms this paper defines and relates each one to the clo
 | Parser / Interpreter Differential | Meaning × Evaluator | `CWE-436`; parser differentials (Momot et al., 2016) | Same |
 | Semantic Stability | Meaning × Evaluator | ATLAS `AML.T0054` LLM Jailbreak; `AML.T0015` Evade AI Model | New (as a named class) |
 | Transform Consistency | Meaning × Artifact State | `CWE-180`; insertion and evasion (Ptacek & Newsham, 1998) | Broader |
-| Check-Use Consistency | Meaning × Time | `CWE-367` (TOCTOU) | Equivalent |
+| TOCTOU | Meaning × Time | `CWE-367` | Same |
 | Grant Persistence | Authority × Time | `CWE-613` Insufficient Session Expiration; OWASP Agentic `ASI03` Identity & Privilege Abuse | Equivalent |
-| Data-Control | Authority × Position | Prompt injection: OWASP `LLM01:2025`; ATLAS `AML.T0051`; `CWE-1427` (text only); OWASP Agentic `ASI01` Agent Goal Hijack | Broader (beyond text) |
-| Decision-Action | Authority × Position | OWASP `LLM06:2025` Excessive Agency; OWASP Agentic `ASI02` Tool Misuse; `CWE-862` Missing Authorization | Equivalent |
-| Delegation Authority | Authority × Position | Confused deputy (Hardy, 1988; `CWE-441`) | Equivalent |
+| Data-Control | Authority × Position | Prompt injection: OWASP `LLM01:2025`; ATLAS `AML.T0051`; `CWE-1427` (text only); OWASP Agentic `ASI01` Agent Goal Hijack | Broader (all modalities) |
+| Decision-Action | Authority × Position | OWASP `LLM06:2025` Excessive Agency; OWASP Agentic `ASI02` Tool Misuse; `CWE-862` Missing Authorization; complete mediation (Saltzer & Schroeder, 1975) | Equivalent |
+| Confused Deputy | Authority × Position | Confused deputy (Hardy, 1988; `CWE-441`) | Same |
 | Context Confinement | Confidentiality × Position | OWASP `LLM02:2025` Sensitive Information Disclosure; ATLAS `AML.T0086` Exfiltration via AI Agent Tool Invocation | Equivalent |
 | Output-Consumer | Confidentiality × Position | ATLAS `AML.T0077` LLM Response Rendering; OWASP `LLM05:2025` Improper Output Handling; `CWE-1426` | Equivalent |
 | Resource Accounting | Cost × Evaluator | `CWE-400`; ATLAS `AML.T0029` Denial of AI Service, `AML.T0034` Cost Harvesting | Equivalent |
 
-### Representation forms, modifiers, and optional annotations
+### D.5 Representation Forms, Modifiers, and Optional Annotations
 
 | Term | Defined in | Closest existing term(s) | Relationship |
 | :---- | :---- | :---- | :---- |
 | Overt Semantic | 3.4.1 | Plaintext prompt injection; typographic image injection | Equivalent |
 | Encoded / Obfuscated | 3.4.1 | ATLAS `AML.T0068` LLM Prompt Obfuscation (encoding cases such as base64 or rot13) | Same |
-| Steganographic | 3.4.1 | Steganography; ATLAS `AML.T0068` (hidden-text cases such as same-color text). ATLAS groups these with encoding; this paper separates them because normalization removes one but not the other | Same |
+| Steganographic | 3.4.1 | Steganography; ATLAS `AML.T0068` (hidden-text cases such as same-color text). ATLAS groups these with encoding; this paper gives them their own form because normalization removes an encoding and leaves a steganographic payload intact | Same |
 | Adversarial Perturbation | 3.4.1 | Adversarial examples (NIST AI 100-2e2025); ATLAS `AML.T0043` Craft Adversarial Data; `CWE-1039` | Equivalent |
 | Fragmented / Distributed | 3.4.2 | Payload splitting (OWASP `LLM01:2025`, scenario 6) | Equivalent |
 | Composition-Dependent | 3.4.2 | Cross-modal prompt injection (Wang et al., 2025) | New (as a modifier) |
@@ -1656,7 +1678,7 @@ This glossary lists the terms this paper defines and relates each one to the clo
 | Attacker Knowledge / Access (*Partial Knowledge*) | 3.6 | White-box, black-box, and gray-box attacks (NIST AI 100-2e2025, Section 2.1.4) | Equivalent (*Partial Knowledge* = gray-box) |
 | Transfer Context (*Surrogate Transfer*) | 3.6 | ATLAS `AML.T0043.002` Black-Box Transfer | Equivalent |
 
-### Annotation vocabulary
+### D.6 Annotation Vocabulary
 
 | Term | Defined in | Closest existing term(s) | Relationship |
 | :---- | :---- | :---- | :---- |
@@ -1665,6 +1687,7 @@ This glossary lists the terms this paper defines and relates each one to the clo
 | *Reference specification* | 4.2.1 | Ground-truth specification | New (as a sink-constraint type) |
 | *Resource budget* | 4.2.1 | Quota / rate limit; ATLAS `AML.M0036` Limit AI Workload Resource Consumption | Equivalent |
 | *Safeguard obligation* (liveness bound) | 4.2.1 | Liveness property (Alpern & Schneider, 1985); a deadline-bounded obligation is bounded liveness | Broader |
+| Functional role | 4.2.2 | Element type in a DFD (process, data store, external entity) | Broader (splits processes into guard, transform, follower, executor, renderer, and relay) |
 | `«source»` | 4.2.2 | External entity (DFD); source (taint analysis) | Same |
 | `«receiver»` | 4.2.2 | External entity on the outbound side (DFD) | Equivalent |
 | Data store | 4.2.2 | Data store (DFD; Shostack, 2014) | Same |
@@ -1674,32 +1697,39 @@ This glossary lists the terms this paper defines and relates each one to the clo
 | `«executor»` | 4.2.2 | Agent tool (ATLAS `AML.T0053`); actuator (STPA) | Equivalent |
 | `«renderer»` | 4.2.2 | Downstream output consumer (OWASP `LLM05:2025`); rendering client (ATLAS `AML.T0077`) | Equivalent |
 | `«relay»` | 4.2.2 | Pass-through data flow (DFD) | New (role name) |
+| Trust label | 4.2.3 | Security label on a flow in information-flow control (Denning, 1976) | Same |
 | `Untrusted` / `Trusted` | 4.2.3 | Integrity labels in information-flow control (Biba; Denning, 1976; Costa et al., 2025) | Same |
 | `Secret` | 4.2.3 | Confidentiality label (Bell-LaPadula; Denning, 1976; Costa et al., 2025) | Same |
 | Propagation rule | 4.2.3 | Label join in an information-flow lattice (Denning, 1976); taint propagation | Same |
 | Fidelity (`Full` / `Normalized` / `Typed`) | 3.4.1, 4.2.3 | — | New |
+| `Full` | 4.2.3 | Raw input passed unmodified | New (as a fidelity level) |
 | `Normalized` | 4.2.3 | Canonicalization (`CWE-180`); input restoration (ATLAS `AML.M0010`) | Broader |
 | `Typed` | 4.2.3 | Schema validation (ATLAS `AML.M0033`); control/data separation (Debenedetti et al., 2025) | Broader |
 
-### Method
+### D.7 Method
 
 | Term | Defined in | Closest existing term(s) | Relationship |
 | :---- | :---- | :---- | :---- |
 | Step 1: losses, hazards, sink constraints | 4.1 | Losses, hazards, and constraints in STPA-Sec (Young & Leveson, 2013) | Same |
-| Structural pattern | 4.3 | Threat-pattern rule in DFD-based threat modeling | Equivalent |
-| Attack chain | 4.1, 4.3 | Attack path in an attack graph (Phillips & Swiler, 1998; Sheyner et al., 2002) | Equivalent |
-| Leg | 4.1 | Attack step (one edge of an attack path) | Equivalent |
-| Granted / supplied leg | 4.1, 4.3 | — | New |
-| Cut point | 4.1, 4.3 | Minimum cut set in attack graphs (Sheyner et al., 2002) | Equivalent |
+| Step 2: annotate the DFD | 4.1, 4.2 | DFD element typing for STRIDE-per-element (Shostack, 2014) | Broader (adds roles, trust labels, and fidelity) |
+| Step 3: derive findings | 4.1; Step 3, Rules 1–7 | Rule-based threat generation from a DFD (Microsoft Threat Modeling Tool); source-to-sink taint analysis | Broader |
+| Step 4: security tests | 4.1, 4.3.4 | Test oracle; abuse case | Equivalent |
+| Structural pattern | 4.1; Step 3, Rule 2 | Threat-pattern rule in DFD-based threat modeling | Equivalent |
+| Attack chain | 4.1; Step 3, Rule 5 | Attack path in an attack graph (Phillips & Swiler, 1998; Sheyner et al., 2002) | Equivalent |
+| Leg | 4.1; Step 3, Rule 5 | Attack step: one edge of an attack path (Phillips & Swiler, 1998; Sheyner et al., 2002) | Equivalent |
+| Granted leg | 4.1; Step 3, Rule 5 | A leg the architecture permits unconditionally, at zero attacker effort | New |
+| Supplied leg | 4.1; Step 3, Rule 5 | A leg the attacker completes by actively bypassing a defense | New |
+| Exfiltration chain | Step 3, Rule 5 | The "lethal trifecta" (Willison, 2025) | Equivalent |
+| Chokepoint | 1.4, 4.1; Step 3, Rule 6 | Choke point in attack-path analysis; the fewest chokepoints that break every chain form a minimal cut set (Sheyner et al., 2002) | Same |
+| Coverage audit | 4.1; Step 3, Rule 7 | Threat-model completeness check (STRIDE-per-element coverage) | Equivalent |
+| Evidence maturity | 3.5.5; Step 3, Rule 4 | Exploit Maturity metric `E`, CVSS v4.0 (FIRST, 2023) | Same |
+| `Attacked` | Step 3, Rule 4 | CVSS v4.0 `E:A` (attacks reported); ATLAS case-study type *Incident* | Same |
+| `POC` | Step 3, Rule 4 | CVSS v4.0 `E:P` (public proof of concept, no reported attacks); ATLAS case-study type *Exercise* | Same |
+| `Unreported` | Step 3, Rule 4 | CVSS v4.0 `E:U` (no public proof of concept and no reported attacks); here the method predicts the mechanism from the diagram, so the record is a test hypothesis | Same |
 | Security test (sink-constraint oracle) | 4.3.4 | Test oracle; abuse case | Same |
-| Coverage audit | 4.3 | Threat-model completeness check (STRIDE-per-element coverage) | Equivalent |
-| Evidence maturity (*Observed* / *Demonstrated* / *Feasible*) | 4.3 | ATLAS case-study type *Incident* (≈ Observed) and *Exercise* (≈ Demonstrated) | Broader (adds *Feasible*) |
 | Reverse traversal (incident triage) | 4.3.4 | CAST accident analysis (Leveson, 2019) | Equivalent |
-| Modality surface | 2.1 | Attack surface, per input or output channel | Equivalent |
-| Cross-modality-surface prediction | 2.1, 4.4 | — | New |
-| Context separation | 3.3 | Control/data-flow separation (Debenedetti et al., 2025) | Equivalent |
-| Type narrowing | 3.3 | Output schema enforcement (ATLAS `AML.M0033`) | Equivalent |
-| Exfiltration chain | 4.3 | The "lethal trifecta" (Willison, 2025) | Equivalent |
+| Dual-LLM pattern | 3.3 | Willison (2023); control/data-flow separation in CaMeL (Debenedetti et al., 2025) | Same |
+| Schema validation | 3.3 | Input and output validation (ATLAS `AML.M0033`) | Same |
 
 ---
 
