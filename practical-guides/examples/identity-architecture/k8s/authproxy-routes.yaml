@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: authproxy-routes
+  namespace: agents
+data:
+  routes.yaml: |
+    - host: "weather-agent.agents.svc.cluster.local"
+      target_audience: "spiffe://localtest.me/ns/agents/sa/weather-agent-sa"
