@@ -8,10 +8,22 @@
 
 ## Abstract
 
+AI agents increasingly process images, audio, video, and structured data alongside text, introducing security risks that extend beyond individual inputs to their processing, transformation, and interaction across modalities. Existing security approaches remain largely modality-specific: techniques developed for text do not consistently generalize, research findings are difficult to compare, and defenses designed for individual input surfaces may fail to address vulnerabilities that span multiple modalities. These limitations point to a common problem: treating modality, rather than the underlying failure mechanism, as the unit of security analysis.
 
+This whitepaper introduces a modality-agnostic taxonomy that classifies attacks by their underlying failure mechanisms. Each mechanism is defined by a three-part tuple, `⟨Invariant, Divergence, Representation⟩`, capturing the security property that is violated, why the violation is not detected or prevented, and the payload representation at the point where a security check could have been applied. Because these dimensions are independent of modality, the taxonomy provides a common framework for comparing attacks, assessing defensive coverage, extending security analyses to emerging modalities, and identifying vulnerabilities arising from cross-modal interactions.
 
-## Target Audience and How to Use This Paper
+The taxonomy is demonstrated through five independently disclosed real-world attacks spanning voice agents, IDE and enterprise tooling, physical robotics, and cross-modal composition. Its potential predictive value is further illustrated by analytically deriving a previously undocumented streaming-text attack scenario from the failure mechanism of a documented video attack. Together, these examples illustrate how mechanism-based analysis can reveal common security failures across modalities and help identify potential vulnerabilities beyond the contexts in which they were originally observed.
 
+## Target Audience
+
+This paper is written for practitioners who design, secure, or evaluate AI agents that process more than one modality:
+
+- **Security architects and engineers** building threat models or guardrails for multimodal agents, who need to assess whether a defense covers a failure mechanism rather than a single input channel.
+- **AI red teamers and security researchers** studying prompt injection, jailbreaks, and adversarial perturbations, who need a shared vocabulary for comparing findings across modalities and existing taxonomies.
+- **Practitioners already fluent in STRIDE, MITRE ATLAS/D3FEND/CWE, OWASP LLM Top 10, or CSA MAESTRO**, who want to extend that reasoning to multimodal pipelines without learning an unrelated mental model (Section 1.2 maps the taxonomy against each of these frameworks).
+- **CoSAI/OASIS working-group members and standards contributors** reviewing, critiquing, or building on this workstream deliverable.
+
+The paper does not assume prior exposure to multimodal security research, but it does assume familiarity with standard threat-modeling concepts (trust boundaries, attacker capability, pipeline components that process or check an input).
 
 ## 1. Introduction
 
