@@ -18,12 +18,11 @@ The taxonomy is demonstrated through five independently disclosed real-world att
 
 This paper is written for practitioners who design, secure, or evaluate AI agents that process more than one modality:
 
-- **Security architects and engineers** building threat models or guardrails for multimodal agents, who need to assess whether a defense covers a failure mechanism rather than a single input channel.
+- **Security architects and engineers** designing threat models and safeguards for multimodal agents, who need to evaluate whether defenses address underlying failure mechanisms rather than threats specific to individual input modalities.
 - **AI red teamers and security researchers** studying prompt injection, jailbreaks, and adversarial perturbations, who need a shared vocabulary for comparing findings across modalities and existing taxonomies.
 - **Practitioners already fluent in STRIDE, MITRE ATLAS/D3FEND/CWE, OWASP LLM Top 10, or CSA MAESTRO**, who want to extend that reasoning to multimodal pipelines without learning an unrelated mental model (Section 1.2 maps the taxonomy against each of these frameworks).
 - **CoSAI/OASIS working-group members and standards contributors** reviewing, critiquing, or building on this workstream deliverable.
 
-The paper does not assume prior exposure to multimodal security research, but it does assume familiarity with standard threat-modeling concepts (trust boundaries, attacker capability, pipeline components that process or check an input).
 
 ## 1. Introduction
 
@@ -57,7 +56,9 @@ Section 1.2 reviews existing frameworks, taxonomies, and current practices, and 
 
 ### 1.2 Ecosystem Positioning
 
-Before proposing a new taxonomy, we reviewed whether existing security frameworks already analyze multimodal threats in a modality-agnostic, mechanism-based way. We examined STRIDE, MITRE ATLAS, MITRE D3FEND, MITRE CWE, NIST AI 100-2, the OWASP Top 10 for LLM Applications, CSA MAESTRO, and the CoSAI Risk Map. Each serves its purpose well, organizing threats by hazard, attacker technique, weakness, risk, or architectural layer, or organizing defenses by defensive technique. The walkthrough below applies them to one attack, and Appendix A compares them in detail.
+The taxonomy this paper proposes is not a replacement for existing security frameworks; it is a complementary layer that adds a mechanism-based lens that those frameworks do not provide. A team keeps its STRIDE threat model, its MITRE ATLAS technique mapping, or its CoSAI Risk Map coverage, and uses this taxonomy alongside them to classify *why* an attack works at the level of the processing pipeline, independent of the modality carrying it.
+
+Before proposing a new taxonomy, we reviewed whether existing security frameworks already analyze multimodal threats in a modality-agnostic, mechanism-based way. We examined STRIDE, MITRE ATLAS, MITRE D3FEND, MITRE CWE, NIST AI 100-2, NIST AI RMF 1.0, the IBM AI Risk Atlas, the OWASP Top 10 for LLM Applications, CSA MAESTRO, and the CoSAI Risk Map. Each serves its purpose well, organizing threats by hazard, attacker technique, weakness, risk, or architectural layer, or organizing defenses by defensive technique. The walkthrough below applies them to one attack, and Appendix A compares them in detail.
 
 **What existing frameworks see in one attack.** Consider the Trail of Bits disclosure from Section 1.1. A developer uploads an image to Gemini CLI that looks benign at full resolution. Before the model sees it, the system downscales the image, and the resizing reveals a hidden instruction. The model follows the instruction and sends the developer's Google Calendar entries to the attacker through a Zapier tool call that was approved automatically (**Figure 1**).
 
@@ -98,6 +99,8 @@ The table below shows what each framework tells a security team about the Trail 
 | **MITRE D3FEND** | Candidate defenses: file content analysis and outbound traffic filtering | Whether file analysis must run before or after the downscaler. If it runs before, it inspects the benign-looking original. |
 | **MITRE CWE** | The weakness: improper neutralization of prompt input (`CWE-1427`) and validating before transforming (`CWE-180`) | How these weaknesses apply to images and to transforms such as resizing, OCR, or speech recognition |
 | **NIST AI 100-2** | The attack class and attacker capability: indirect prompt injection through an external resource the attacker controls | How resizing changes what is visible, or the stage where hidden content becomes actionable |
+| **NIST AI RMF 1.0** | Risk-management guidance: where to measure and manage this kind of risk (`MEASURE 2.7`, `MANAGE 1.3`) | The attack mechanism itself, the image transformation involved, or the pipeline stage where it activates |
+| **IBM AI Risk Atlas** | The risk categories: Prompt Injection Attack and Indirect Instructions Attack, including tool-confidentiality risk | A way to separate this image-resizing attack from other indirect-injection attacks, since it has no field for transformation-dependent activation |
 | **OWASP LLM Top 10** | The risks: prompt injection (`LLM01`), including a multimodal scenario, and excessive agency (`LLM06`) for the auto-approved tool | The pipeline step where the hidden instruction becomes readable. `LLM01` also covers attacks that need very different fixes. |
 | **CSA MAESTRO** | The affected layers (data operations, foundation model, agent framework) and how the attack spreads across them | Which component within those layers failed. The downscaler is not a layer. |
 | **CoSAI Risk Map** | The risk (prompt injection, including multimodal) and the affected components, from input handling to tools | The downscaler as a distinct component between input handling and the model |
@@ -112,9 +115,10 @@ Together, these frameworks name the attack, its consequences, and candidate defe
 - **Jain, Arık & Thakur** (2026) organize attacks on multimodal models by objective and identify modality-specific input processing as a root cause. This paper formalizes that root cause as a transformation that changes the input between when it is checked and when it is used (Section 3.2.2).
 - **Shi et al.** (2025) trace agent vulnerabilities to a mismatch between dynamic trust and static authorization, a precedent for how this paper treats authority (Section 3.1.2).
 - **Maloyan & Namiot** (2026) catalog attacks on coding agents, with modality as a primary axis, so each new input surface needs a new branch.
+- **MLCommons Jailbreak Attack Taxonomy** (Maple et al., 2026) classifies single-turn, text-only jailbreak prompts into a closed Family > Category > Leaf hierarchy (18 leaves across Perturbation, Encoding Abuse, Overt Carriers, and Composition & Ordering), organized by the dominant prompt-manipulation strategy and validated against empirical prevalence in a large attack corpus. Its scope is narrower by design — single-turn, prompt-only, text-only, and explicitly excluding indirect prompt injection — and its "mechanism" axis corresponds to this paper's Representation (Section 3.4): its Encoding Abuse and Composition & Ordering families are closely related to this paper's *Encoded/Obfuscated* form and *Fragmented/Distributed* and *Sequence-Dependent* modifiers. It has no equivalent of this paper's Invariant or Divergence axes, so it does not classify why a check misses an attack or what security property breaks, and a team red-teaming direct, text-only jailbreaks can use its leaf catalog for prompt coverage alongside this paper's taxonomy for the pipeline-level mechanism.
 - **CAPEC View 1000** (*Mechanisms of Attack*; MITRE, 2026) is the closest existing modality-agnostic mechanism hierarchy, but it is organized by attacker action and does not cover failures of machine perception.
 
-**Appendix A, Table A.4** compares these taxonomies in detail.
+**Appendix A, Table A.4** compares the multimodal and agentic-attack taxonomies in detail; CAPEC View 1000's relationship to the mechanism hierarchy as a whole is covered separately in **Table A.3**.
 
 **Current practice.** Security teams today rely on two approaches, neither of which captures how multimodal pipelines actually fail:
 
@@ -133,7 +137,7 @@ Together, these frameworks name the attack, its consequences, and candidate defe
 - *Why do two parts of the system disagree?* For example, because a transformation changed the input between when it was checked and when it was used.
 - *What form does the payload take?* The form ranges from plainly readable text, through hidden or encoded content, to perturbations tuned to a specific model.
 
-The three answers form a mechanism tuple, `⟨Invariant, Divergence, Representation⟩`. This paper defines the tuple and the taxonomy it produces; a separate, rigorous procedure for finding these mechanisms on a real system's data-flow diagram is given in the companion paper, *Applying the Modality-Independent Taxonomy*.
+The three answers form a mechanism tuple, `⟨Invariant, Divergence, Representation⟩`. This paper defines the tuple and the taxonomy it produces.
 
 **Contributions.** Compared with the frameworks and taxonomies reviewed in Section 1.2, this paper contributes:
 
@@ -142,8 +146,6 @@ The three answers form a mechanism tuple, `⟨Invariant, Divergence, Representat
 3. **Prediction across modalities.** Because the tuple never names a modality, a mechanism classified on one input surface becomes a concrete, testable prediction for any other surface with the same structural shape — demonstrated directly in this paper by predicting an undocumented streaming-text attack from a documented video attack (Section 3.5.5).
 4. **A worked account of what transfers and what does not when a fix moves across modalities.** The diagnosis and the shape of a remedy transfer with the mechanism; the modality-specific implementation of a check does not (Section 4, use case 2).
 5. **Five uses the classification is put to in practice.** Triaging a disclosure, choosing where a fix belongs, reviewing an architecture before it ships, sharing a finding without disclosing proprietary architecture, and auditing existing defenses for coverage gaps (Section 4).
-
-Deriving these findings rigorously from a system's own data-flow diagram — including a minimum-cut analysis for remediation priority and a structured record format for sharing findings across organizations — is the subject of the companion paper, *Applying the Modality-Independent Taxonomy*, rather than of this one.
 
 ## 2. Scope and Key Terms
 
@@ -171,7 +173,7 @@ In scope:
 
 ### 2.3 Key Terms and Terminology
 
-The following terms are used throughout the paper. The Glossary collects the remaining terminology and aligns it with existing frameworks.
+The following terms are used throughout the paper.
 
 **Modalities**
 
@@ -186,14 +188,14 @@ The following terms are used throughout the paper. The Glossary collects the rem
 
 **Architectures**
 
-- **Unified architecture.** Several modalities are integrated in one model (e.g., GPT-4o). Unified models still sit behind modality-specific encoders and preprocessing.
+- **Unified architecture.** Several modalities are integrated in one model (e.g., GPT-4o; OpenAI, 2024). Unified models still sit behind modality-specific encoders and preprocessing.
 - **Fragmented architecture.** Specialized components are chained together, for example separate speech recognition, language, and speech generation models.
 - **Hybrid architecture.** A system that combines unified and fragmented components.
 - **AI agent.** A system that adds orchestration on top of models: it uses them to pursue goals through tools, APIs, applications, or other agents. An agent may run on any of the architectures above.
 
 **Analysis**
 
-- **Mechanism.** A reusable explanation of why an attack works, independent of the modality that carries it. Each mechanism is described by the security property that breaks, the reason two parts of the system disagree, and the form the payload takes, written as the tuple `⟨Invariant, Divergence, Representation⟩` (Section 3). The companion paper, *Applying the Modality-Independent Taxonomy*, gives a rigorous procedure for deriving mechanisms from a real system, built on the data-flow diagrams practitioners already draw for STRIDE threat modeling (Shostack, 2014).
+- **Mechanism.** A reusable explanation of why an attack works, independent of the modality that carries it. Each mechanism is described by the security property that breaks, the reason two parts of the system disagree, and the form the payload takes, written as the tuple `⟨Invariant, Divergence, Representation⟩` (Section 3). A mechanism can be located on the data-flow diagrams practitioners already draw for STRIDE threat modeling (Shostack, 2014), as Section 4's architecture-review use case shows.
 
 Modality, architecture, and orchestration vary independently, and security outcomes depend on how information moves between components. This is why the taxonomy classifies mechanisms by this structure rather than by modality or architecture (Section 3).
 
@@ -227,7 +229,7 @@ flowchart TD
 
     REP --> FORMS["<b>Primary Forms</b>"]
     REP --> MODS["<b>Modifiers</b>"]
-    REP --> COMP["<b>Composite Dependency</b>"]
+    REP --> COMP["<b>Composition-Dependent</b>"]
 
     FORMS --> OS["Overt Semantic"]
     FORMS --> EO["Encoded / Obfuscated"]
@@ -237,7 +239,8 @@ flowchart TD
     MODS --> FR["Fragmented / Distributed"]
     MODS --> SD["Sequence-Dependent"]
 
-    COMP --> CD["Composition-Dependent"]
+    COMP --> CC["Cross-channel"]
+    COMP --> IA["Intra-artifact"]
 
     classDef root fill:#f0ede8,stroke:#1c1917,stroke-width:2px,color:#1c1917
     classDef branch fill:#f8fafc,stroke:#64748b,stroke-width:1.5px,color:#1c1917
@@ -255,7 +258,7 @@ flowchart TD
     class CO confid
     class CS cost
     class EV,AS,TI,PO divergence
-    class FORMS,MODS,COMP,OS,EO,ST,AP,FR,SD,CD rep
+    class FORMS,MODS,COMP,OS,EO,ST,AP,FR,SD,CC,IA rep
 ```
 
 *Figure 1b. The taxonomy hierarchy. Each mechanism is classified by three components: Invariant (what breaks), Divergence (why), and Representation (how the payload travels). Sections 3.1–3.4 define each node; Section 3.3 lists the subclasses.*
@@ -316,7 +319,7 @@ Now that the tuple has been shown in action, the rest of Section 3 defines each 
 
 **Formal definition.** An **invariant** is a security property the system relies on as information is read, transformed, passed between components, and acted on. It breaks when adversarial input makes that property fail at a component whose consequential behavior depends on it. There are four invariants, and each applies in any modality (classical precedents are in Section 3.3.1). Each subsection below gives the definition, why it matters for multimodal agents, its subclasses, grouped by the divergence each one pairs with (defined in the **Invariant × Divergence Table**, Section 3.3), and an example in plain terms.
 
-**In simple words.** An invariant is a safety promise the system must always keep. A successful attack breaks one of these promises, so the invariant answers the question *"What went wrong?"* There are four, shown below with the example that breaks each one (**Figure 1d**):
+**In simple words.** An invariant is a safety promise the system must always keep. A successful attack breaks one of these promises, so the invariant answers the question *"What went wrong?"* There are four, shown below; Sections 3.1.1–3.1.4 each give a worked example of the promise it names being broken (**Figure 1d**):
 
 ```mermaid
 flowchart TD
@@ -327,24 +330,20 @@ flowchart TD
     ROOT --> CO["<b>Confidentiality</b><br/>Secrets reach only those allowed to see them"]
     ROOT --> CS["<b>Cost</b><br/><i>Resource Bounding</i><br/>Processing stays within its limits"]
 
-
-
     classDef root fill:#f0ede8,stroke:#1c1917,stroke-width:2px,color:#1c1917
     classDef meaning fill:#dbeafe,stroke:#2563eb,stroke-width:1.5px,color:#1e3a5f
     classDef authority fill:#fee2e2,stroke:#dc2626,stroke-width:1.5px,color:#7f1d1d
     classDef confid fill:#ede9fe,stroke:#7c3aed,stroke-width:1.5px,color:#3b0764
     classDef cost fill:#fef3c7,stroke:#d97706,stroke-width:1.5px,color:#78350f
-    classDef example fill:#f8fafc,stroke:#94a3b8,stroke-width:1px,color:#334155
 
     class ROOT root
     class ME meaning
     class AU authority
     class CO confid
     class CS cost
-    class MEX,AUX,COX,CSX example
 ```
 
-*Figure 1d. The four invariants, each with the example that breaks it. Meaning, Authority, and Confidentiality govern whether information and control flow correctly between parties; Cost governs whether processing stays within its resource budget. An attack is in scope only when a consequential component's behavior depends on the broken promise (Section 3.0).*
+*Figure 1d. The four invariants. Meaning, Authority, and Confidentiality govern whether information and control flow correctly between parties; Cost governs whether processing stays within its resource budget. An attack is in scope only when a consequential component's behavior depends on the broken promise (Section 3.0).*
 
 Invariants matter for two reasons:
 
@@ -416,7 +415,7 @@ flowchart LR
 
 The problem is not that the model has access to the tool. The problem is that an instruction hidden inside an image is treated as a reason to use that access. The developer authorized the system to use its tools, but did not authorize the hidden instruction to control them. This is an Authority failure: an untrusted source influences an action that should only be directed by an authorized source.
 
-*Why it matters:* AI agents often process external information while having legitimate permission to perform actions, such as reading files, accessing calendars, or sending messages. Authority failures can occur whenever untrusted content is allowed to direct those actions, regardless of whether the content comes from an image, webpage, document, email, or another source. This is related to the confused deputy problem (Hardy, 1988), in which a system with legitimate permissions is manipulated into using them on behalf of an unauthorized party.
+*Why it matters:* AI agents often process external information while having legitimate permission to perform actions, such as reading files, accessing calendars, or sending messages. Authority failures can occur whenever untrusted content is allowed to direct those actions, regardless of whether the content comes from an image, webpage, document, email, or another source. The combination is most dangerous when an agent simultaneously has access to private data, processes untrusted content, and can communicate externally — the "lethal trifecta" (Willison, 2025) that the Trail of Bits case exhibits exactly. This is also related to the confused deputy problem (Hardy, 1988), in which a system with legitimate permissions is manipulated into using them on behalf of an unauthorized party.
 
 #### 3.1.3 Confidentiality
 
@@ -692,7 +691,7 @@ In both cases the information arrived somewhere it should not have been allowed.
 | *Data-Control* | Authority | Position | Untrusted content is treated as an instruction. | `OWASP LLM01:2025` |
 | *Decision-Action* | Authority | Position | A tool runs a model-requested operation without the authorization that operation requires. | `NIST SP 800-53 AC-3` |
 | *Delegation Authority* | Authority | Position | A component acting on another's behalf exceeds the authority it was given. | `NIST SP 800-53 AC-6` |
-| *Context Confinement* | Confidentiality | Position | Secret context, or data the model has memorized, reaches a recipient not allowed to receive it. | No direct match found |
+| *Context Confinement* | Confidentiality | Position | Secret context, or data the model has memorized (Carlini et al., 2021, 2023), reaches a recipient not allowed to receive it. | No direct match found |
 | *Output-Consumer* | Confidentiality | Position | Generated output makes a downstream renderer or client release data to parties not allowed to receive it, for example by fetching an external URL. | `OWASP LLM05:2025`; `CWE-1426` |
 | *Resource Accounting* | Cost | Evaluator | An input, or the work it induces, consumes more compute, memory, inference, or tool execution than allowed for it. | `CWE-400` |
 | *Decompression Amplification* | Cost | Artifact State | A decoding or decompression step expands an admitted artifact into a far larger processing workload than the pre-transform check measured. | `CWE-405`; `CWE-409` |
@@ -708,7 +707,7 @@ Invariant × Divergence pairs that do not appear in this table had no matching c
 
 The table's "Existing Framework Alignment" column pointed to specific identifiers; this section says more about how each one fits, and compares the table against the older, non-AI-specific security and safety literature that several of its entries draw on directly — distinct from Section 1.2's comparison against existing *AI* security frameworks and taxonomies.
 
-Most subclasses in the table have direct classical ancestors, and naming them lets practitioners reuse established reasoning (**Appendix A, Table A.3**). *Check-Use Consistency* is time-of-check to time-of-use (`CWE-367`). *Parser / Interpreter Differential* is the parser differential of language-theoretic security (Momot et al., 2016; `CWE-436`). *Transform Consistency* extends validate-before-canonicalize (`CWE-180`), which applies directly to a check that runs before a transform and a consequential component that acts on the transform's output, and network intrusion-detection insertion and evasion (Ptacek & Newsham, 1998), in which a monitor and an end host reassemble the same packets differently; the streaming-text row of the companion paper's **Table 4** is that structure at chunk boundaries. *Delegation Authority* is the confused deputy (Hardy, 1988), *Decision-Action* is a failure of complete mediation (Saltzer & Schroeder, 1975), and the `Authority` and `Confidentiality` invariants are the integrity and confidentiality directions of the information-flow lattice (Denning, 1976). The method itself builds on STPA-Sec, taint analysis, and attack-graph minimum cuts (companion paper, **Section 1**). CAPEC View 1000 (*Mechanisms of Attack*) is the closest existing modality-agnostic mechanism hierarchy; its categories are organized by attacker action, and the machine-perception subclasses of the table are additions to it.
+Most subclasses in the table have direct classical ancestors, and naming them lets practitioners reuse established reasoning (**Appendix A, Table A.3**). *Check-Use Consistency* is time-of-check to time-of-use (`CWE-367`). *Parser / Interpreter Differential* is the parser differential of language-theoretic security (Momot et al., 2016; `CWE-436`). *Transform Consistency* extends validate-before-canonicalize (`CWE-180`), which applies directly to a check that runs before a transform and a consequential component that acts on the transform's output, and network intrusion-detection insertion and evasion (Ptacek & Newsham, 1998), in which a monitor and an end host reassemble the same packets differently; the streaming-text attack derived in Section 3.5.5 is that structure at chunk boundaries. *Delegation Authority* is the confused deputy (Hardy, 1988), *Decision-Action* is a failure of complete mediation (Saltzer & Schroeder, 1975), and the `Authority` and `Confidentiality` invariants are the integrity and confidentiality directions of the information-flow lattice (Denning, 1976). CAPEC View 1000 (*Mechanisms of Attack*) is the closest existing modality-agnostic mechanism hierarchy; its categories are organized by attacker action, and the machine-perception subclasses of the table are additions to it.
 
 Against these precedents, two aspects of the contributions listed in **Section 1.3** are new:
 
@@ -726,7 +725,7 @@ flowchart TD
 
     ROOT -- "for Meaning, Authority,<br/>Confidentiality" --> FORMS["<b>Primary Forms</b><br/>(Section 3.4.1)"]
     ROOT -- "optional, one payload" --> MODS["<b>Modifiers</b><br/>(Section 3.4.2)"]
-    ROOT -- "multiple complete artifacts" --> COMP["<b>Composite Dependency</b><br/>(Section 3.4.3)"]
+    ROOT -- "multiple complete artifacts" --> COMP["<b>Composition-Dependent</b><br/>(Section 3.4.3)"]
     ROOT -- "for Cost only" --> AMP["<b>Resource-Amplification<br/>Characteristics</b><br/>(Section 3.4.4)"]
 
     FORMS --> OS["<b>Overt Semantic</b><br/>Plainly readable"]
@@ -737,9 +736,8 @@ flowchart TD
     MODS --> FR["Fragmented / Distributed"]
     MODS --> SD["Sequence-Dependent"]
 
-    COMP --> CD["Composition-Dependent"]
-    CD --> CC["Cross-channel<br/><i>separate artifacts,<br/>separate checks</i>"]
-    CD --> IAF["Intra-artifact<br/><i>one file, separately-checkable<br/>components</i>"]
+    COMP --> CC["Cross-channel<br/><i>separate artifacts,<br/>separate checks</i>"]
+    COMP --> IAF["Intra-artifact<br/><i>one file, separately-checkable<br/>components</i>"]
 
     AMP --> IA["Intrinsic Amplification<br/><i>the artifact's structure</i>"]
     AMP --> SA["Semantic Amplification<br/><i>the work it induces</i>"]
@@ -752,13 +750,13 @@ flowchart TD
     class ROOT root
     class FORMS,MODS,COMP branch
     class AMP cost
-    class OS,EO,ST,AP,FR,SD,CD,CC,IAF rep
+    class OS,EO,ST,AP,FR,SD,CC,IAF rep
     class IA,SA cost
 ```
 
-*Figure 1n. Representation's four branches. Primary Forms, Modifiers, and Composite Dependency describe the payload for Meaning, Authority, and Confidentiality mechanisms — Modifiers cover a condition on how one payload is delivered, while Composite Dependency covers an effect that only emerges once several separate, complete artifacts combine, whether those artifacts arrive through separate channels (Cross-channel) or as separately-checkable components bundled in one file (Intra-artifact). Resource-Amplification Characteristics is the parallel vocabulary used only for Cost mechanisms, since "how visible is this payload" does not apply to a decompression bomb the way it applies to hidden text.*
+*Figure 1n. Representation's four branches. Primary Forms, Modifiers, and Composition-Dependent describe the payload for Meaning, Authority, and Confidentiality mechanisms — Modifiers cover a condition on how one payload is delivered, while Composition-Dependent covers an effect that only emerges once several separate, complete artifacts combine, whether those artifacts arrive through separate channels (Cross-channel) or as separately-checkable components bundled in one file (Intra-artifact). Resource-Amplification Characteristics is the parallel vocabulary used only for Cost mechanisms, since "how visible is this payload" does not apply to a decompression bomb the way it applies to hidden text.*
 
-*Figure 1n. The four representation forms, ordered by how visible the payload is: Overt Semantic is plainly readable, Encoded/Obfuscated requires decoding, Steganographic hides in a sub-channel an ordinary reading skips, and Adversarial Perturbation is imperceptible to any ordinary reader at all. A payload's form can change as it crosses a transform (Section 3.2.2) — the same content can be Steganographic before a downscaler and Overt Semantic after it.*
+The four representation forms are ordered by how visible the payload is: Overt Semantic is plainly readable, Encoded/Obfuscated requires decoding, Steganographic hides in a sub-channel an ordinary reading skips, and Adversarial Perturbation is imperceptible to any ordinary reader at all. A payload's form can change as it crosses a transform (Section 3.2.2) — the same content can be Steganographic before a downscaler and Overt Semantic after it.
 
 Section 3.4.1 (**Table 2**) defines each form in full, with cross-modal examples.
 
@@ -772,7 +770,7 @@ Representation is the third and last part of the mechanism tuple: the invariant 
 
 #### 3.4.1 Primary Forms
 
-A **primary form** is how adversarial content appears to an upstream guard or ordinary human observer. The four forms build on encoding, obfuscation, steganography, and adversarial evasion, and they are ordered by what that observer perceives (**Table 2**).
+A **primary form** is how adversarial content appears to an upstream guard or ordinary human observer. The four forms build on encoding, obfuscation, steganography (e.g., imperceptible Unicode perturbations in text; Boucher et al., 2022), and adversarial evasion, and they are ordered by what that observer perceives (**Table 2**).
 
 *Why it matters:* a guard or reviewer catches only what it perceives, and a payload's form can change as it moves through the pipeline.
 
@@ -781,7 +779,7 @@ A **primary form** is how adversarial content appears to an upstream guard or or
 | **Overt Semantic** | Adversarial content is readable through ordinary interpretation at the observation point. | Plaintext prompt; legible typographic text in an image; clear spoken command. |
 | **Encoded / Obfuscated** | Perceives the symbol stream, which is concealed through encoding, symbolic substitution, or obfuscation recoverable using known conventions. | Base64, hex, or URL-encoded text; HTML entities; substitution cipher; QR code; DTMF tones. |
 | **Steganographic** | Perceives an ordinary carrier; adversarial information sits in a sub-channel that ordinary reading skips. | Zero-width or Unicode tag characters; white-on-white or off-page PDF text; sparse pixels sampled by an aliasing downscaler; near-ultrasonic audio. |
-| **Adversarial Perturbation** (termed *adversarial examples* in NIST AI 100-2e2025) | Perceives benign content; the effect triggers through internal features of a specific target model. | Gradient-optimized token suffixes (GCG); adversarial visual patches; reverberation-blended audio perturbations (AudioHijack). |
+| **Adversarial Perturbation** (termed *adversarial examples* in NIST AI 100-2e2025) | Perceives benign content; the effect triggers through internal features of a specific target model. | Gradient-optimized token suffixes (GCG; Zou et al., 2023); adversarial visual patches; reverberation-blended audio perturbations (AudioHijack). |
 
 *Table 2. Primary representation forms and cross-modal examples.*
 
@@ -891,7 +889,7 @@ flowchart LR
 
 *Figure 1o-iii. A Sequence-Dependent payload with no fragmentation. Unlike Figure 1o-ii, nothing here is incomplete — each segment is a full, self-contained clip. The fault is purely in *when* the segments arrive relative to one another: a per-segment check that samples clips at arbitrary moments, with no regard for their timing, never observes the synchronized pattern the model responds to (`Adversarial Perturbation` + `Sequence-Dependent`, with no `Fragmented/Distributed` component).*
 
-#### 3.4.3 Composite Dependency
+#### 3.4.3 Composition-Dependent
 
 A **composite dependency** describes an adversarial effect that emerges only through the joint interpretation of multiple complete, self-contained artifacts — unlike a modifier, which describes a condition on how one payload was delivered, a composite dependency is a relationship between two or more separately-checkable payloads, none of which is incomplete on its own.
 
@@ -1011,7 +1009,7 @@ Each example below follows the same three-part structure: **Scenario** describes
 
 #### 3.5.1 Voice Agent: AudioHijack
 
-*Scenario:* AudioHijack (Chen et al., 2026) is a research demonstration against audio-language voice agents — systems that accept spoken instructions from a caller, transcribe them with a speech-recognition model, and can execute actions (tool calls, transfers, account changes) on the caller's behalf. The agent trusts whatever its speech-recognition model transcribes, on the assumption that a transcription reflects what was actually said.
+*Scenario:* AudioHijack (Chen et al., 2026) is a research demonstration against audio-language voice agents — systems that accept spoken instructions from a caller, transcribe them with a speech-recognition model, and can execute actions (tool calls, transfers, account changes) on the caller's behalf. The agent trusts whatever its speech-recognition model transcribes, on the assumption that a transcription reflects what was actually said — an assumption that a broader body of work on speech-recognition security shows does not generally hold (Chen, Y. et al., 2021).
 
 *Exploit:* the attacker adds reverberation-disguised perturbations to an audio clip — a distortion pattern layered into the clip's echo characteristics, engineered so that it is inaudible to a human listener but still shifts what the speech-recognition model's internal features respond to. A human listener hears ordinary speech; the speech-recognition model transcribes an injected command that steers the agent into an unauthorized action. The diagram below traces this: one audio clip reaches two different listeners — a human and the model — who disagree about what it says, and that disagreement, if acted on, drives a tool call:
 
@@ -1149,7 +1147,7 @@ Written as a tuple: `⟨Meaning, Evaluator, Adversarial Perturbation⟩`.
 
 *Scenario:* an application summarizes web pages for its users. A typical page can carry text, an embedded image, and an embedded audio clip all at once — think of an article with a photo and an audio player on it. The application feeds all three into one multimodal model at the same time and asks it to produce a summary (Teixeira, 2026).
 
-*Exploit:* the attacker doesn't hide a bad instruction in any single one of these three inputs. Instead, using an optimization process — computationally searching for the right combination, the same kind of technique behind the RP2 stickers in Section 3.5.3 — they craft a specific image file (PNG) and a specific audio file (WAV) together, as a matched pair, designed to work only in combination. The image alone produces entirely normal output. The audio alone produces entirely normal output. Even the image and audio together, without the text, still produce normal output. The malicious behavior — the model producing a phishing message with a dangerous link — only emerges when all three pieces (the text, the rigged image, and the rigged audio) are present at the same time, the way a combination lock needs every part to open at once, not just some of them. All three are components of the same single page — not three separately-submitted artifacts arriving through independent channels — so this is the *Intra-artifact* flavor of Composite Dependency (Section 3.4.3): one artifact, three separately-checkable components, bundled together. This is exactly why checking each component on its own fails: a guardrail that only looks at the page's image finds nothing wrong, because the image genuinely is harmless by itself; the same is true for the audio and the text checked individually. Only a check on the model's final output — after it has already combined all three — catches the violation:
+*Exploit:* the attacker doesn't hide a bad instruction in any single one of these three inputs. Instead, using an optimization process — computationally searching for the right combination, the same kind of technique behind the RP2 stickers in Section 3.5.3 — they craft a specific image file (PNG) and a specific audio file (WAV) together, as a matched pair, designed to work only in combination. The image alone produces entirely normal output. The audio alone produces entirely normal output. Even the image and audio together, without the text, still produce normal output. The malicious behavior — the model producing a phishing message with a dangerous link — only emerges when all three pieces (the text, the rigged image, and the rigged audio) are present at the same time, the way a combination lock needs every part to open at once, not just some of them. All three are components of the same single page — not three separately-submitted artifacts arriving through independent channels — so this is the *Intra-artifact* flavor of Composition-Dependent (Section 3.4.3): one artifact, three separately-checkable components, bundled together. This is exactly why checking each component on its own fails: a guardrail that only looks at the page's image finds nothing wrong, because the image genuinely is harmless by itself; the same is true for the audio and the text checked individually. Only a check on the model's final output — after it has already combined all three — catches the violation:
 
 ```mermaid
 flowchart LR
@@ -1279,20 +1277,14 @@ The sections above define the vocabulary; this section names the uses a classifi
 
 **Limitations.** Four are worth naming directly:
 
-1. **Reducible-only boundaries lack per-cell control prescriptions.** The taxonomy locates *Human-Machine Perception*, *Guard-Model Capability*, and *Semantic Stability* crossings and explains *why* they resist deterministic closure, but the *what to do about it* question is answered only at the level of architectural strategy (context separation, type narrowing), not per-cell defensive controls.
+1. **Reducible-only boundaries lack per-cell control prescriptions.** The taxonomy locates *Human-Machine Perception*, *Guard-Model Capability*, and *Semantic Stability* crossings and explains *why* they resist deterministic closure, but the *what to do about it* question is answered only at the level of architectural strategy (context separation, as in CaMeL or FIDES; Debenedetti et al., 2025; Costa et al., 2025; or type narrowing), not per-cell defensive controls — adaptive attacks have repeatedly shown that probabilistic, filter-based defenses at these boundaries can be bypassed (Nasr et al., 2025).
 2. **Cross-modality-surface prediction can over-produce.** Holding a mechanism fixed and swapping modality can generate many structurally plausible hypotheses on a real system, most of which will not be worth testing. Left unmanaged, this risks turning a diagnostic tool into a flood of low-value speculation rather than a prioritized set of findings.
 3. **Classification consistency across independent users is untested.** The categories and worked examples in this paper come from a small authoring group applying the taxonomy to a bounded set of disclosures. Whether independent teams converge on the same tuple for the same finding — the premise the "shared vocabulary" claim depends on — has not yet been tested outside that group.
 4. **Completeness of the classification is an open question.** The four invariants and four divergences cover all instances reviewed through October 2026, but the paper does not claim they are exhaustive. Combinations that do not appear in the Invariant × Divergence Table had no matching case; a counterexample that fits one would add a subclass, not invalidate the taxonomy.
 
 Deferred threat families — training-time poisoning, retrieval and memory poisoning, provenance spoofing, and side-channel attacks — are out of scope by design (Section 2.2) rather than a limitation of the classification itself; retrieval poisoning is the most natural near-term extension, since a poisoned record retrieved from a store and then acted on has the same check-then-use shape as Transform Consistency and Check-Use Consistency, just with the store standing in for the transform or the elapsed time.
 
-**How the companion paper addresses these.** This paper deliberately separates the taxonomy from the method of applying it rigorously, and most of the limitations above are exactly what that companion paper, *Applying the Modality-Independent Taxonomy*, is built to close. Limitation 1 is addressed by the method's remediation-priority analysis, which identifies the smallest set of fixes that closes every attack path even where no single per-cell control exists (companion paper, Section 1.1). Limitation 2 is addressed by the method's evidence-maturity triage, which ranks predicted findings by strength of evidence before a team invests in testing them (companion paper, Section 2.3, Tables 4 and 5). Limitation 3 is addressed by replacing ad hoc judgment with a rule-based procedure on annotated data-flow diagrams, where each finding passes or fails against the system's own stated security rules rather than a practitioner's individual read of the definitions (companion paper, Section 1). Limitation 4 remains open on both papers: broadening the set of reviewed systems and inviting counterexamples from outside the authoring group is future work for the taxonomy itself, independent of the method used to apply it.
-
 ## References
-
-Alpern, B., & Schneider, F. B. (1985). Defining liveness. *Information Processing Letters*, 21(4), 181–185. https://doi.org/10.1016/0020-0190(85)90056-0
-
-Athalye, A., Carlini, N., & Wagner, D. (2018). Obfuscated gradients give a false sense of security: Circumventing defenses to adversarial examples. *Proceedings of ICML 2018*. https://arxiv.org/abs/1802.00420
 
 Ball, S., Gluch, G., Goldwasser, S., Kreuter, F., Reingold, O., & Rothblum, G. N. (2025). On the impossibility of separating intelligence from judgment: The computational intractability of filtering for AI alignment. arXiv:2507.07341. https://arxiv.org/abs/2507.07341
 
@@ -1302,15 +1294,11 @@ Bell, D. E., & LaPadula, L. J. (1976). *Secure computer system: Unified expositi
 
 Biba, K. J. (1977). *Integrity considerations for secure computer systems* (MTR-3153). The MITRE Corporation.
 
-Bishop, M. (2002). *Computer security: Art and science*. Addison-Wesley.
-
 Boucher, N., Shumailov, I., Anderson, R., & Papernot, N. (2022). Bad characters: Imperceptible NLP attacks. *IEEE Symposium on Security and Privacy*. https://arxiv.org/abs/2106.09898
 
 Carlini, N., et al. (2021). Extracting training data from large language models. *30th USENIX Security Symposium*. arXiv:2012.07805. https://arxiv.org/abs/2012.07805
 
 Carlini, N., et al. (2023). Extracting training data from diffusion models. *32nd USENIX Security Symposium*. arXiv:2301.13188. https://arxiv.org/abs/2301.13188
-
-Chao, P., Robey, A., Dobriban, E., Hassani, H., Pappas, G. J., & Wong, E. (2023). Jailbreaking black box large language models in twenty queries. arXiv:2310.08419. https://arxiv.org/abs/2310.08419
 
 Chen, Wang, Lu, Zhang, & Zhang. (2026). AudioHijack. *IEEE Symposium on Security and Privacy*. arXiv:2604.14604. https://arxiv.org/abs/2604.14604
 
@@ -1336,11 +1324,7 @@ GitHub. (2025). *Security advisory GHSA-43wj-mwcc-x93p: Cursor Mermaid remote im
 
 Glukhov, D., Shumailov, I., Gal, Y., Papernot, N., & Papyan, V. (2023). LLM censorship: A machine learning challenge or a computer security problem? arXiv:2307.10719. https://arxiv.org/abs/2307.10719
 
-Grand View Research. (2024). *Multimodal AI market size, share & trends analysis report, 2024–2030*. https://www.grandviewresearch.com/industry-analysis/multimodal-ai-market-report
-
 Google. (n.d.). *Secure AI Framework (SAIF): Risks*. https://saif.google/secure-ai-framework/risks
-
-Greshake, K., Abdelnabi, S., Mishra, S., Endres, C., Holz, T., & Fritz, M. (2023). Not what you've signed up for: Compromising real-world LLM-integrated applications with indirect prompt injection. *Proceedings of AISec 2023*. https://arxiv.org/abs/2302.12173
 
 Hardy, N. (1988). The confused deputy (or why capabilities might have been invented). *ACM SIGOPS Operating Systems Review*, 22(4), 36–38. https://doi.org/10.1145/54289.871709
 
@@ -1350,17 +1334,9 @@ IBM. (n.d.). *AI Risk Atlas*. https://www.ibm.com/docs/en/watsonx/saas?topic=ai-
 
 Jain, Arık, & Thakur. (2026). Adversarial attacks on multimodal large language models. *Transactions on Machine Learning Research*. arXiv:2603.27918. https://arxiv.org/abs/2603.27918
 
-Lamport, L. (1977). Proving the correctness of multiprocess programs. *IEEE Transactions on Software Engineering*, SE-3(2), 125–143. https://doi.org/10.1109/TSE.1977.229904
-
-Leveson, N. G. (2019). *CAST handbook: How to learn more from incidents and accidents*. http://sunnyday.mit.edu/CAST-Handbook.pdf
-
-LiteLLM. (2026). *Custom guardrails*. https://docs.litellm.ai/docs/proxy/guardrails/custom_guardrail
-
 Maloyan, N., & Namiot, D. (2026). Prompt injection attacks on agentic coding assistants. arXiv:2601.17548. https://arxiv.org/abs/2601.17548
 
-Microsoft. (2026). *Microsoft Copilot Studio documentation*. https://learn.microsoft.com/microsoft-copilot-studio/
-
-Microsoft. (n.d.). *Microsoft Threat Modeling Tool threats (STRIDE)*. https://learn.microsoft.com/en-us/azure/security/develop/threat-modeling-tool-threats
+Maple, C., et al. (2026). *A robust, defensible, and reproducible methodology for benchmarking single-turn jailbreak attacks on large language models*. MLCommons Security Initiative. https://mlcommons.org/wp-content/uploads/2026/02/MLCommons___Security___Jailbreak_0_7_Paper_Collaborative.pdf ; taxonomy at https://github.com/mlcommons/jailbreak-taxonomy
 
 MITRE. (2026). *ATLAS: Adversarial Threat Landscape for Artificial-Intelligence Systems* (data release v2026.09). https://atlas.mitre.org/ ; https://github.com/mitre-atlas/atlas-data
 
@@ -1374,8 +1350,6 @@ Momot, F., Bratus, S., Hallberg, S. M., & Patterson, M. L. (2016). The seven tur
 
 Morozova, K., & Hussain, S. (2025, August 21). *Weaponizing image scaling against production AI systems*. Trail of Bits. https://blog.trailofbits.com/2025/08/21/weaponizing-image-scaling-against-production-ai-systems/
 
-Nasr, M., et al. (2023). Scalable extraction of training data from (production) language models. arXiv:2311.17035. https://arxiv.org/abs/2311.17035
-
 Nasr, M., et al. (2025). The attacker moves second: Stronger adaptive attacks bypass defenses against LLM jailbreaks and prompt injections. arXiv:2510.09023. https://arxiv.org/abs/2510.09023
 
 National Institute of Standards and Technology. (2020). *Security and privacy controls for information systems and organizations* (NIST SP 800-53 Rev. 5). https://doi.org/10.6028/NIST.SP.800-53r5
@@ -1384,13 +1358,7 @@ National Institute of Standards and Technology. (2023). *Artificial Intelligence
 
 National Vulnerability Database. (2025a). *CVE-2025-32711: Microsoft 365 Copilot information disclosure (EchoLeak)*. https://nvd.nist.gov/vuln/detail/CVE-2025-32711
 
-National Vulnerability Database. (2025b). *CVE-2025-68664: LangChain serialization injection (LangGrinch)*. https://nvd.nist.gov/vuln/detail/CVE-2025-68664
-
-NVIDIA. (2025). *NeMo Guardrails: Streaming output*. https://docs.nvidia.com/nemo/microservices/25.12.0/guardrails/streaming-output.html
-
 OpenAI. (2024, May 13). *Hello GPT-4o*. https://openai.com/index/hello-gpt-4o/
-
-Ou, X., Govindavajhala, S., & Appel, A. W. (2005). MulVAL: A logic-based network security analyzer. *Proceedings of the 14th USENIX Security Symposium*.
 
 OWASP Foundation. (2025). *Agentic AI – Threats and Mitigations* (version 1.0). https://genai.owasp.org/
 
@@ -1398,47 +1366,23 @@ OWASP Foundation. (2025, December 9). *OWASP Top 10 for Agentic Applications* (A
 
 OWASP Foundation. (2025). *OWASP Top 10 for LLM Applications 2025* (LLM01 Prompt Injection; LLM05 Improper Output Handling; LLM06 Excessive Agency). https://genai.owasp.org/llm-top-10/
 
-Phillips, C., & Swiler, L. P. (1998). A graph-based system for network-vulnerability analysis. *Proceedings of the New Security Paradigms Workshop*. https://doi.org/10.1145/310889.310919
-
-probityai. (2026). *agent-evidence-vectors* [Test fixture repository]. GitHub. https://github.com/probityai/agent-evidence-vectors
-
 Ptacek, T. H., & Newsham, T. N. (1998). *Insertion, evasion, and denial of service: Eluding network intrusion detection*. Secure Networks, Inc. https://insecure.org/stf/secnet_ids/secnet_ids.html
 
 Quiring, E., Klein, D., Arp, D., Johns, M., & Rieck, K. (2020). Adversarial preprocessing: Understanding and preventing image-scaling attacks in machine learning. *Proceedings of the 29th USENIX Security Symposium*. https://www.usenix.org/conference/usenixsecurity20/presentation/quiring
 
 Rawat, A., et al. (2024). Attack Atlas: A practitioner's perspective on challenges and pitfalls in red teaming GenAI. arXiv:2409.15398. https://arxiv.org/abs/2409.15398
 
-Rehberger, J. (2024, August 26). *Microsoft Copilot: From prompt injection to exfiltration of personal information* (ASCII smuggling). Embrace The Red. Reported in *The Register*, August 28, 2024: https://www.theregister.com/2024/08/28/microsoft_copilot_copirate
-
-Robey, A., Ravichandran, Z., Kumar, V., Hassani, H., & Pappas, G. J. (2024). Jailbreaking LLM-controlled robots (RoboPAIR). arXiv:2410.13691. https://arxiv.org/abs/2410.13691
-
-Rose, S., Borchert, O., Mitchell, S., & Connelly, S. (2020). *Zero trust architecture* (NIST SP 800-207). https://doi.org/10.6028/NIST.SP.800-207
-
-Salesforce. (2026). *Agentforce documentation*. https://www.salesforce.com/agentforce/
-
 Saltzer, J. H., & Schroeder, M. D. (1975). The protection of information in computer systems. *Proceedings of the IEEE*, 63(9), 1278–1308. https://doi.org/10.1109/PROC.1975.9939
-
-SentGuard. (2026). arXiv:2606.02041. https://arxiv.org/abs/2606.02041
-
-Sheyner, O., Haines, J., Jha, S., Lippmann, R., & Wing, J. M. (2002). Automated generation and analysis of attack graphs. *IEEE Symposium on Security and Privacy*. https://doi.org/10.1109/SECPRI.2002.1004377
 
 Shi, et al. (2025). SoK: Trust–authorization mismatch in LLM agents. arXiv:2512.06914. https://arxiv.org/abs/2512.06914
 
 Shostack, A. (2014). *Threat modeling: Designing for security*. Wiley.
 
-STPA-Sec data-flow extension. (2020). arXiv:2006.02930. https://arxiv.org/abs/2006.02930
-
 Teixeira, D. (2026, September 21). *When modalities combine: The combinatorial blind spot in AI security*. NVIDIA AI Security. https://research.nvidia.com/ai-security/when-modalities-combine-combinatorial-blind-spot-ai-security
-
-Tencent Keen Security Lab. (2019). *Experimental security research of Tesla Autopilot*. https://keenlab.tencent.com/en/whitepapers/Experimental_Security_Research_of_Tesla_Autopilot.pdf
-
-Unit 42. (2026). *Web-based indirect prompt injection observed in the wild*. Palo Alto Networks.
 
 Vassilev, A., Oprea, A., Fordyce, A., Anderson, H., Davies, X., & Hamin, M. (2025). *Adversarial machine learning: A taxonomy and terminology of attacks and mitigations* (NIST AI 100-2e2025). National Institute of Standards and Technology. https://doi.org/10.6028/NIST.AI.100-2e2025
 
 Video LLM frame-sampling omission. (2025). Failures to surface harmful contents in video LLMs. *Proceedings of AAAI 2026*. arXiv:2508.10974. https://arxiv.org/abs/2508.10974
-
-Video LLM frame-selection poisoning. (2025). Poisoning prompt-guided sampling in video LLMs. arXiv:2509.20851. https://arxiv.org/abs/2509.20851
 
 Wang, L., et al. (2025). Manipulating multimodal agents via cross-modal prompt injection (CrossInject). *Proceedings of ACM Multimedia 2025*. https://arxiv.org/abs/2504.14348
 
@@ -1446,13 +1390,7 @@ Willison, S. (2025, June 16). *The lethal trifecta for AI agents: Private data, 
 
 Xiao, Q., Chen, Y., Shen, C., Chen, Y., & Li, K. (2019). Seeing is not believing: Camouflage attacks on image scaling algorithms. *Proceedings of the 28th USENIX Security Symposium*. https://www.usenix.org/conference/usenixsecurity19/presentation/xiao
 
-Young, W., & Leveson, N. G. (2013). Systems thinking for safety and security. *Proceedings of the 29th Annual Computer Security Applications Conference (ACSAC)*. https://dspace.mit.edu/handle/1721.1/96965
-
-Zhan, Q., Liang, Z., Ying, Z., & Kang, D. (2024). InjecAgent: Benchmarking indirect prompt injections in tool-integrated large language model agents. *Findings of ACL 2024*. https://arxiv.org/abs/2403.02691
-
 Zou, A., Wang, Z., Carlini, N., Nasr, M., Kolter, J. Z., & Fredrikson, M. (2023). Universal and transferable adversarial attacks on aligned language models (GCG). arXiv:2307.15043. https://arxiv.org/abs/2307.15043
-
-Zverev, E., Abdelnabi, S., Tabesh, S., Fritz, M., & Lampert, C. H. (2025). Can LLMs separate instructions from data? And what do we even mean by that? *Proceedings of ICLR 2025*. https://arxiv.org/abs/2403.06833
 
 ---
 
@@ -1531,6 +1469,7 @@ Relationship tags: **Exact** means the classical concept names the same invarian
 | **Jain, Arık & Thakur** (2026) | Attacker objective × knowledge | Across modalities; modality-specific input processing named as a root cause | Objective-first; root cause formalized as `Meaning × Artifact State` |
 | **Shi et al.** (2025) | Belief → intention → permission; trust–authorization mismatch | Modality-agnostic | Direct precedent for the `Authority` row |
 | **Maloyan & Namiot** (2026) | Delivery vector × attack modality × propagation | Modality as a primary axis | Catalog of instances; records derive cross-modality-surface analogs from existing entries |
+| **MLCommons Jailbreak Attack Taxonomy** (Maple et al., 2026) | Dominant prompt-manipulation strategy, closed Family > Category > Leaf hierarchy (4 families, 8 categories, 18 leaves) | Text only, single-turn, prompt-only; excludes indirect prompt injection | Representation ladder within text prompts; its Encoding Abuse and Composition & Ordering families map to this paper's *Encoded/Obfuscated* form and *Fragmented/Distributed*/*Sequence-Dependent* modifiers (**Section 3.4.1–3.4.2**); has no Invariant or Divergence analog |
 
 *Table A.4. Comparable AI taxonomies and their relationship to the mechanism record.*
 
@@ -1549,13 +1488,13 @@ Both divergences describe a case where what was checked is not what was used, bu
 
 *Table A.5. Artifact State and Time compared directly.*
 
-Each fix does nothing for the other problem. Re-checking the full-size image immediately before use still shows a clean image, because the hidden text appears only after shrinking. Checking after the transformation does not help a stale credential, because nothing was transformed. One case belongs only to Time: a permission that should have expired but still works (*Grant Persistence*), where nothing is transformed and time simply passes. The companion paper's Appendix A.2 gives further guidance on separating *Transform Consistency* from *Check-Use Consistency*.
+Each fix does nothing for the other problem. Re-checking the full-size image immediately before use still shows a clean image, because the hidden text appears only after shrinking. Checking after the transformation does not help a stale credential, because nothing was transformed. One case belongs only to Time: a permission that should have expired but still works (*Grant Persistence*), where nothing is transformed and time simply passes.
 
 ### A.6 Supporting Annotations Beyond the Core Tuple
 
 Section 3's tuple, `⟨Invariant, Divergence, Representation⟩`, is kept deliberately minimal: those three parts are what make two mechanisms the same or different, independent of modality. Recording a real finding, however, usually calls for a bit more bookkeeping than that — not because the taxonomy needs it to classify the mechanism, but because a usable record also needs to say where the mechanism sits and how it was found. This appendix collects those supporting annotations, which belong to the method of applying the taxonomy rather than to the taxonomy itself.
 
-Two attributes complete the record in most cases: **System Processing Stage** (*where in the pipeline attacker-controlled information enters or becomes security-relevant*) and **Modality** (*the implementation surface across which mechanisms generalize*). Both are derived from the architecture diagram when the taxonomy is applied (companion paper, Section 1); **System Processing Stage** follows from where the mechanism sits in the pipeline.
+Two attributes complete the record in most cases: **System Processing Stage** (*where in the pipeline attacker-controlled information enters or becomes security-relevant*) and **Modality** (*the implementation surface across which mechanisms generalize*). Both are derived from the system's architecture when the taxonomy is applied; **System Processing Stage** follows from where the mechanism sits in the pipeline.
 
 Records can also carry optional annotations when evidence supports them: **Construction Method** (*Manual Construction*, *Adaptive Search*, or *Optimization*, including transformation-invariant optimization), **Attacker Knowledge / Access** (*Black-box*, *Partial Knowledge*, or *White-box*), and **Transfer Context** (*Direct-Target Development* or *Surrogate Transfer*). Knowledge is recorded per component, since an attacker can know an image resizer exactly while treating the downstream model as a black box.
 
@@ -1632,8 +1571,6 @@ This glossary lists the terms this paper defines and relates each one to the clo
 | Cross-modality-surface prediction | 2.3 | — | New |
 | Demonstrated / Feasible (informal evidence-strength distinction) | 3.5.5 | ATLAS case-study type *Incident* / *Exercise* | Broader |
 | Context separation | 5, limitation 1 | Control/data-flow separation (Debenedetti et al., 2025) | Equivalent |
-
-The companion paper, *Applying the Modality-Independent Taxonomy*, defines a further layer of method-specific vocabulary — data-flow-diagram roles (`«guard»`, `«transform»`, `«follower»`, and others), sink constraints, attack chains, legs, and cut points, along with a formal evidence-maturity scale — used to apply this taxonomy rigorously to a real system. That vocabulary is scoped to the companion paper rather than to the taxonomy itself, and is not repeated here; see the companion paper's own glossary.
 
 ---
 
