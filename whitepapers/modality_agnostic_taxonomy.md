@@ -183,8 +183,8 @@ The following terms are used throughout the paper.
 - **Cross-modal.** Describes something that happens *between* modalities. The term has two senses:
   - *Cross-modal operation:* converting or relating information across modalities, such as captioning an image or retrieving images with text (Baltrušaitis et al., 2019).
   - *Cross-modal attack:* an attack whose effect depends on inputs from two or more modalities together, as in cross-modal prompt injection (Wang et al., 2025). Sections 3.4.2 and 3.4.3 distinguish attacks whose pieces are incomplete fragments that must be reassembled from attacks in which complete artifacts produce the effect only when paired.
-- **Modality surface.** A specific input or output channel through which a single modality enters or leaves the system, for example a file-upload endpoint that accepts images, a telephony channel that carries audio, or a staff HTML preview that renders rich output.
-- **Cross-modality-surface prediction.** Taking a mechanism found on one modality surface and checking whether the same structural failure can occur on a different surface, demonstrated directly in Section 3.5.5. Unlike a cross-modal attack, the prediction concerns separate surfaces, not inputs combined in a single interaction.
+- **Modality surface.** A specific input or output channel through which a single modality enters or leaves the system, for example a file-upload endpoint that accepts images, a telephony channel that carries audio, or a staff HTML preview that renders rich output (part of the system's attack surface; Manadhata & Wing, 2011).
+- **Cross-modality-surface prediction.** Taking a mechanism found on one modality surface and checking whether the same structural failure can occur on a different surface, demonstrated directly in Section 3.5.5. Unlike a cross-modal attack, the prediction concerns separate surfaces, not inputs combined in a single interaction. This is an instance of the general security practice of variant analysis (GitHub, n.d.) — using one known bug to find its siblings — applied across modalities rather than across source files.
 
 **Architectures**
 
@@ -634,8 +634,8 @@ The same divergence occurs on a **screen** when a computer-use agent is shown a 
 *Why it matters:* approval and execution often happen at different moments (a human approval, a cached check, a long-lived grant), and the state can change in between.
 
 *How it varies:* by what changes.
-* A store: an attacker edits a record after the guard validates it, and the agent re-reads the edited version (*Check-Use Consistency*).
-* An approval: a human approves one set of tool arguments, and an attacker steers a different set into execution (*Check-Use Consistency*).
+* A store: an attacker edits a record after the guard validates it, and the agent re-reads the edited version (*TOCTOU*).
+* An approval: a human approves one set of tool arguments, and an attacker steers a different set into execution (*TOCTOU*).
 * A permission grant: an attacker keeps using a grant after revocation or after its task ends (*Grant Persistence*).
 
 *Time vs. Artifact State:* both describe a case where what was checked is not what was used, but the cause differs. In **Artifact State**, the system's own processing turns the input into a *different version*, and the check saw the old one. In **Time**, the check saw the right thing, but *that same thing changed later*, before it was used. **Appendix A.5** compares the two directly, side by side.
@@ -668,14 +668,14 @@ In both cases the information arrived somewhere it should not have been allowed.
 *Why it matters:* data moves between trust levels (untrusted content toward a tool, secret context toward an outside party). The two sides that disagree are the level the information carries and the level the component accepts.
 
 *How it varies:* by direction.
-* Toward a component that takes actions (`Authority × Position`): the attacker's text becomes an instruction (*Data-Control*), the executor runs the steered call and skips its approval (*Decision-Action*), or a deputy acts beyond its caller's grant on the attacker's behalf (*Delegation Authority*).
+* Toward a component that takes actions (`Authority × Position`): the attacker's text becomes an instruction (*Data-Control*), the executor runs the steered call and skips its approval (*Decision-Action*), or a deputy acts beyond its caller's grant on the attacker's behalf (*Confused Deputy*).
 * Toward a component that sends information out (`Confidentiality × Position`): the attacker gets secret context into a reply (*Context Confinement*) or makes a renderer fetch their URL through an image tag (*Output-Consumer*).
 
 ### 3.3 The Invariant × Divergence Table
 
-**The concept.** Section 3.1 defined four Invariants (what breaks); Section 3.2 defined four Divergences (why it wasn't caught). Crossing them gives 16 possible combinations. This section names the combinations actually observed in real, documented attacks and research demonstrations, plus two further pairs where no disclosure has been documented yet but the mechanism is already demonstrated elsewhere in this paper or named by an existing framework — 9 of the 16 pairs have a named entry so far, and the table lists 15 entries in total, because some pairs hold more than one. A pair holds more than one entry when the attacks that land in it, despite sharing the same invariant and the same divergence, still need different defenses from each other. In Meaning × Evaluator, for example, a guard that simply cannot read images (*Guard-Model Capability*) and two parsers that read the same request differently (*Parser / Interpreter Differential*) break the same invariant for the same reason, but one is fixed by giving the guard the right perceptual capability and the other by reconciling how the two parsers interpret structured input — different fixes, so the pair holds two separate entries rather than one.
+**The concept.** Section 3.1 defined four Invariants (what breaks); Section 3.2 defined four Divergences (why it wasn't caught). Pairing them gives 16 possible combinations. This section names the combinations actually observed in real, documented attacks and research demonstrations, plus two further pairs where no disclosure has been documented yet but the mechanism is already demonstrated elsewhere in this paper or named by an existing framework — 9 of the 16 pairs have a named entry so far, and the table lists 15 entries in total, because some pairs hold more than one. A pair holds more than one entry when the attacks that land in it, despite sharing the same invariant and the same divergence, still need different defenses from each other. In Meaning × Evaluator, for example, a guard that simply cannot read images (*Guard-Model Capability*) and two parsers that read the same request differently (*Parser / Interpreter Differential*) break the same invariant for the same reason, but one is fixed by giving the guard the right perceptual capability and the other by reconciling how the two parsers interpret structured input — different fixes, so the pair holds two separate entries rather than one.
 
-**Why this matters.** The table turns the tuple from a classification method into a shared vocabulary: instead of describing a finding as a raw tuple every time, a team can name it — "this is a *Transform Consistency* issue" — and know that any other team using this taxonomy means the same structural thing by that name, even on a completely different system. Several entries also connect directly to decades of existing security literature: *Check-Use Consistency* is the classical time-of-check-to-time-of-use problem (`CWE-367`); *Delegation Authority* is the confused deputy (Hardy, 1988). A security engineer does not need to learn an entirely new mental model — they can map a new multimodal finding onto reasoning they likely already have. The remaining empty pairs are not gaps to ignore; they are not claimed to be impossible, and they mark the most promising places to look for a genuinely new finding, since the list is a starting point rather than a finished catalog.
+**Why this matters.** The table turns the tuple from a classification method into a shared vocabulary: instead of describing a finding as a raw tuple every time, a team can name it — "this is a *Transform Consistency* issue" — and know that any other team using this taxonomy means the same structural thing by that name, even on a completely different system. Several entries also connect directly to decades of existing security literature: *TOCTOU* is the classical time-of-check-to-time-of-use problem (`CWE-367`); *Confused Deputy* is the confused deputy (Hardy, 1988). A security engineer does not need to learn an entirely new mental model — they can map a new multimodal finding onto reasoning they likely already have. The remaining empty pairs are not gaps to ignore; they are not claimed to be impossible, and they mark the most promising places to look for a genuinely new finding, since the list is a starting point rather than a finished catalog.
 
 **Why not just use CWE.** Eight of the fifteen entries in the table already cite a CWE identifier, which raises a fair question: if CWE already names several of these weaknesses, what does this table add? The answer is the structure CWE does not have. CWE is a flat catalog — each weakness is described on its own, with no field linking `CWE-180` (Validate Before Canonicalize) to `CWE-367` (TOCTOU) as two ways the same underlying property can fail. This table's two axes make that link explicit and load-bearing: both entries are classified as `Meaning`, which is why a team can tell at a glance that they threaten the same thing (two parts of a system disagreeing on content) even though the `Divergence` column also tells them they need different fixes — one by moving a check past a transform, the other by re-checking immediately before use. CWE has no equivalent to either axis on its own, and three of this table's entries — *Guard-Model Capability*, *Semantic Stability*, and *Context Confinement* — have no CWE match at all, because CWE was built to catalog software weaknesses, not mismatches in machine perception between a human, a guard model, and the model acting on an input, which is a distinctly agentic problem. CWE also carries an implicit modality in most of its entries, written with code, text, or network packets in mind; it has no mechanism for taking a weakness observed on one input channel and asking whether the identical pattern exists on an unrelated channel, which is exactly what Section 3.5.5 demonstrates. Where CWE already has the right identifier, this table reuses it rather than renaming it — the goal is not to replace CWE, but to organize a layer above it that CWE's flat structure cannot express.
 
@@ -686,11 +686,11 @@ In both cases the information arrived somewhere it should not have been allowed.
 | *Parser / Interpreter Differential* | Meaning | Evaluator | Two parsers or interpreters read the same input differently. | `CWE-436` |
 | *Semantic Stability* | Meaning | Evaluator | Inputs with the same meaning receive different decisions, judged against what the policy intends. This includes rephrased requests and conflicts between modalities. | No direct match found |
 | *Transform Consistency* | Meaning | Artifact State | A transformation, or the combination of several inputs, changes or exposes content after it was checked. | `CWE-180` |
-| *Check-Use Consistency* | Meaning | Time | An input or stored state changes between when it is checked and when it is used. | `CWE-367` |
+| *TOCTOU* | Meaning | Time | An input or stored state changes between when it is checked and when it is used. | `CWE-367` |
 | *Grant Persistence* | Authority | Time | A permission stays usable after it expires, is revoked, or its task ends. | `CWE-613` |
 | *Data-Control* | Authority | Position | Untrusted content is treated as an instruction. | `OWASP LLM01:2025` |
 | *Decision-Action* | Authority | Position | A tool runs a model-requested operation without the authorization that operation requires. | `NIST SP 800-53 AC-3` |
-| *Delegation Authority* | Authority | Position | A component acting on another's behalf exceeds the authority it was given. | `NIST SP 800-53 AC-6` |
+| *Confused Deputy* | Authority | Position | A component acting on another's behalf exceeds the authority it was given. | `NIST SP 800-53 AC-6` |
 | *Context Confinement* | Confidentiality | Position | Secret context, or data the model has memorized (Carlini et al., 2021, 2023), reaches a recipient not allowed to receive it. | No direct match found |
 | *Output-Consumer* | Confidentiality | Position | Generated output makes a downstream renderer or client release data to parties not allowed to receive it, for example by fetching an external URL. | `OWASP LLM05:2025`; `CWE-1426` |
 | *Resource Accounting* | Cost | Evaluator | An input, or the work it induces, consumes more compute, memory, inference, or tool execution than allowed for it. | `CWE-400` |
@@ -699,7 +699,7 @@ In both cases the information arrived somewhere it should not have been allowed.
 
 *The Invariant × Divergence Table. The fifteen named entries, with the invariant and divergence each one combines, and whether an existing framework already names the same pattern. Entries marked "No direct match found" appear to be genuinely new categories, without a close equivalent in the frameworks reviewed as of October 2026.*
 
-Thirteen of these entries are each grounded in an independently documented disclosure or research demonstration, several of which are worked through in full in Section 3.5. *Decompression Amplification* and *Budget Delegation* are the two exceptions: no independent disclosure anchors them, but the mechanism itself is already demonstrated elsewhere in this paper — Section 3.4.4's PNG-decoding example is a direct instance of *Decompression Amplification* — or is already named as a risk by an existing framework, as *Budget Delegation* is by OWASP's Unbounded Consumption category. Both are included because the mechanism is structurally identical to an already-accepted entry (*Transform Consistency* and *Delegation Authority*, respectively) for a different invariant, not because a new case was found; a documented disclosure that fits either would strengthen it to the same evidentiary footing as the other thirteen.
+Thirteen of these entries are each grounded in an independently documented disclosure or research demonstration, several of which are worked through in full in Section 3.5. *Decompression Amplification* and *Budget Delegation* are the two exceptions: no independent disclosure anchors them, but the mechanism itself is already demonstrated elsewhere in this paper — Section 3.4.4's PNG-decoding example is a direct instance of *Decompression Amplification* — or is already named as a risk by an existing framework, as *Budget Delegation* is by OWASP's Unbounded Consumption category. Both are included because the mechanism is structurally identical to an already-accepted entry (*Transform Consistency* and *Confused Deputy*, respectively) for a different invariant, not because a new case was found; a documented disclosure that fits either would strengthen it to the same evidentiary footing as the other thirteen.
 
 Invariant × Divergence pairs that do not appear in this table had no matching case among the attacks reviewed through October 2026. They are not claimed to be impossible; a case that fits one would add an entry.
 
@@ -707,7 +707,7 @@ Invariant × Divergence pairs that do not appear in this table had no matching c
 
 The table's "Existing Framework Alignment" column pointed to specific identifiers; this section says more about how each one fits, and compares the table against the older, non-AI-specific security and safety literature that several of its entries draw on directly — distinct from Section 1.2's comparison against existing *AI* security frameworks and taxonomies.
 
-Most subclasses in the table have direct classical ancestors, and naming them lets practitioners reuse established reasoning (**Appendix A, Table A.3**). *Check-Use Consistency* is time-of-check to time-of-use (`CWE-367`). *Parser / Interpreter Differential* is the parser differential of language-theoretic security (Momot et al., 2016; `CWE-436`). *Transform Consistency* extends validate-before-canonicalize (`CWE-180`), which applies directly to a check that runs before a transform and a consequential component that acts on the transform's output, and network intrusion-detection insertion and evasion (Ptacek & Newsham, 1998), in which a monitor and an end host reassemble the same packets differently; the streaming-text attack derived in Section 3.5.5 is that structure at chunk boundaries. *Delegation Authority* is the confused deputy (Hardy, 1988), *Decision-Action* is a failure of complete mediation (Saltzer & Schroeder, 1975), and the `Authority` and `Confidentiality` invariants are the integrity and confidentiality directions of the information-flow lattice (Denning, 1976). CAPEC View 1000 (*Mechanisms of Attack*) is the closest existing modality-agnostic mechanism hierarchy; its categories are organized by attacker action, and the machine-perception subclasses of the table are additions to it.
+Most subclasses in the table have direct classical ancestors, and naming them lets practitioners reuse established reasoning (**Appendix A, Table A.3**). *TOCTOU* is time-of-check to time-of-use (`CWE-367`). *Parser / Interpreter Differential* is the parser differential of language-theoretic security (Momot et al., 2016; `CWE-436`). *Transform Consistency* extends validate-before-canonicalize (`CWE-180`), which applies directly to a check that runs before a transform and a consequential component that acts on the transform's output, and network intrusion-detection insertion and evasion (Ptacek & Newsham, 1998), in which a monitor and an end host reassemble the same packets differently; the streaming-text attack derived in Section 3.5.5 is that structure at chunk boundaries. *Confused Deputy* is the confused deputy (Hardy, 1988), *Decision-Action* is a failure of complete mediation (Saltzer & Schroeder, 1975), and the `Authority` and `Confidentiality` invariants are the integrity and confidentiality directions of the information-flow lattice (Denning, 1976). CAPEC View 1000 (*Mechanisms of Attack*) is the closest existing modality-agnostic mechanism hierarchy; its categories are organized by attacker action, and the machine-perception subclasses of the table are additions to it.
 
 Against these precedents, two aspects of the contributions listed in **Section 1.3** are new:
 
@@ -819,7 +819,7 @@ A **modifier** is a structural or temporal condition the adversarial effect requ
 *How it varies:* by how the pieces relate.
 * **Fragmented / Distributed:** A single effective payload is distributed across multiple incomplete pieces that require aggregation or reassembly to reconstruct its adversarial effect (for example, splitting a command across streaming chunks or structured fields).
 * **Sequence-Dependent:** The adversarial effect depends on the timing, ordering, duration, or synchronization of information across steps or frames.
-* **Classification distinctions:** Use *Fragmented / Distributed* when each piece is incomplete and reassembly rebuilds one payload, and *Sequence-Dependent* when ordering or timing is essential rather than the reassembly itself. *Encoded / Obfuscated* payloads are recovered with decoding conventions; *Steganographic* payloads sit in a sub-channel behind an ordinary-looking carrier. Transformation-activated payloads are covered by two existing parts of the record: the `Meaning × Artifact State` crossing at the transform, and the representation recorded at each artifact state. Section 3.4.3 covers a related but distinct case — several *complete* artifacts combining, rather than one payload split into incomplete pieces.
+* **Classification distinctions:** Use *Fragmented / Distributed* when each piece is incomplete and reassembly rebuilds one payload, and *Sequence-Dependent* when ordering or timing is essential rather than the reassembly itself. *Encoded / Obfuscated* payloads are recovered with decoding conventions; *Steganographic* payloads sit in a sub-channel behind an ordinary-looking carrier. Transformation-activated payloads are covered by two existing parts of the record: the `Meaning × Artifact State` mechanism at the transform, and the representation recorded at each artifact state. Section 3.4.3 covers a related but distinct case — several *complete* artifacts combining, rather than one payload split into incomplete pieces.
 
 *Example (Fragmented / Distributed):* a video-language model checks uploaded video for policy compliance by sampling one frame every few seconds. An attacker distributes a single directive across seven frames — frame 40 (ignore), 95 (previous), 150 (instructions), 205 (and), 260 (forward), 315 (all), 370 (emails). No single frame contains a complete instruction (Section 3.5.5):
 
@@ -1277,12 +1277,12 @@ The sections above define the vocabulary; this section names the uses a classifi
 
 **Limitations.** Four are worth naming directly:
 
-1. **Reducible-only boundaries lack per-cell control prescriptions.** The taxonomy locates *Human-Machine Perception*, *Guard-Model Capability*, and *Semantic Stability* crossings and explains *why* they resist deterministic closure, but the *what to do about it* question is answered only at the level of architectural strategy (context separation, as in CaMeL or FIDES; Debenedetti et al., 2025; Costa et al., 2025; or type narrowing), not per-cell defensive controls — adaptive attacks have repeatedly shown that probabilistic, filter-based defenses at these boundaries can be bypassed (Nasr et al., 2025).
+1. **Reducible-only classes lack per-cell control prescriptions.** The taxonomy locates *Human-Machine Perception*, *Guard-Model Capability*, and *Semantic Stability* mechanisms and explains *why* they resist deterministic closure, but the *what to do about it* question is answered only at the level of architectural strategy (context separation, as in CaMeL or FIDES; Debenedetti et al., 2025; Costa et al., 2025; or type narrowing), not per-cell defensive controls — adaptive attacks have repeatedly shown that probabilistic, filter-based defenses at these boundaries can be bypassed (Nasr et al., 2025).
 2. **Cross-modality-surface prediction can over-produce.** Holding a mechanism fixed and swapping modality can generate many structurally plausible hypotheses on a real system, most of which will not be worth testing. Left unmanaged, this risks turning a diagnostic tool into a flood of low-value speculation rather than a prioritized set of findings.
 3. **Classification consistency across independent users is untested.** The categories and worked examples in this paper come from a small authoring group applying the taxonomy to a bounded set of disclosures. Whether independent teams converge on the same tuple for the same finding — the premise the "shared vocabulary" claim depends on — has not yet been tested outside that group.
 4. **Completeness of the classification is an open question.** The four invariants and four divergences cover all instances reviewed through October 2026, but the paper does not claim they are exhaustive. Combinations that do not appear in the Invariant × Divergence Table had no matching case; a counterexample that fits one would add a subclass, not invalidate the taxonomy.
 
-Deferred threat families — training-time poisoning, retrieval and memory poisoning, provenance spoofing, and side-channel attacks — are out of scope by design (Section 2.2) rather than a limitation of the classification itself; retrieval poisoning is the most natural near-term extension, since a poisoned record retrieved from a store and then acted on has the same check-then-use shape as Transform Consistency and Check-Use Consistency, just with the store standing in for the transform or the elapsed time.
+Deferred threat families — training-time poisoning, retrieval and memory poisoning, provenance spoofing, and side-channel attacks — are out of scope by design (Section 2.2) rather than a limitation of the classification itself; retrieval poisoning is the most natural near-term extension, since a poisoned record retrieved from a store and then acted on has the same check-then-use shape as Transform Consistency and TOCTOU, just with the store standing in for the transform or the elapsed time.
 
 ## References
 
@@ -1320,6 +1320,8 @@ Eykholt, K., Evtimov, I., Fernandes, E., Li, B., Rahmati, A., Xiao, C., Prakash,
 
 Farhana, & Roy. (2026). Multimodal prompt injection: A formal 4D taxonomy. *IEEE QPAIN 2026*. https://doi.org/10.1109/QPAIN69676.2026.11545895
 
+GitHub. (n.d.). *About CodeQL* (variant analysis). https://codeql.github.com/docs/codeql-overview/about-codeql/
+
 GitHub. (2025). *Security advisory GHSA-43wj-mwcc-x93p: Cursor Mermaid remote image fetch* (`CVE-2025-54132`). https://github.com/advisories/GHSA-43wj-mwcc-x93p
 
 Glukhov, D., Shumailov, I., Gal, Y., Papernot, N., & Papyan, V. (2023). LLM censorship: A machine learning challenge or a computer security problem? arXiv:2307.10719. https://arxiv.org/abs/2307.10719
@@ -1335,6 +1337,8 @@ IBM. (n.d.). *AI Risk Atlas*. https://www.ibm.com/docs/en/watsonx/saas?topic=ai-
 Jain, Arık, & Thakur. (2026). Adversarial attacks on multimodal large language models. *Transactions on Machine Learning Research*. arXiv:2603.27918. https://arxiv.org/abs/2603.27918
 
 Maloyan, N., & Namiot, D. (2026). Prompt injection attacks on agentic coding assistants. arXiv:2601.17548. https://arxiv.org/abs/2601.17548
+
+Manadhata, P. K., & Wing, J. M. (2011). An attack surface metric. *IEEE Transactions on Software Engineering*, 37(3), 371–386. https://doi.org/10.1109/TSE.2010.60
 
 Maple, C., et al. (2026). *A robust, defensible, and reproducible methodology for benchmarking single-turn jailbreak attacks on large language models*. MLCommons Security Initiative. https://mlcommons.org/wp-content/uploads/2026/02/MLCommons___Security___Jailbreak_0_7_Paper_Collaborative.pdf ; taxonomy at https://github.com/mlcommons/jailbreak-taxonomy
 
@@ -1440,7 +1444,7 @@ Relationship tags: **Exact** means the classical concept names the same invarian
 
 | Invariant × Divergence Entry | Classical Precedent | Relationship |
 | :---- | :---- | :---- |
-| *Check-Use Consistency* | Time-of-check to time-of-use (`CWE-367`; `CAPEC-29`) | Exact |
+| *TOCTOU* | Time-of-check to time-of-use (`CWE-367`; `CAPEC-29`) | Exact |
 | *Parser / Interpreter Differential* | Language-theoretic security parser differentials (Momot et al., 2016); Interpretation Conflict (`CWE-436`); HTTP request smuggling (`CWE-444`; `CAPEC-33`) | Exact |
 | *Transform Consistency* | Validate before canonicalize (`CWE-180`); Alternate Encoding (`CAPEC-267`); NIDS insertion and evasion (Ptacek & Newsham, 1998) | Broader (extends to media transforms and multi-input aggregation) |
 | *Human-Machine Perception* | User-interface misrepresentation (`CWE-451`); homograph attacks (`CAPEC-632`) | Broader (extends to images, audio, and physical signals) |
@@ -1449,7 +1453,7 @@ Relationship tags: **Exact** means the classical concept names the same invarian
 | *Grant Persistence* | Insufficient session expiration (`CWE-613`) | Related |
 | *Data-Control* | Command injection and in-band signaling (`CWE-77`); LLM prompt neutralization (`CWE-1427`) | Exact for text; Broader across non-text modalities |
 | *Decision-Action* | Complete mediation (Saltzer & Schroeder, 1975); Missing Authorization (`CWE-862`) | Related |
-| *Delegation Authority* | The confused deputy (Hardy, 1988; `CWE-441`) | Exact |
+| *Confused Deputy* | The confused deputy (Hardy, 1988; `CWE-441`) | Exact |
 | *Context Confinement* | Bell-LaPadula confidentiality; lattice model of secure information flow (Denning, 1976) | Exact |
 | *Output-Consumer* | Improper output encoding and second-order injection (`CWE-116`; `CWE-79`); generative AI output validation (`CWE-1426`) | Related |
 | *Resource Accounting* | Uncontrolled and asymmetric resource consumption (`CWE-400`; `CWE-405`; `CWE-409`) | Exact |
@@ -1528,7 +1532,7 @@ This glossary lists the terms this paper defines and relates each one to the clo
 | Time | 3.2.3 | State changes between validation (`t`) and use (`t + Δ`) | Time-of-check to time-of-use (`CWE-367`) | Equivalent |
 | Position | 3.2.4 | A flow's trust or sensitivity label violates the sink's policy | Information-flow policy violation (Denning, 1976; NIST SP 800-53 AC-4) | Equivalent |
 
-### Boundary subclasses (Invariant × Divergence Table)
+### Mechanism classes (Invariant × Divergence Table)
 
 | Term | Cell | Closest existing term(s) | Relationship |
 | :---- | :---- | :---- | :---- |
@@ -1537,11 +1541,11 @@ This glossary lists the terms this paper defines and relates each one to the clo
 | Parser / Interpreter Differential | Meaning × Evaluator | `CWE-436`; parser differentials (Momot et al., 2016) | Same |
 | Semantic Stability | Meaning × Evaluator | ATLAS `AML.T0054` LLM Jailbreak; `AML.T0015` Evade AI Model | New (as a named class) |
 | Transform Consistency | Meaning × Artifact State | `CWE-180`; insertion and evasion (Ptacek & Newsham, 1998) | Broader |
-| Check-Use Consistency | Meaning × Time | `CWE-367` (TOCTOU) | Equivalent |
+| TOCTOU | Meaning × Time | `CWE-367` | Same |
 | Grant Persistence | Authority × Time | `CWE-613` Insufficient Session Expiration; OWASP Agentic `ASI03` Identity & Privilege Abuse | Equivalent |
 | Data-Control | Authority × Position | Prompt injection: OWASP `LLM01:2025`; ATLAS `AML.T0051`; `CWE-1427` (text only); OWASP Agentic `ASI01` Agent Goal Hijack | Broader (beyond text) |
 | Decision-Action | Authority × Position | OWASP `LLM06:2025` Excessive Agency; OWASP Agentic `ASI02` Tool Misuse; `CWE-862` Missing Authorization | Equivalent |
-| Delegation Authority | Authority × Position | Confused deputy (Hardy, 1988; `CWE-441`) | Equivalent |
+| Confused Deputy | Authority × Position | Confused deputy (Hardy, 1988; `CWE-441`) | Same |
 | Context Confinement | Confidentiality × Position | OWASP `LLM02:2025` Sensitive Information Disclosure; ATLAS `AML.T0086` Exfiltration via AI Agent Tool Invocation | Equivalent |
 | Output-Consumer | Confidentiality × Position | ATLAS `AML.T0077` LLM Response Rendering; OWASP `LLM05:2025` Improper Output Handling; `CWE-1426` | Equivalent |
 | Resource Accounting | Cost × Evaluator | `CWE-400`; ATLAS `AML.T0029` Denial of AI Service, `AML.T0034` Cost Harvesting | Equivalent |
@@ -1567,8 +1571,8 @@ This glossary lists the terms this paper defines and relates each one to the clo
 
 | Term | Defined in | Closest existing term(s) | Relationship |
 | :---- | :---- | :---- | :---- |
-| Modality surface | 2.3 | Attack surface, per input or output channel | Equivalent |
-| Cross-modality-surface prediction | 2.3 | — | New |
+| Modality surface | 2.3 | Attack surface, per input or output channel (Manadhata & Wing, 2011) | Equivalent |
+| Cross-modality-surface prediction | 2.3 | Variant analysis (GitHub, n.d.) | Broader (extends variant analysis across modalities) |
 | Demonstrated / Feasible (informal evidence-strength distinction) | 3.5.5 | ATLAS case-study type *Incident* / *Exercise* | Broader |
 | Context separation | 5, limitation 1 | Control/data-flow separation (Debenedetti et al., 2025) | Equivalent |
 
