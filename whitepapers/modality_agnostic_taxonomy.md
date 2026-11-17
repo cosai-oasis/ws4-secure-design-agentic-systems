@@ -182,7 +182,7 @@ The following terms are used throughout the paper.
 - **Multimodal.** A system is multimodal at a given component or interface when two or more modalities are processed together. The same screenshot sent with a separate text question is multimodal input.
 - **Cross-modal.** Describes something that happens *between* modalities. The term has two senses:
   - *Cross-modal operation:* converting or relating information across modalities, such as captioning an image or retrieving images with text (Baltrušaitis et al., 2019).
-  - *Cross-modal attack:* an attack whose effect depends on inputs from two or more modalities together, as in cross-modal prompt injection (Wang et al., 2025). Sections 3.4.2 and 3.4.3 distinguish attacks whose pieces are incomplete fragments that must be reassembled from attacks in which complete artifacts produce the effect only when paired.
+  - *Cross-modal attack:* an attack whose effect depends on inputs from two or more modalities together, as in cross-modal prompt injection (Wang et al., 2025). Section 3.4.2 distinguishes attacks whose pieces are incomplete fragments that must be reassembled (*Fragmented / Distributed*) from attacks in which complete artifacts produce the effect only when paired (*Composition-Dependent*).
 - **Modality surface.** A specific input or output channel through which a single modality enters or leaves the system, for example a file-upload endpoint that accepts images, a telephony channel that carries audio, or a staff HTML preview that renders rich output (part of the system's attack surface; Manadhata & Wing, 2011).
 - **Cross-modality-surface prediction.** Taking a mechanism found on one modality surface and checking whether the same structural failure can occur on a different surface, demonstrated directly in Section 3.5.5. Unlike a cross-modal attack, the prediction concerns separate surfaces, not inputs combined in a single interaction. This is an instance of the general security practice of variant analysis (GitHub, n.d.) — using one known bug to find its siblings — applied across modalities rather than across source files.
 
@@ -470,7 +470,7 @@ The problem is not that the system accepts a small video. The problem is that th
 
 The same problem can occur with text-based requests. For example, a simple instruction such as "Summarize every email since 2015" may appear inexpensive because the request itself is short. However, completing it could require retrieving, reading, and processing thousands of emails, potentially consuming hours of execution time and substantial AI inference and tool resources. If this workload exceeds the system's allowed limits, it represents another Cost failure.
 
-*Why it matters:* Systems often decide whether to accept an input before knowing how expensive it will be to process. A file-size limit or a short request may suggest low cost, but the actual workload depends on what the input contains and what processing it triggers. Cost failures can arise from the input's structure, such as a small compressed image that expands into gigapixel dimensions, or from the work it requests, such as "Check every invoice since 2019." As discussed in Section 3.4.4, both can cause resource consumption to exceed the limits intended for an individual request.
+*Why it matters:* Systems often decide whether to accept an input before knowing how expensive it will be to process. A file-size limit or a short request may suggest low cost, but the actual workload depends on what the input contains and what processing it triggers. Cost failures can arise from the input's structure, such as a small compressed image that expands into gigapixel dimensions, or from the work it requests, such as "Check every invoice since 2019." As discussed in Section 3.4.3, both can cause resource consumption to exceed the limits intended for an individual request.
 
 ### 3.2 Divergences
 
@@ -699,7 +699,7 @@ In both cases the information arrived somewhere it should not have been allowed.
 
 *The Invariant × Divergence Table. The fifteen named entries, with the invariant and divergence each one combines, and whether an existing framework already names the same pattern. Entries marked "No direct match found" appear to be genuinely new categories, without a close equivalent in the frameworks reviewed as of October 2026.*
 
-Thirteen of these entries are each grounded in an independently documented disclosure or research demonstration, several of which are worked through in full in Section 3.5. *Decompression Amplification* and *Budget Delegation* are the two exceptions: no independent disclosure anchors them, but the mechanism itself is already demonstrated elsewhere in this paper — Section 3.4.4's PNG-decoding example is a direct instance of *Decompression Amplification* — or is already named as a risk by an existing framework, as *Budget Delegation* is by OWASP's Unbounded Consumption category. Both are included because the mechanism is structurally identical to an already-accepted entry (*Transform Consistency* and *Confused Deputy*, respectively) for a different invariant, not because a new case was found; a documented disclosure that fits either would strengthen it to the same evidentiary footing as the other thirteen.
+Thirteen of these entries are each grounded in an independently documented disclosure or research demonstration, several of which are worked through in full in Section 3.5. *Decompression Amplification* and *Budget Delegation* are the two exceptions: no independent disclosure anchors them, but the mechanism itself is already demonstrated elsewhere in this paper — Section 3.4.3's PNG-decoding example is a direct instance of *Decompression Amplification* — or is already named as a risk by an existing framework, as *Budget Delegation* is by OWASP's Unbounded Consumption category. Both are included because the mechanism is structurally identical to an already-accepted entry (*Transform Consistency* and *Confused Deputy*, respectively) for a different invariant, not because a new case was found; a documented disclosure that fits either would strengthen it to the same evidentiary footing as the other thirteen.
 
 Invariant × Divergence pairs that do not appear in this table had no matching case among the attacks reviewed through October 2026. They are not claimed to be impossible; a case that fits one would add an entry.
 
@@ -716,7 +716,7 @@ Against these precedents, two aspects of the contributions listed in **Section 1
 
 ### 3.4 Representation
 
-**In simple words.** The invariant says what broke, and the divergence says why the system missed it. The representation answers a third question: *"What did the attack look like at the point a check could have seen it?"* For Meaning, Authority, and Confidentiality mechanisms, that question is answered by one of four primary forms, optionally qualified by a modifier (a condition on how one payload was delivered) or further classified as a composite dependency (when the effect only emerges from several separate, complete artifacts combining); for Cost mechanisms, it is answered instead by a resource-amplification characteristic (**Figure 1n**):
+**In simple words.** The invariant says what broke, and the divergence says why the system missed it. The representation answers a third question: *"What did the attack look like at the point a check could have seen it?"* For Meaning, Authority, and Confidentiality mechanisms, that question is answered by one of four primary forms, optionally qualified by a modifier — a condition on how a payload was delivered or how it combines with other payloads; for Cost mechanisms, it is answered instead by a resource-amplification characteristic (**Figure 1n**):
 
 ```mermaid
 %%{init: {"theme": "base", "flowchart": {"nodeSpacing": 50, "rankSpacing": 70, "htmlLabels": true}, "themeVariables": {"fontSize": "15px"}}}%%
@@ -724,20 +724,20 @@ flowchart TD
     ROOT["<b>Representation</b><br/>What the payload looks like<br/>at the point a check could see it"]
 
     ROOT -- "for Meaning, Authority,<br/>Confidentiality" --> FORMS["<b>Primary Forms</b><br/>(Section 3.4.1)"]
-    ROOT -- "optional, one payload" --> MODS["<b>Modifiers</b><br/>(Section 3.4.2)"]
-    ROOT -- "multiple complete artifacts" --> COMP["<b>Composition-Dependent</b><br/>(Section 3.4.3)"]
-    ROOT -- "for Cost only" --> AMP["<b>Resource-Amplification<br/>Characteristics</b><br/>(Section 3.4.4)"]
+    ROOT -- "optional, one or more payloads" --> MODS["<b>Modifiers</b><br/>(Section 3.4.2)"]
+    ROOT -- "for Cost only" --> AMP["<b>Resource-Amplification<br/>Characteristics</b><br/>(Section 3.4.3)"]
 
     FORMS --> OS["<b>Overt Semantic</b><br/>Plainly readable"]
     FORMS --> EO["<b>Encoded / Obfuscated</b><br/>Disguised but decodable"]
     FORMS --> ST["<b>Steganographic</b><br/>Hidden in a skipped sub-channel"]
     FORMS --> AP["<b>Adversarial Perturbation</b><br/>Only a specific model responds"]
 
-    MODS --> FR["Fragmented / Distributed"]
-    MODS --> SD["Sequence-Dependent"]
+    MODS --> FR["<b>Fragmented / Distributed</b><br/>incomplete pieces,<br/>reassembled into one payload"]
+    MODS --> SD["<b>Sequence-Dependent</b><br/>timing, ordering, or<br/>synchronization required"]
+    MODS --> CD["<b>Composition-Dependent</b><br/>complete, independent artifacts,<br/>jointly interpreted"]
 
-    COMP --> CC["Cross-channel<br/><i>separate artifacts,<br/>separate checks</i>"]
-    COMP --> IAF["Intra-artifact<br/><i>one file, separately-checkable<br/>components</i>"]
+    CD --> CC["Cross-channel<br/><i>separate artifacts,<br/>separate checks</i>"]
+    CD --> IAF["Intra-artifact<br/><i>one file, separately-checkable<br/>components</i>"]
 
     AMP --> IA["Intrinsic Amplification<br/><i>the artifact's structure</i>"]
     AMP --> SA["Semantic Amplification<br/><i>the work it induces</i>"]
@@ -748,13 +748,13 @@ flowchart TD
     classDef cost fill:#fef3c7,stroke:#d97706,stroke-width:1.5px,color:#78350f
 
     class ROOT root
-    class FORMS,MODS,COMP branch
+    class FORMS,MODS branch
     class AMP cost
-    class OS,EO,ST,AP,FR,SD,CC,IAF rep
+    class OS,EO,ST,AP,FR,SD,CD,CC,IAF rep
     class IA,SA cost
 ```
 
-*Figure 1n. Representation's four branches. Primary Forms, Modifiers, and Composition-Dependent describe the payload for Meaning, Authority, and Confidentiality mechanisms — Modifiers cover a condition on how one payload is delivered, while Composition-Dependent covers an effect that only emerges once several separate, complete artifacts combine, whether those artifacts arrive through separate channels (Cross-channel) or as separately-checkable components bundled in one file (Intra-artifact). Resource-Amplification Characteristics is the parallel vocabulary used only for Cost mechanisms, since "how visible is this payload" does not apply to a decompression bomb the way it applies to hidden text.*
+*Figure 1n. Representation's three branches. Primary Forms describe the payload's visibility; Modifiers describe a condition on how a form's payload was delivered or how it combines with other payloads to produce the adversarial effect — whether a single payload arrives as incomplete pieces needing reassembly (Fragmented/Distributed), a payload's effect depends on timing or ordering (Sequence-Dependent), or the effect emerges only from several complete, independent artifacts interpreted together (Composition-Dependent, split by whether those artifacts arrive through separate channels or as components of one file). These three can co-occur on a single finding. Resource-Amplification Characteristics is the parallel vocabulary used only for Cost mechanisms, since "how visible is this payload" does not apply to a decompression bomb the way it applies to hidden text.*
 
 The four representation forms are ordered by how visible the payload is: Overt Semantic is plainly readable, Encoded/Obfuscated requires decoding, Steganographic hides in a sub-channel an ordinary reading skips, and Adversarial Perturbation is imperceptible to any ordinary reader at all. A payload's form can change as it crosses a transform (Section 3.2.2) — the same content can be Steganographic before a downscaler and Overt Semantic after it.
 
@@ -810,16 +810,21 @@ flowchart LR
 
 Zero-width characters in text and off-page PDF text are `Steganographic` the same way, across different modalities. On a phone line, the analogous attack is acoustic: a perturbation imperceptible to a human listener that a speech-recognition model transcribes as an instruction — `Adversarial Perturbation`, since no ordinary listening would ever reveal it.
 
+The remaining classification in this section — Modifiers — names a shared pattern: a per-item guard inspects pieces individually, while a downstream component acts on them jointly. What a modifier describes, concretely, differs case by case: whether a single payload arrives as incomplete pieces that must be reassembled, whether timing or ordering is itself the missing ingredient, or whether the effect only appears once several already-complete artifacts are interpreted together. The subsection below defines all three; they are not mutually exclusive, and a single finding can combine more than one.
+
 #### 3.4.2 Modifiers
 
-A **modifier** is a structural or temporal condition the adversarial effect requires, attached to a primary form, describing how a single payload was delivered.
+A **modifier** is a structural, temporal, or compositional condition attached to a primary form, describing how the form's payload was delivered or how it combines with other payloads to produce the adversarial effect.
 
-*Why it matters:* guards often inspect an input once, as a whole. A payload split across pieces passes every per-item check and still works once the model reassembles them.
+*Why it matters:* guards often inspect an input once, as a whole, or inspect each input separately. A payload split across pieces, timed to arrive in a specific pattern, or split across separately-checked artifacts can pass every per-item check and still work once a downstream component reassembles, synchronizes, or jointly interprets the pieces.
 
 *How it varies:* by how the pieces relate.
 * **Fragmented / Distributed:** A single effective payload is distributed across multiple incomplete pieces that require aggregation or reassembly to reconstruct its adversarial effect (for example, splitting a command across streaming chunks or structured fields).
-* **Sequence-Dependent:** The adversarial effect depends on the timing, ordering, duration, or synchronization of information across steps or frames.
-* **Classification distinctions:** Use *Fragmented / Distributed* when each piece is incomplete and reassembly rebuilds one payload, and *Sequence-Dependent* when ordering or timing is essential rather than the reassembly itself. *Encoded / Obfuscated* payloads are recovered with decoding conventions; *Steganographic* payloads sit in a sub-channel behind an ordinary-looking carrier. Transformation-activated payloads are covered by two existing parts of the record: the `Meaning × Artifact State` mechanism at the transform, and the representation recorded at each artifact state. Section 3.4.3 covers a related but distinct case — several *complete* artifacts combining, rather than one payload split into incomplete pieces.
+* **Sequence-Dependent:** The adversarial effect depends on the timing, ordering, duration, or synchronization of information across steps or frames. The pieces involved may themselves be complete and independently benign — what is missing from any per-piece check is awareness of *when* they arrive relative to one another, not awareness of their content.
+* **Composition-Dependent:** The adversarial effect emerges only through the joint interpretation of multiple **complete, self-contained** artifacts. Unlike *Fragmented / Distributed*, none of the contributing pieces is incomplete on its own; each would pass a per-artifact check individually. It varies by where the separately-checkable pieces come from:
+  - *Cross-channel:* the pieces arrive as separate artifacts, through separate channels, each with its own check.
+  - *Intra-artifact:* the pieces are bundled inside one file, as separate components (e.g., a video's frames and its caption track), each still separately-checkable even though they travel together.
+* **Classification distinctions:** Use *Fragmented / Distributed* when each piece is incomplete and reassembly rebuilds one payload. Use *Sequence-Dependent* when every piece is already complete and ordering or timing — not reassembly — is the missing ingredient. Use *Composition-Dependent* when every piece is already complete and the missing ingredient is joint interpretation of independent artifacts, regardless of timing. These are not mutually exclusive: a payload can be both *Fragmented / Distributed* and *Sequence-Dependent* at once (the video example below), just as a *Composition-Dependent* pair can also be *Sequence-Dependent* if the artifacts must arrive synchronized. *Encoded / Obfuscated* payloads are recovered with decoding conventions; *Steganographic* payloads sit in a sub-channel behind an ordinary-looking carrier. Transformation-activated payloads are covered by two existing parts of the record: the `Meaning × Artifact State` mechanism at the transform, and the representation recorded at each artifact state.
 
 *Example (Fragmented / Distributed):* a video-language model checks uploaded video for policy compliance by sampling one frame every few seconds. An attacker distributes a single directive across seven frames — frame 40 (ignore), 95 (previous), 150 (instructions), 205 (and), 260 (forward), 315 (all), 370 (emails). No single frame contains a complete instruction (Section 3.5.5):
 
@@ -889,15 +894,9 @@ flowchart LR
 
 *Figure 1o-iii. A Sequence-Dependent payload with no fragmentation. Unlike Figure 1o-ii, nothing here is incomplete — each segment is a full, self-contained clip. The fault is purely in *when* the segments arrive relative to one another: a per-segment check that samples clips at arbitrary moments, with no regard for their timing, never observes the synchronized pattern the model responds to (`Adversarial Perturbation` + `Sequence-Dependent`, with no `Fragmented/Distributed` component).*
 
-#### 3.4.3 Composition-Dependent
-
-A **composite dependency** describes an adversarial effect that emerges only through the joint interpretation of multiple complete, self-contained artifacts — unlike a modifier, which describes a condition on how one payload was delivered, a composite dependency is a relationship between two or more separately-checkable payloads, none of which is incomplete on its own.
+**Composition-Dependent, in more detail.** As defined above, a *Composition-Dependent* effect emerges only through the joint interpretation of multiple complete, self-contained artifacts — a relationship between two or more separately-checkable payloads, none of which is incomplete on its own.
 
 *Why it matters:* guards typically inspect each input on its own. A payload that stays within one artifact is visible to a per-artifact check; a payload confined to the *combination* of several artifacts is not, because no single check ever sees the combination.
-
-*How it varies:* by where the separately-checkable pieces come from.
-* **Cross-channel:** the pieces arrive as separate artifacts, through separate channels, each with its own check.
-* **Intra-artifact:** the pieces are bundled inside one file, as separate components (e.g., a video's frames and its caption track), each still separately-checkable even though they travel together.
 
 *Example (cross-channel):* An attacker sends a harmless message (*"Please apply the goodwill credit we agreed on"*) and a harmless-looking chat screenshot (*"Agent: agreed, \$25 credit to account 48213"*). Each passes review on its own:
 
@@ -955,7 +954,7 @@ Together they give the model the action and the target account, and it issues th
 
 The combinatorial surface grows with modality count. Teixeira (2026) demonstrated *three-modal prompt injection* against a multimodal model: jointly optimized image and audio assets produced adversarial behavior only when all three modalities (text, image, audio) were present simultaneously — every proper subset (each single modality and each pair) produced benign output, and per-modality input guardrails blocked none of the payloads. With M input modalities, a model reasons over 2^M - 1 non-empty subsets, but per-channel inspection covers only M of them. The *Composition-Dependent* category records this combinatorial dependency; the minimum subset that activates the effect is part of the record so that defenders know which ablation tests to run.
 
-#### 3.4.4 Resource-Amplification Characteristics
+#### 3.4.3 Resource-Amplification Characteristics
 
 A **resource-amplification characteristic** is how an artifact makes processing consume disproportionate resources (`Cost × Evaluator`, *Resource Accounting*), recorded in the `Representation` slot of `Cost` records.
 
@@ -1147,7 +1146,7 @@ Written as a tuple: `⟨Meaning, Evaluator, Adversarial Perturbation⟩`.
 
 *Scenario:* an application summarizes web pages for its users. A typical page can carry text, an embedded image, and an embedded audio clip all at once — think of an article with a photo and an audio player on it. The application feeds all three into one multimodal model at the same time and asks it to produce a summary (Teixeira, 2026).
 
-*Exploit:* the attacker doesn't hide a bad instruction in any single one of these three inputs. Instead, using an optimization process — computationally searching for the right combination, the same kind of technique behind the RP2 stickers in Section 3.5.3 — they craft a specific image file (PNG) and a specific audio file (WAV) together, as a matched pair, designed to work only in combination. The image alone produces entirely normal output. The audio alone produces entirely normal output. Even the image and audio together, without the text, still produce normal output. The malicious behavior — the model producing a phishing message with a dangerous link — only emerges when all three pieces (the text, the rigged image, and the rigged audio) are present at the same time, the way a combination lock needs every part to open at once, not just some of them. All three are components of the same single page — not three separately-submitted artifacts arriving through independent channels — so this is the *Intra-artifact* flavor of Composition-Dependent (Section 3.4.3): one artifact, three separately-checkable components, bundled together. This is exactly why checking each component on its own fails: a guardrail that only looks at the page's image finds nothing wrong, because the image genuinely is harmless by itself; the same is true for the audio and the text checked individually. Only a check on the model's final output — after it has already combined all three — catches the violation:
+*Exploit:* the attacker doesn't hide a bad instruction in any single one of these three inputs. Instead, using an optimization process — computationally searching for the right combination, the same kind of technique behind the RP2 stickers in Section 3.5.3 — they craft a specific image file (PNG) and a specific audio file (WAV) together, as a matched pair, designed to work only in combination. The image alone produces entirely normal output. The audio alone produces entirely normal output. Even the image and audio together, without the text, still produce normal output. The malicious behavior — the model producing a phishing message with a dangerous link — only emerges when all three pieces (the text, the rigged image, and the rigged audio) are present at the same time, the way a combination lock needs every part to open at once, not just some of them. All three are components of the same single page — not three separately-submitted artifacts arriving through independent channels — so this is the *Intra-artifact* flavor of Composition-Dependent (Section 3.4.2): one artifact, three separately-checkable components, bundled together. This is exactly why checking each component on its own fails: a guardrail that only looks at the page's image finds nothing wrong, because the image genuinely is harmless by itself; the same is true for the audio and the text checked individually. Only a check on the model's final output — after it has already combined all three — catches the violation:
 
 ```mermaid
 flowchart LR
@@ -1182,7 +1181,7 @@ flowchart LR
 1. *Invariant:* `Meaning` — the three guards conclude the input is benign; the model, reasoning over all three together, reaches a malicious reading.
 2. *Divergence:* `Evaluator` — nothing about any single component changed; each guard simply never evaluates the combination the model does.
 3. *Invariant × Divergence Mapping:* `Meaning × Evaluator` is named *Guard-Model Capability* — the same entry used for the spam-filter case in Section 3.2.1, here at its most extreme: each per-component guard cannot perceive what only the full, joint input reveals.
-4. *Representation:* `Adversarial Perturbation`, combined with the *Composition-Dependent* category and its *Intra-artifact* variant (Section 3.4.3) — the image and audio are jointly optimized so that the malicious effect exists only in the combination of all three components of one page. With M components, a model reasons over 2^M - 1 non-empty subsets, but per-component inspection covers only M of them; the attacker confines the payload to a subset no single-component check evaluates.
+4. *Representation:* `Adversarial Perturbation`, combined with the *Composition-Dependent* category and its *Intra-artifact* variant (Section 3.4.2) — the image and audio are jointly optimized so that the malicious effect exists only in the combination of all three components of one page. With M components, a model reasons over 2^M - 1 non-empty subsets, but per-component inspection covers only M of them; the attacker confines the payload to a subset no single-component check evaluates.
 
 Written as a tuple: `⟨Meaning, Evaluator, Adversarial Perturbation [Composition-Dependent, Intra-artifact]⟩`.
 
@@ -1560,9 +1559,9 @@ This glossary lists the terms this paper defines and relates each one to the clo
 | Adversarial Perturbation | 3.4.1 | Adversarial examples (NIST AI 100-2e2025); ATLAS `AML.T0043` Craft Adversarial Data; `CWE-1039` | Equivalent |
 | Fragmented / Distributed | 3.4.2 | Payload splitting (OWASP `LLM01:2025`, scenario 6) | Equivalent |
 | Sequence-Dependent | 3.4.2 | — | New |
-| Composition-Dependent | 3.4.3 | Cross-modal prompt injection (Wang et al., 2025) | New (as a composite dependency) |
-| Intrinsic Amplification | 3.4.4 | Decompression bomb (`CWE-409`); asymmetric resource consumption (`CWE-405`) | Equivalent |
-| Semantic Amplification | 3.4.4 | ATLAS `AML.T0034.001` Resource-Intensive Queries, `AML.T0034.002` Agentic Resource Consumption | Equivalent |
+| Composition-Dependent | 3.4.2 | Cross-modal prompt injection (Wang et al., 2025) | New (as a composite dependency) |
+| Intrinsic Amplification | 3.4.3 | Decompression bomb (`CWE-409`); asymmetric resource consumption (`CWE-405`) | Equivalent |
+| Semantic Amplification | 3.4.3 | ATLAS `AML.T0034.001` Resource-Intensive Queries, `AML.T0034.002` Agentic Resource Consumption | Equivalent |
 | Construction Method | Appendix A.6 | ATLAS `AML.T0043.000` White-Box Optimization, `.001` Black-Box Optimization, `.003` Manual Modification | Equivalent |
 | Attacker Knowledge / Access (*Partial Knowledge*) | Appendix A.6 | White-box, black-box, and gray-box attacks (NIST AI 100-2e2025, Section 2.1.4) | Equivalent (*Partial Knowledge* = gray-box) |
 | Transfer Context (*Surrogate Transfer*) | Appendix A.6 | ATLAS `AML.T0043.002` Black-Box Transfer | Equivalent |
