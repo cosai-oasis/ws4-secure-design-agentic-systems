@@ -1,6 +1,6 @@
 # Worked example: a lost reply in FX trade booking
 
-Status: draft for practitioner review on issue #300. The scope (one normal-success control and three failure variants) was agreed with @siddhartha1310 on 26 October 2026. The lifecycle follows his account in [modelcontextprotocol/financial-services-interest-group#17](https://github.com/modelcontextprotocol/financial-services-interest-group/issues/17#issuecomment-6409431367): a unique booking reference, a listening window followed by a search by that reference, a cancel that counts only on a confirmed event ID, unresolved deals handed to operations, and a reconciliation that closes every timed-out deal. His written review of 28 October ([comment](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/300#issuecomment-6476107692)) is applied below, with thanks. All data below is synthetic.
+Status: draft on issue #300, with the practitioner review applied. The scope (one normal-success control and three failure variants) was agreed with @siddhartha-mangsatabam on 26 October 2026. The lifecycle follows his account in [modelcontextprotocol/financial-services-interest-group#17](https://github.com/modelcontextprotocol/financial-services-interest-group/issues/17#issuecomment-6409431367): a unique booking reference, a listening window followed by a search by that reference, a cancel that counts only on a confirmed event ID, unresolved deals handed to operations, and a reconciliation that closes every timed-out deal. His written review of 28 October ([comment](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/300#issuecomment-6476107692)) is applied below, with thanks. All data below is synthetic.
 
 This example follows the six-step workflow from issue #300 and the core tuple M = <Boundary, Representation, System Processing Stage> of the taxonomy in Section 2. It has no payload in a prompt. The influence on the agent is an absence: a reply that never arrives.
 
@@ -8,7 +8,7 @@ This example follows the six-step workflow from issue #300 and the core tuple M 
 
 An agent system books a client's FX deal in a booking system, for example Murex. The booking system is the source of truth. After the booking it sends an execution order to a liquidity provider (LP). The agent system can book, search the booking system by its own booking reference, and cancel. Operations staff can also change a deal directly in the booking system. A reconciliation job compares the two sides during the day, for example every 15 minutes, and again at the end of the day as the final close for anything missed. A scheduled cycle always delivers a file, even an empty one, so the result is clear either way and a missing file is noticed straight away.
 
-Synthetic deal: CLIENT-A buys EUR/USD, notional 1,000,000, quote Q-1, booking reference R1, client credit limit 5,000,000 of which 3,000,000 is used before this deal.
+Synthetic deal: CLIENT-A buys EUR/USD, notional 1,000,000, quote Q-1, booking reference R1, client credit limit 5,000,000 of which 3,000,000 is used before this deal. "Capacity" below means headroom under this credit limit, never the client's balance.
 
 ## Step 1: map the architecture
 
@@ -19,7 +19,7 @@ Synthetic deal: CLIENT-A buys EUR/USD, notional 1,000,000, quote Q-1, booking re
 | Core banking system | Holds the client's accounts and balances and confirms the funds before booking. Depending on the bank, the amount is held or debited at booking, or left until settlement | The client's balance. |
 | Liquidity provider | Executes the order that covers the client deal | Whether its own execution happened. |
 | Operations | Corrects deals directly in the booking system | Changes it makes, each carrying an event ID. |
-| Reconciliation | Compares agent system records with the booking system | Closing a timed-out deal. |
+| Reconciliation | Compares agent system records with the booking system in every cycle, intraday and at the end of the day | Closing a timed-out deal, from a cycle file that arrived. The end-of-day run is the final close. |
 
 Two separate checks normally come before a booking. The balance check in the core banking system confirms that the client has sufficient funds in the correct account. The credit limit check in the booking system confirms that the deal stays within the exposure the bank has approved for the client, client group or country. Both must pass, and either can fail or time out independently. The credit limit check is check-only: the booking system confirms there is room, holds nothing, and counts the deal once it is booked. Practice on the account side varies. Some banks hold or debit the amount at booking; in some corporate-client set-ups the balance is only read, the credit limit check is considered sufficient, and a failed debit on the value date is handled by operations. This example models the credit limit check and takes the balance check as passed. "Credit limit" always means the exposure limit, never the client's balance.
 
@@ -35,6 +35,8 @@ The party who can drop, delay or withhold a reply (an attacker on the network pa
 | Cancel reply and event ID | Booking system | Booking system; delivery is controllable on the path |
 | Operations change | Booking system | Operations |
 | Search result by reference | Booking system | Booking system |
+| Balance check result | Core banking system | Core banking system; delivery is controllable on the path |
+| Reconciliation file, one per cycle, empty or not | Reconciliation | Reconciliation; delivery is controllable on the path |
 
 ## Step 3: boundaries and assumptions
 
@@ -55,7 +57,7 @@ Assumptions that depend on the bank, the booking system or the LP are listed und
 | Boundary: Cost | Resource Accounting | Held capacity is released or counted twice. |
 | Representation | Overt Semantic, with the Sequence-Dependent modifier (closest available) | The taxonomy has no value for a suppressed signal. This is the nearest fit and a question for the editors. |
 | System Processing Stage | Feedback (reply lost) -> Interpretation / Decision -> Action | The missing reply re-enters the loop, the model decides, and a tool call changes external state. |
-| Evidence maturity | Modelled and runnable on synthetic cases; practitioner review pending | Not observed in a named production incident. |
+| Evidence maturity | Modelled and runnable on synthetic cases; practitioner review of 28 October applied | Not observed in a named production incident. |
 
 ## Step 5: supporting context
 
@@ -70,7 +72,7 @@ Modality: structured API calls, unimodal. Construction method: none or manual (a
 | Acknowledgement (ACK) | A reply from a system saying it received or processed a request | That the request reached it. A missing ACK proves nothing in either direction. |
 | State confirmation | A booking system record found by booking reference, with status and event IDs | The deal's state at the time of the read. |
 | Event confirmation | A booking system cancel event ID | That the cancel happened. A cancel counts only with this. |
-| Reconciliation close | A booking system record at the close, absent or present | The final state of a timed-out deal. |
+| Reconciliation close | A reconciliation cycle's result for the booking reference, absent or present. Every cycle delivers a file, even an empty one, so an empty file is a result | The final state of a timed-out deal. A missing file proves nothing in either direction. |
 
 The agent system's ledger is never one of these. Each class is accepted only when signed by the key the case names for that role.
 
@@ -92,8 +94,11 @@ Case: `control_normal_success`.
 | 2 | A mistaken resend of R1 | duplicate rejection from the booking system | booked once | none |
 | 3a | Search by R1 finds the deal booked | state confirmation | booked | cancel once |
 | 3b | Search by R1 finds nothing | provisional absence | not found at this time; not yet "never booked" | hold the capacity until reconciliation closes the deal (the stricter policy the cases encode; some businesses release here, see the note after the controls table) |
-| 3c | Reconciliation close finds the deal absent | reconciliation close | never booked | release the capacity |
+| 3c | A reconciliation cycle finds the deal absent (under the stricter policy the next intraday cycle; at the latest the end-of-day run) | reconciliation close | never booked | release the capacity |
+| 3d | The cycle's reconciliation file does not arrive | none | nothing, in either direction | keep holding the capacity; alert operations to the missing file |
 | 4 | Cancel reply with an event ID | event confirmation | booked and cancelled once | release the capacity |
+
+Row 3d is the lost reply again, one layer down. A cycle file that arrived empty states that the deal is absent; a file that never arrived states nothing, so the deal stays unresolved, exactly as after row 1. A later booking found by any cycle up to the end-of-day close is cancelled once (row 3a's rule). The corpus has no case named for the missing file yet; its reader already leaves a deal unresolved when no reconciliation close is counted.
 
 Cases: `v1_lost_ack_found_by_search_cancelled_once`, `v1_late_booking_held_until_reconciliation_cancelled_once`, `v1_search_absent_reconciliation_closes_never_booked`, `v1_resend_same_reference_rejected`.
 
@@ -170,6 +175,6 @@ The command checks every corpus member against its manifest, judges all cases fr
 
 ### Residual gaps
 
-Operations authorship of a cancel is read from the booking system's event actor; where the booking system does not record it, variant 3 cannot be told apart from the agent system's own cancel. The corpus judges signed records and does not judge price, amount or settlement.
+Operations authorship of a cancel is read from the booking system's event actor; where the booking system does not record it, variant 3 cannot be told apart from the agent system's own cancel. The corpus judges signed records and does not judge price, amount or settlement. The balance check in core banking can fail or time out independently of the credit limit check; this example takes it as passed, and a lost balance-check reply has the same shape as variant 1, one system over.
 
-Reviewed by @siddhartha1310: [review of 28 October](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/pull/307#issuecomment-6476107692).
+Reviewed by @siddhartha-mangsatabam: [review of 28 October](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/300#issuecomment-6476107692).
