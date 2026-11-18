@@ -11,7 +11,7 @@ status: "Working draft to be reviewed"
 # Table of contents
 
 - [Abstract](#abstract)
-  - [Scope](#scope)
+  - [Scope](#scope-and-what-we-care-about)
   - [Anti-scope](#anti-scope)
   - [Target audience](#target-audience)
 - [1. Why agent development needs its own lifecycle](#1-why-agent-development-needs-its-own-lifecycle)
@@ -53,73 +53,95 @@ status: "Working draft to be reviewed"
 
 ## Abstract
 
-Organizations deploying AI agents are applying their existing secure software development practices to them and finding that the practices do not fit. It usually reads as a maturity problem: the tooling will eventually catch up, let's wait it out. Secure development frameworks encode assumptions about how software behaves, but as you might guess if you are reading this document, agentic systems violate a bunch of them that this definitional paper tries to define. Agents are creatures that evolve through time, you can't just look at the code of the harness and call it done. Even how they acquire identities, accesses evolve with time. Sometimes they also find that access by themselves (cf hugging face incident).
+Secure development assumes five things that do not hold for an AI (artificial intelligence) agent:
 
-This paper sets out an agent development lifecycle as a direct response to those failure modes. We defined that framework through phases describing the agent's life. Each of those phases is derived from a named assumption that breaks. For each phase, we care about what must be decided in advance, what must be verified through monitoring, and how to find evidence.
+- Behavior is fixed when the artifact is built.
+- The reviewable artifact is the code.
+- Identity is a service account.
+- Testing approximates production behavior.
+- Retirement means deleting the deployment.
 
-The goal of that doc is mostly practical. We're all engineers here, and describing in vague terms is not enough. A security team should be able to adapt the controls it already runs instead of starting over, and should be able to say, for any agent in its estate, which obligations have been met and which gate is next.
+[Section 1.1](#11-five-assumptions-secure-development-rests-on) states how each assumption fails. This paper defines an agent development lifecycle (ADLC) whose phases repair those failures. Each phase states what must be decided in advance, what must be verified through monitoring, and how to find the evidence. The identities and access an agent holds change over time. Reviewing the harness, the software that runs the agent, is not enough. Sometimes an agent finds access on its own, as in the Hugging Face incident. [Section 3.2](#32-supply-chain) covers components the agent acquires at runtime.
+
+A security team should be able to extend the controls it already runs. For any agent, the team should be able to say which obligations have been met and which gate is next. [Section 4.1](#41-adapting-controls-you-already-run) is that guidance.
 
 ### Scope and what we care about
 
 - The lifecycle of an agent as an entity, from the decision to build or acquire one through its retirement.
 - The security-relevant decisions, gates, and evidence at each phase.
-- Understanding the division between improving the agent itself and what must be verified on the platforms the agent depends on.
-- Guidance for organizations that have already started this journey of agent development lifecycle.
+- Improving the agent itself, as distinct from what must be verified on the platforms the agent depends on.
+- Guidance for organizations that have already begun an agent development lifecycle.
 
 ### Anti-scope
 
-- **Mechanism design.** We won't go into detail on how to construct an isolation boundary, or a policy engine. We of course will share examples, but we know each organization has specifics that we can't avoid. We will try to rely as much as possible on maturity matrices.
-- **Telemetry schema.** The lifecycle requires that certain events be evidenced. The workstream won't try to enter into details and opinions on what format to adopt.
-- **Conventional package and dependency supply chain practice.** If you want to read about "classic" SDLC good practices, there are other documents that are more interesting than this one.
-- **The security of code or content an agent produces.** That is a property of the agent's output and belongs to the lifecycle of whatever consumes it. This paper is about the security of the agent itself.
-- **Model development.** Training, tuning, and evaluation of foundation models. Agents use the model as input, so we don't enter the detail of their craft.
-- **How to deal with AI artifacts.** It's absolutely a trendy subject, how to review so much code, human bottleneck, ai slop. That's not the scope here, we care only about how the agents are released in production.
+- **Mechanism design.** How to build an isolation boundary or a policy engine. The paper may give examples. Organizations differ, and the paper tries to rely on maturity matrices as far as it can.
+- **Telemetry schema.** The lifecycle requires evidence of certain events. It does not set the format of that evidence.
+- **Conventional package and dependency supply chain practice.** "Classic" software development lifecycle (SDLC) practice for ordinary packages is covered in other documents.
+- **The security of code or content an agent produces.** That is a property of the agent's output, and it belongs to the lifecycle of whatever consumes that output. This paper covers the security of the agent.
+- **Model development.** Training, tuning, and evaluation of foundation models. The agent takes the model as an input.
+- **How to deal with AI artifacts.** How to review a large volume of AI-written code, the human review bottleneck, and low-quality AI output is out of scope. This paper covers how agents are released to production.
 
 ### Target audience
 
-- **Software developers** that happen to configure agentic systems and care about their security in production.
-- **Platform and framework teams** providing the infrastructure other teams build agents on.
-- **Security and risk officers** setting policy for what may be deployed, and under what conditions.
-- **Third-party risk teams** evaluating procured agentic products against a defensible checklist.
-- **Enterprise architects** integrating agents into an existing security ecosystem.
+- **Software developers** who configure agentic systems and care about their security in production.
+- **Platform and framework teams** who provide the infrastructure other teams build agents on.
+- **Security and risk officers** who set policy for what may be deployed, and under what conditions.
+- **Third-party risk teams** who evaluate procured agent products against a checklist they can defend.
+- **Enterprise architects** who integrate agents into the security environment the organization already runs.
 
 ---
 
 ## 1. Why agent development needs its own lifecycle
 
-Agents need the same secure development practices as other software, plus checks for behavior that can change after deployment. Their permissions, tools, memory, and external data can affect what they do at runtime. Most secure development frameworks were not written with agents in mind, so this workstream started from observed failures and built the lifecycle phases around them. Here are the assumptions of classic SDLC that no longer hold for agents.
+Agents need the same secure development practices as other software, plus checks for behavior that can change after deployment. Most secure development frameworks were not written for agents. This workstream started from observed failures and built the lifecycle phases around them. The assumptions below are the ones a classic SDLC makes that do not hold for agents.
 
 ### 1.1 Five assumptions secure development rests on
 
 #### 1.1.1 Behavior is fixed when the artifact is built
 
-Conventional software primarily executes logic its developers defined at build time, run against runtime inputs. Everything downstream (signing, scanning, promotion, change control) protects an artifact whose behavior is already settled. Review the code and you have reviewed the behavior, subject to the quality of the review.
+Conventional software primarily runs logic its developers defined at build time, against inputs it receives at runtime. Everything downstream of that build, including signing, scanning, promotion, and change control, protects an artifact whose behavior is already settled. Review the code, and you have reviewed the behavior, subject to the quality of the review.
 
-An agent's behavior is determined at runtime, and can differ from one execution to the next even when it is given the same objective. It is shaped by the composition of its system instructions, a model whose weights the deploying organization did not author, content retrieved at the moment of the request, memory accumulated across prior sessions, and whichever tools happen to be reachable. The same artifact, deployed unchanged, behaves differently this week than last because the corpus it retrieves from changed, or because the model behind an API was updated by its provider. Build-time assurance does not transfer to runtime.
+An agent's behavior is set at runtime. The same objective can produce different behavior from one run to the next. Each run combines:
 
-**Consequence.** Security assurance, the ongoing verification that an agent still meets its security requirements, must extend beyond build and deployment into runtime, where agent decisions, tool invocations, and interactions occur. These activities must be continuously governed, monitored, and constrained by enforceable security controls, starting at admission.
+- the system instructions
+- a model whose weights the deploying organization did not author
+- content retrieved for that request
+- memory from earlier sessions
+- the tools that are reachable
+
+The same artifact, deployed unchanged, can behave differently this week than last. The corpus it retrieves may have changed. Or the provider may have updated the model behind an application programming interface (API). Build-time assurance does not transfer to runtime.
+
+**Consequence.** Security assurance is the ongoing verification that an agent still meets its security requirements. It must extend beyond build and deployment into runtime, where the agent makes decisions, invokes tools, and interacts with other systems. These activities must be continuously governed, monitored, and constrained by enforceable security controls, starting at admission.
 
 #### 1.1.2 The reviewable artifact is the code
 
-Traditional security testing methods, such as code review, static analysis, and dependency scanning, focus primarily on the software artifacts in which security-relevant decisions are implemented.
+Code review, static analysis, and dependency scanning focus primarily on the software artifacts in which security decisions are implemented.
 
-For an agent, the security-relevant decisions are largely expressed in prose and configuration: the system instructions, the tool permission manifest, the memory retention policy, the trust assignments over retrieval sources, the conditions under which a human must approve an action. This is the real policy surface, and it is invisible to tooling built for the other kind of artifact. A change to an instruction that materially widens an agent's authority can pass every gate that an equivalent change in code would have failed. Reviewing each artifact on its own is also not enough: the agent's behavior emerges from how they combine at runtime.
+For an agent, those decisions sit mostly in prose and configuration:
+
+- the system instructions
+- the tool permission manifest
+- the memory retention policy
+- the trust assignments over retrieval sources
+- the conditions under which a human must approve an action
+
+This is the policy surface. Tooling built for code does not see it. A change to an instruction that materially widens an agent's authority can pass every gate that an equivalent change in code would have failed. Reviewing each artifact on its own is not enough. The agent's behavior emerges from how the artifacts combine at runtime.
 
 **Consequence.** The policy surface needs its own authoring, review, versioning, and rollback discipline, at parity with code.
 
 #### 1.1.3 Identity is a service account
 
-In traditional software, applications and services are commonly authenticated and managed through service identities or service accounts. These service identities may be shared across workloads.
+In traditional software, applications and services are authenticated and managed through service identities or service accounts. These identities may be shared across workloads.
 
-Agentic systems introduce a harder problem because authority (identity and authorization) can be delegated across agents and tools at runtime. For example, a person delegates to an agent, which delegates to a sub-agent, which invokes a tool against a resource. At each handoff, the system must be able to determine who is acting, on whose behalf, and with what delegated authority. A shared service account cannot reliably preserve this context across the delegation chain. To address this limitation, agentic systems require first-class non-human identities [^22], explicit delegation [^23] and authorization boundaries, lifecycle management, and action-level traceability.
+Agentic systems add a harder problem. Authority, meaning identity and authorization, can be delegated across agents and tools at runtime. A person delegates to an agent. That agent delegates to a sub-agent. The sub-agent calls a tool against a resource. At each handoff, the system must be able to determine who is acting, on whose behalf, and with what delegated authority. A shared service account cannot reliably preserve this context across the delegation chain. Agentic systems require first-class non-human identities [^22], explicit delegation [^23] and authorization boundaries, lifecycle management, and action-level traceability.
 
 **Consequence.** Establishing an agent's identity, binding it to constraints, and making it verifiable at each hop is a gated lifecycle event, not a deployment detail.
 
 #### 1.1.4 Testing approximates production behavior
 
-Traditional software testing relies on the idea that the implementation remains steady under specified conditions, and that observed behavior offers sufficient insight into how the system will perform in production under similar circumstances. Same input, same path, same result.
+Traditional software testing assumes that the implementation stays steady under stated conditions, and that observed behavior offers sufficient insight into how the system will perform in production under similar conditions. The same input takes the same path and returns the same result.
 
-For a non-deterministic system consuming untrusted input, a passing test says the system behaved acceptably on the inputs that were sampled. That is evidence of the absence of a specific failure, not evidence of the presence of a property. Adversarial input is by construction drawn from the part of the distribution a test suite does not sample, and the agent's own variability means an identical input may not reproduce the tested path.
+For a non-deterministic system that consumes untrusted input, a passing test shows that the system behaved acceptably on the inputs that were sampled. That is evidence that a specific failure was absent. It is not evidence that a property is present. Adversarial input is drawn, by construction, from the part of the distribution a test suite does not sample. The agent's own variability means an identical input may not reproduce the tested path.
 
 **Consequence.** Pre-deployment testing must be supplemented by a recorded behavioral baseline and continuous comparison of live behavior against it.
 
@@ -127,13 +149,23 @@ For a non-deterministic system consuming untrusted input, a passing test says th
 
 Decommissioning conventional software means removing the running instance, revoking its credentials, and disposing of its data under a retention policy. The system leaves no residue beyond what was provisioned for it.
 
-An agent leaves residue that was never provisioned: durable memory it chose to write, credentials and grants it accrued while operating, webhooks and subscriptions it established, sub-agents it created, and knowledge it consolidated into retrieval stores that other agents now read as authoritative. Deleting the deployment retracts none of it. Neither does a kill switch, which halts the agent and revokes the authority the platform issued but not what the agent created. An agent can continue to shape behavior long after it stops running, through what it left behind.
+An agent leaves residue that was never provisioned:
+
+- durable memory it chose to write
+- credentials and grants it accrued while operating
+- webhooks and subscriptions it established
+- sub-agents it created
+- knowledge it consolidated into retrieval stores that other agents now read as authoritative
+
+Deleting the deployment retracts none of that residue. A kill switch does not retract it either. A kill switch halts the agent and revokes the authority the platform issued. It does not revoke what the agent created. An agent can still shape later behavior through what it left behind.
 
 **Consequence.** Retirement is a verified teardown with its own authorization and its own evidence, not an operational afterthought.
 
 ### 1.2 What existing frameworks reach
 
-The available frameworks are individually sound and collectively leave a gap, because they divide the problem along axes that do not include the agent as a subject persisting through time.
+Each framework below is sound on its own. Together they leave a gap. They divide the problem along lines that do not treat the agent as a subject that persists through time.
+
+Short names in the table: NIST (National Institute of Standards and Technology), SP (Special Publication), SSDF (Secure Software Development Framework), OWASP (Open Worldwide Application Security Project), SAMM (Software Assurance Maturity Model), LLM (large language model), CIS (Center for Internet Security), ISO/IEC (International Organization for Standardization and the International Electrotechnical Commission), IETF (Internet Engineering Task Force), SPIFFE (Secure Production Identity Framework for Everyone), and JWT (JSON Web Token).
 
 | Framework | What it reaches | Where it stops for agents |
 |---|---|---|
@@ -147,91 +179,124 @@ The available frameworks are individually sound and collectively leave a gap, be
 | ISO/IEC 42001 [^6] | Management system requirements for AI at organizational level | Governance altitude; does not reach engineering-phase gates |
 | Vendor AI-native development playbooks [^7] | The most operationally concrete material available: policy expressed as version-controlled configuration, an identity for the agent distinct from the engineer who triggered it, and tiered autonomy with explicit human authorization at the production gate | Take the agent as instrument rather than artifact. No provenance or trust-tier gate on the models and tools the agent consumes, and no treatment of retirement |
 
-Three patterns are worth drawing out. First, these frameworks divide by the wrong axis for this problem: some take the model as subject, some the organization, some the architecture, and none takes the agent entity across its lifetime. Second, where agent-specific material does exist, it is overwhelmingly enumerative. Enumerations are valuable and this paper depends on them, but they do not tell an engineering team which gate is supposed to catch a given risk. That is the service a lifecycle framework provides, and it is the gap this paper addresses. Third, the most operationally mature material in the table is the material that takes the agent as an instrument rather than as the thing being shipped, which is evidence that the gap is not a maturity problem waiting to close on its own. It is a difference in subject, and it will persist until something addresses the subject directly.
+Three patterns follow.
+
+First, these frameworks divide on the wrong axis for this problem. Some take the model as the subject, some the organization, and some the architecture. None takes the agent across its lifetime.
+
+Second, where agent-specific material exists, it is mostly a list of risks. Those lists are valuable, and this paper depends on them. They do not tell an engineering team which gate should catch a given risk. A lifecycle does that. That is the gap this paper addresses.
+
+Third, the most operationally mature material in the table treats the agent as an instrument, not as the thing being shipped. That is evidence of a difference in subject. The gap will remain until a framework addresses the agent directly. It is not a maturity problem that closes on its own.
 
 ---
 
 ## 2. Boundaries of the lifecycle
 
-Four boundary claims, stated plainly because much of the disagreement about how to secure agents turns out, on inspection, to be disagreement about which of these is true.
+Four boundary claims. Much of the disagreement about how to secure agents is disagreement about which of these claims is true.
 
 ### 2.1 A process framework, not an implementation guide
 
-The lifecycle describes what must be decided, verified, and evidenced, at which point, and by whom. It does not describe how to build the mechanism that satisfies a requirement.
+The lifecycle states what must be decided, verified, and evidenced, at which point, and by whom. It does not state how to build the mechanism that meets a requirement.
 
-This is a deliberate limit and it does real work. A document explaining how to construct an isolation boundary is valuable, and it is a different document; conflating the two produces a framework simultaneously too prescriptive to adopt incrementally and too shallow to implement from. The lifecycle's obligation is to establish that containment posture is decided before procurement and verified before production traffic. Which technology satisfies that obligation is the deploying organization's choice, and will differ by risk appetite, platform, and regulatory regime.
+The limit is deliberate. A document that explains how to build an isolation boundary is a different document, and it is a valuable one. Merging the two produces a framework that is too prescriptive to adopt in steps and too shallow to build from. The lifecycle requires that containment posture be decided before procurement and verified before production traffic. The deploying organization chooses the technology. The choice will differ by risk appetite, platform, and regulatory regime.
 
 ### 2.2 Design time is inside the process
 
-If behavior is not fixed at build time, you can't find out later what the agent was allowed to do by reading its code. Somebody has to decide that up front and write it down, before anything is bought or built. Like any secure development lifecycle, this one designs the agent against stated security requirements and threat-models it against intended and unintended use. [Section 3.1](#31-scoping-and-design) says how.
+If behavior is not fixed at build time, you cannot learn what the agent was allowed to do by reading the code later. Someone has to decide that before anything is bought or built, and write it down. Like any secure development lifecycle, this one designs the agent against stated security requirements and threat-models it against intended and unintended use. [Section 3.1](#31-scoping-and-design) says how.
 
-The written result is the design record: intended use, autonomy bounds, blast radius, data classification, the identity and delegation model, containment posture, and the threat model. It is versioned, and the accountable owner ([section 2.4](#24-every-agent-has-an-accountable-owner)) approves it. Every later gate measures the agent against it. Admission can't pass or fail an agent without it.
+The written result is the design record. It records intended use, autonomy bounds, blast radius, data classification, the identity and delegation model, containment posture, and the threat model. It is versioned. The accountable owner ([section 2.4](#24-every-agent-has-an-accountable-owner)) approves it. Every later gate measures the agent against it. Admission cannot pass or fail an agent that has no design record.
 
-A small example. A support agent may read tickets, draft replies and post them. Only a human may close a ticket or issue a refund. That is three lines in the design record. Development turns them into tool permissions and one approval condition. Admission checks that they match the record. At runtime a refund call from the agent fails closed, however the request was worded. That last part is the behavior the proposed Risk Map control "Fail-Closed Agent Authorization" [^19] describes: the agent holds a pruned subset of its principal's permissions, and anything outside that subset is refused.
+A support agent may read tickets, draft replies, and post them. Only a human may close a ticket or issue a refund. That is three lines in the design record. Development turns those lines into tool permissions and one approval condition. Admission checks that the permissions and the condition match the record. At runtime, a refund call from the agent fails closed, however the request was worded. That fail-closed outcome is the behavior the proposed Risk Map control "Fail-Closed Agent Authorization" [^19] describes. The agent holds a pruned subset of its principal's permissions. Anything outside that subset is refused.
 
-The paper uses the term containment posture from section 2.1 on, so here is what it means. It covers three things: what the agent must not be able to reach (on the host, over the network, through its tools), what must not be able to reach it, and where the boundaries that enforce this sit, outside the agent. Building those boundaries is the containment paper's subject [^18]. This paper only asks that the posture is decided here and verified at admission.
+This paper uses "containment posture" from section 2.1 on. It covers three things:
 
-Design time is therefore the first phase. If it sits outside the numbered phases it has no gate and no required output, and nothing stops a team from skipping it.
+- what the agent must not be able to reach, on the host, over the network, or through its tools
+- what must not be able to reach the agent
+- where the boundaries that enforce this sit, outside the agent
+
+Building those boundaries is the subject of the containment paper [^18]. This paper only asks that the posture is decided here and verified at admission.
+
+Design time is the first phase. If it sits outside the numbered phases, it has no gate and no required output. Nothing then stops a team from skipping it.
 
 ### 2.3 The agent instance is the unit of scope
 
-An agent exists in two forms. The definition is a reviewed revision of its instructions, policy surface, model binding, tool manifest, and memory policy. An instance is a running realization of that definition. It holds its own identity, composes its own context, accumulates its own memory, exercises its own delegated authority, and leaves its own fingerprints. One definition may produce thousands of instances, some living for a single request and some for months.
+An agent exists in two forms. The definition is a reviewed revision of its instructions, policy surface, model binding, tool manifest, and memory policy. An instance is a running realization of that definition. It holds its own identity, composes its own context, accumulates its own memory, exercises its own delegated authority, and leaves its own fingerprints. One definition may produce thousands of instances. Some live for one request. Some live for months.
 
-The lifecycle governs the instance. The definition matters because instances inherit from it: obligations established in scoping, supply chain, and development are recorded against a definition revision and bind every instance created from it. But the failures that motivate this paper are realized by instances. Assumption 1 fails per instance, because each composes its behavior at runtime from its own context and memory. Assumption 3 fails per instance, because each holds and passes on authority separately. Assumption 5 fails per instance, because each leaves residue of its own. A lifecycle that tracked only the definition would certify a template and lose sight of everything the template produced.
+The lifecycle governs the instance. The definition still matters, because instances inherit from it. Obligations set in scoping, supply chain, and development are recorded against a definition revision. They bind every instance created from that revision. The failures that motivate this paper show up in instances. Assumptions 1, 3, and 5 fail per instance: each instance composes its own behavior, holds and passes on its own authority, and leaves its own residue (sections 1.1.1, 1.1.3, and 1.1.5). A lifecycle that tracked only the definition would certify a template and miss what that template produced.
 
-Within an instance, the lifecycle governs its instructions, its reasoning core, its input and output handling, its identity and delegated authority, the policies by which it consumes everything else, and the durable memory it accumulates. Memory belongs inside the boundary rather than as an external dependency. The instance writes it, it shapes the instance's future behavior, and it is residue when the instance retires.
+Within an instance, the lifecycle governs:
 
-Three consequences follow. First, an instance exists only by being created from an admitted definition revision, and the issuance of its identity is what binds it to that revision's constraints. Second, an instance created at runtime by another instance, such as a sub-agent, is in scope only if the parent's admitted definition bounds what may be spawned, under what identity, and with what authority. Anything outside those bounds is a separate definition requiring its own admission, because nothing created at runtime can pass a gate after the fact. Third, retiring a definition means retiring every instance of it, which is only possible if the organization knows at all times which instances exist.
+- its instructions
+- its reasoning core
+- its input and output handling
+- its identity and delegated authority
+- the policies by which it consumes everything else
+- the durable memory it accumulates
 
-For the resources an instance depends on (the model, the orchestration platform, the tools, the data stores, the infrastructure, and any other agent it calls), the deploying organization implements consumption controls in the agent and verifies that each platform meets its stated requirements. An agent called as a tool is a dependency to its caller and a unit of scope in its own owner's lifecycle. A procured agent shifts the balance toward verification, with little left to implement, but the obligations themselves do not change.
+Memory belongs inside the boundary. It is not an external dependency. The instance writes it, it shapes the instance's later behavior, and it is residue when the instance retires.
 
-The distinction between implementing and verifying has its practical force at admission, and verification is graded rather than binary. Some dependencies will never produce complete evidence: a model served behind an API can change without notice, and its provider will not open its internals. Where a platform's evidence is weaker than the agent's design requires, the difference is closed by compensating controls implemented in the agent and recorded against the dependency's trust tier (section 3.2), or the agent does not deploy. What is never acceptable is a dependency nobody evaluated. This keeps the lifecycle tractable. An organization is not required to re-secure its cloud provider in order to deploy an agent. It is required to know what it depends on, how well it has verified each dependency, and what it did about the difference.
+Three consequences follow.
+
+1. An instance exists only when it is created from an admitted definition revision. Issuing its identity is what binds it to that revision's constraints.
+2. An instance that another instance creates at runtime, such as a sub-agent, is in scope only when the parent's admitted definition bounds what may be spawned, under what identity, and with what authority. Anything outside those bounds is a separate definition and needs its own admission. Nothing created at runtime can pass a gate after the fact.
+3. Retiring a definition means retiring every instance of it. That is possible only when the organization knows, at all times, which instances exist.
+
+For the resources an instance depends on, the deploying organization implements consumption controls in the agent and verifies that each platform meets the requirements the design states. Those resources are the model, the orchestration platform, the tools, the data stores, the infrastructure, and any other agent it calls. An agent called as a tool is a dependency of its caller. It is also a unit of scope in its own owner's lifecycle. A procured agent shifts the work toward verification, and little is left to implement. The obligations do not change.
+
+The distinction between implementing and verifying has its practical force at admission. Verification is graded rather than binary. Some dependencies will never produce complete evidence. A model served behind an API can change without notice, and its provider will not open its internals. Where platform evidence is weaker than the design requires, the organization closes the gap with compensating controls in the agent, recorded against the dependency's trust tier (section 3.2). Otherwise the agent does not deploy. A dependency that nobody evaluated is never acceptable. This limit keeps the lifecycle tractable. An organization is not required to re-secure its cloud provider in order to deploy an agent. It is required to know what it depends on, how well it has verified each dependency, and what it did about the gap.
 
 ### 2.4 Every agent has an accountable owner
 
-Every agent definition, and every instance created from it, resolves at all times to a named human who is accountable for its existence. An organizational unit may hold ownership, but it must resolve to a named individual, because when a team dissolves, its collective accountability evaporates. Ownership is explicitly transferred or terminated, never allowed to lapse.
+Every agent definition, and every instance created from it, resolves at all times to a named human who is accountable for its existence. An organizational unit may hold ownership, but the chain must resolve to a named individual. When a team dissolves, shared accountability ends. Ownership is explicitly transferred or terminated. It is never allowed to lapse.
 
-Ownership is not the same as authority, and the two are easily conflated. The owner is accountable for the agent existing, for the risk accepted when it was admitted, and for its retirement. The principal is the party whose authority a given action exercises. When a user delegates a task to an instance, the user is the principal for the actions that follow, and the owner is unchanged. Delegation shifts authority; it does not move ownership. For any action, two questions must be answerable: who authorized it, and who is accountable for the agent that performed it. Section 1.1.3 concerns the first. This section concerns the second.
+Ownership is not the same thing as authority. The two are easy to conflate. The owner is accountable for the agent existing, for the risk accepted when it was admitted, and for its retirement. The principal is the party whose authority a given action exercises. When a user delegates a task to an instance, that user is the principal for the actions that follow. The owner does not change. Delegation moves authority. It does not move ownership. For any action, two questions must be answerable: who authorized it, and who is accountable for the agent that performed it. Section 1.1.3 covers the first question. This section covers the second.
 
-The CoSAI AI Shared Responsibility Framework [^15] divides responsibility for an AI system across five layers, from business use down to the model provider, and answers which party is responsible at each. Ownership answers a narrower question inside the deploying organization: which person answers for this particular agent.
+The CoSAI (Coalition for Secure AI) AI Shared Responsibility Framework [^15] divides responsibility for an AI system across five layers, from the business use down to the model provider. It says which party is responsible at each layer. Ownership answers a narrower question inside the deploying organization: which person answers for this particular agent.
 
-Ownership is verifiable at runtime rather than recorded once. An instance's identity resolves to a registry record naming an active owner, and credential issuance and renewal depend on that owner remaining active. Instances spawned by another instance inherit their parent's owner unless explicitly reassigned at creation. When an owner leaves, changes role, or is reorganized away, the joiner, mover, and leaver events that already govern human access trigger suspension of the agent and its instances. Suspension rather than deletion is the safe default, because an orphaned agent's state and traces are evidence its eventual retirement will need.
+Ownership has to be verifiable at runtime. A record written once is not enough. An instance's identity resolves to a registry record that names an active owner. Credential issuance and renewal depend on that owner staying active. An instance spawned by another instance inherits its parent's owner unless it is explicitly reassigned at creation. When an owner leaves, changes role, or is reorganized away, the same joiner, mover, and leaver events that govern human access suspend the agent and its instances. Suspension, rather than deletion, is the safe default, because an orphaned agent's state and traces are evidence its eventual retirement will need.
 
-This presumes an inventory in which the owner is a field on every definition and instance record, and which can be queried at the moment a credential is issued or an action is checked. Few organizations have one. An asset register reconciled at quarterly review cannot answer a question asked at runtime, and building one that can is engineering work in its own right.
+This assumes an inventory. The owner is a field on every definition record and every instance record. The inventory can be queried when a credential is issued or an action is checked. Few organizations have that inventory. An asset register reconciled each quarter cannot answer a question asked at runtime. Building one that can is engineering work of its own.
 
-The owner is also where the lifecycle answers *by whom*. The owner approves the design record before procurement or implementation (3.1), accepts residual risk at admission (3.4), sets the conditions under which durable knowledge requires human approval (3.6), and authorizes retirement (3.8). The work behind each of these can be delegated. The accountability for it cannot.
+The owner is also how the lifecycle answers *by whom*. The owner approves the design record before procurement or implementation (section 3.1), accepts residual risk at admission (section 3.4), sets the conditions under which durable knowledge requires human approval (section 3.6), and authorizes retirement (section 3.8). The work behind each decision can be delegated. The accountability for it cannot.
 
-This is the least technical of the four claims and the one most often missing in practice. Without it there is no party with standing to approve retirement, and nobody who notices when an agent outlives the purpose it was commissioned for. Ownership lapse is a common precondition for the residue problem described in assumption 5, and among the cheapest to prevent.
+This is the least technical of the four claims, and the one most often missing in practice. Without an owner, no party has standing to approve retirement, and nobody notices when an agent outlives the purpose it was commissioned for. An ownership lapse is a common precondition for the residue problem in assumption 5, and it is among the cheapest to prevent.
 
 ---
 
 ## 3. Lifecycle phases
 
-Eight phases. Each is stated with the assumption it repairs and the gate that must pass before the agent proceeds.
+Eight phases. Each phase names the assumption it repairs and the gate that must pass before the agent proceeds.
 
 ### 3.1 Scoping and design
 
 *Repairs assumption 1.*
 
-The organization decides what the agent is for and what it may become. Define permitted goals, prohibited goals, and escalation paths. Establish autonomy bounds and the blast radius of a worst-case action. Classify the data the agent may read, write, retain, or disclose. Select the identity and delegation model; ODIS's three layers, passport, bridge and router, are the reference model [^20]. Set containment posture ([section 2.2](#22-design-time-is-inside-the-process)). Identify which actions require human approval before execution. Produce a threat model.
+The organization decides what the agent is for, and what it may become. Define permitted goals, prohibited goals, and escalation paths. Set autonomy bounds and the blast radius of a worst-case action. Classify the data the agent may read, write, retain, or disclose. Select the identity and delegation model. The reference model is ODIS (Open Delegation and Identity Standard), whose three layers are passport, bridge, and router [^20]. Set containment posture ([section 2.2](#22-design-time-is-inside-the-process)). Identify which actions require human approval before execution. Produce a threat model.
 
-Write these decisions down as the design record, against a definition revision ([section 2.3](#23-the-agent-instance-is-the-unit-of-scope)), so every instance inherits them. Give each decision an identifier; [development](#33-development) and [admission](#34-admission-and-deployment) point back to it. The accountable owner approves the record and someone other than its author reviews it. Detail scales with criticality (blast radius, data classification, autonomy): a low-risk agent gets a short record. Each human-approval condition says which action, who approves, and how long that may take. If the agent can't wait that long, narrow the action or add a fallback instead of dropping the approval later.
+Write these decisions in the design record, against a definition revision ([section 2.3](#23-the-agent-instance-is-the-unit-of-scope)), so every instance inherits them. Give each decision an identifier. [Development](#33-development) and [admission](#34-admission-and-deployment) point back to those identifiers. The accountable owner approves the record. Someone other than its author reviews it. The amount of detail scales with criticality: blast radius, data classification, and autonomy. A low-risk agent gets a short record. Each human-approval condition names the action, the approver, and how long the approval may take. If the agent cannot wait that long, narrow the action or add a fallback. Do not drop the approval later.
 
-The threat model asks how intended and unintended use could get around those decisions. Name the assets and the assumptions about dependencies. Map data and control flows between users, tools, memory, retrieval sources, identity providers, other agents, and the orchestration platform, and mark where trust or authority changes hands, including where images, audio or video are decoded, resized or transcribed. Cover at least identity and privilege abuse, tool misuse, hijacking or tampering through content the agent reads or remembers, and data disclosure through outputs, tools, or memory. Include delegation, and chains of permitted actions that add up to something prohibited.
+The threat model asks how intended use, and unintended use, could get around those decisions. Name the assets and the assumptions about dependencies. Map the data flows and the control flows among users, tools, memory, retrieval sources, identity providers, other agents, and the orchestration platform. Mark where trust changes hands and where authority changes hands, including where images, audio, or video are decoded, resized, or transcribed. Cover at least:
 
-Two rules of thumb run through the model. The model can be wrong, or steered by something it read, at any moment, so each constraint on the agent's authority says whether a control outside the model enforces it or whether it relies on the model following instructions ([section 3.3](#33-development) carries that into the policy surface). And an agent that in one session reads untrusted content, reaches private data or sensitive systems, and can change state or send data out has the combination that turns a prompt injection into real damage [^16] [^17]. Remove one of the three, or put a control outside the model, or a human, in front of the action.
+- identity and privilege abuse
+- tool misuse
+- hijacking or tampering through content the agent reads or remembers
+- disclosure of data through outputs, tools, or memory
 
-Each scenario records how harm could happen, what access it needs, the assets, the impact and its priority, and links to the decision it threatens and the planned treatment. For each control requirement, name the owner, the gate that verifies it, and the evidence that gate takes; at this phase every control is a plan. Record the risk you expect to remain and who has to accept it; the owner accepts residual risk at admission, on evidence. Later gates use the model rather than restate it: [admission](#34-admission-and-deployment) verifies the controls and records the behavioral baseline, [runtime](#35-runtime) ties monitoring to the scenarios, and [maintenance](#37-maintenance) reopens the model when something material changes, including upstream.
+Also cover delegation, and chains of permitted actions that add up to a prohibited outcome.
 
-**Gate.** The design record and the threat model are approved by the accountable owner, versioned, reviewed by someone other than their author, and kept where every later gate can read them, under the same change control as the policy surface, before procurement or implementation starts. Admission checks that the approval came first.
+Two practical rules run through the model. The model can be wrong, or be steered by something it read, at any moment. Each constraint on the agent's authority says whether a control outside the model enforces it, or whether the constraint relies on the model following instructions. [Section 3.3](#33-development) carries that choice into the policy surface. The second rule covers an agent that, in one session, reads untrusted content, reaches private data or sensitive systems, and can change state or send data out. That combination turns a prompt injection into real damage [^16] [^17]. Remove one of the three. Or put a control outside the model, or a human, in front of the action.
+
+Each scenario records how harm could happen, what access it needs, the assets, the impact, and its priority. Link the scenario to the decision it threatens and to the planned treatment. For each control requirement, name the owner, the gate that verifies the control, and the evidence that gate takes. At this phase, every control is still a plan. Record the risk you expect to remain, and who has to accept it. The owner accepts residual risk at admission, and does so on evidence. Later gates use the model. They do not restate it. [Admission](#34-admission-and-deployment) verifies the controls and records the behavioral baseline. [Runtime](#35-runtime) ties monitoring to the scenarios. [Maintenance](#37-maintenance) reopens the model when something material changes, including a change upstream.
+
+**Gate.** The accountable owner approves the design record and the threat model before procurement or implementation starts. Both are versioned, reviewed by someone other than their author, and kept where every later gate can read them, under the same change control as the policy surface. Admission checks that the approval came first.
 
 ### 3.2 Supply chain
 
 *Repairs assumptions 1 and 2.*
 
-While not typically considered a lifecycle phase, we include Supply Chain as a phase here due to its importance in maintaining a secure development lifecycle. Supply chain attacks remain a primary attack surface for traditional as well as AI and agentic development [^21]. 
+Supply chain is not always treated as its own lifecycle phase. This paper includes it because a secure development lifecycle depends on it. Supply chain attacks remain a primary attack surface for traditional development and for AI and agentic development [^21].
 
-The focus in the Supply Chain phase is to establish provenance and trust for each external component the agent incorporates, including: 
+This phase establishes provenance and trust for each external component the agent incorporates:
+
 - models
 - tools
 - prompt templates
@@ -239,21 +304,20 @@ The focus in the Supply Chain phase is to establish provenance and trust for eac
 - retrieval sources
 - any other agents it may consume
 
-Most of these components can carry or emit content the agent could treat as instructions, e.g., tool descriptions, retrieved content, and the outputs of other agents. What matters about such a component is therefore not only whether the component is authentic, but how much authority its content is permitted to exert over the behaviour of the agent being development.
+Most of these components can carry or emit content the agent could treat as instructions. Examples are tool descriptions, retrieved content, and the outputs of other agents. For such a component, ask two questions. Is the component authentic? And how much authority may its content exert over the behavior of the agent under development?
 
-Every such external component MUST be inventoried with, at a minimum, an accountable owner, its source, and its version identity. Record whether each version is pinned or floating, e.g., as a model behind a provider-managed alias or generic API endpoint. For any floating component, record who controls changes to the component and what notice the supplier commits to prior to such changes. This is important as it is that notice that triggers re-baselining during [the maintenance phase](#37-maintenance).
+Every such external component MUST be inventoried with, at a minimum, an accountable owner, its source, and its version identity. Record whether each version is pinned or floating. A floating version can change without the deploying organization starting the change, for example a model behind a provider-managed alias or a generic API endpoint. For any floating component, record who controls changes to it and what notice the supplier commits to give before a change. That notice is what triggers re-baselining in [maintenance](#37-maintenance).
 
-Specifically:
-- Verify each component's origin and integrity to the extent its supplier makes verification possible and record the evidence. If a component can't be inspected, obtain and record supplier-provided evidence and [platform verification](#23-the-agent-entity-is-the-unit-of-scope). Record this gap for the exit gate documentation.
+Do three further things:
 
-- Assign each component a trust tier. The tier is assigned by a named owner and states what authority the component's content may influence. A component whose provenance could not be verified is tiered to reflect that. Tiers are re-evaluated when the supplier, the version, or the evidence changes.
+- Verify each component's origin and integrity to the extent its supplier makes verification possible, and record the evidence. If a component cannot be inspected, obtain and record supplier-provided evidence and the [platform verification](#23-the-agent-instance-is-the-unit-of-scope) described in section 2.3. Record this gap in the exit gate documentation.
+- Assign each component a trust tier. A named owner assigns the tier and states what authority the component's content may influence. If provenance could not be verified, the tier reflects that. Re-evaluate the tier when the supplier, the version, or the evidence changes.
+- Test each component's behavior for this application, and record the results. The results feed the behavioral baseline recorded at [admission](#34-admission-and-deployment). A component's suitability is a question about this use, not a general property of the component.
 
-- Conduct application-specific behavioral testing of each component and record the results as evidence that feeds the behavioral baseline recorded at [admission](#34-admission-and-deployment). This is important as a given component's suitability is a question of its applicability to the current use case rather than a general property of the component.
-
-Where an agent can acquire tools or other components at runtime, the design must either prohibit it or apply this same process at the point of acquisition.
+Where an agent can acquire tools or other components at runtime, the design must either prohibit that acquisition or apply this same process at the moment of acquisition.
 
 > [!NOTE]
-> Detailed guidance on artifact integrity, provenance, and attestation for models, datasets, and training artifacts is the subject of CoSAI Workstream 1 [AIMM; Signing ML Artifacts], and general supply chain risk management practice is covered by NIST [SP 800-161 Rev 1 Update 1]. This paper does not restate either.
+> Detailed guidance on artifact integrity, provenance, and attestation for models, datasets, and training artifacts is the subject of CoSAI Workstream 1 [AIMM; Signing ML Artifacts]. General supply chain risk management practice is covered by NIST [SP 800-161 Rev 1 Update 1]. This paper does not restate either.
 
 **Gate.** Every component the agent depends on, including non-conventional dependencies listed above, is inventoried with an owner, with its provenance verified or the gap recorded, and with an assigned trust tier.
 
@@ -261,24 +325,25 @@ Where an agent can acquire tools or other components at runtime, the design must
 
 *Repairs assumptions 1 and 2.*
 
-Author the policy surface as a first-class artifact, defining: 
-- system instructions using injection-resistant techniques
-- the tool permission manifest employing least privilege per tool
-- memory retention and filtering policy
+Author the policy surface as a first-class artifact. Define:
+
+- system instructions, using techniques that resist injection
+- the tool permission manifest, with least privilege for each tool
+- the memory retention and filtering policy
 - trust assignments over retrieval sources
-- conditions that trigger human approval
+- the conditions that trigger human approval
 - instrumentation that will make runtime behavior observable
 
 System instructions MUST be written on the assumption that untrusted content will attempt to override them during runtime.
 
 > [!NOTE]
-> While no single method defends fully against prompt injection, a defence-in-depth strategy that employs, amongst other items system prompt techniques, tool permissions, and other mechanisms as outlined above, all work together to minimize the risk and impact of successful prompt injection.
+> No single method fully defends against prompt injection. A defense-in-depth strategy minimizes the risk and the impact of a successful prompt injection. That strategy uses system-prompt techniques, tool permissions, and the other mechanisms listed above, among other measures.
 
-For each constraint on the agent's authority, record whether it is enforced by a control outside the model or depends on the model complying with prose. Trace each element of the policy surface to a decision recorded during [scoping and design](#31-scoping-and-design), e.g., a tool permission to a permitted goal, an approval condition to the blast radius analysis.
+For each constraint on the agent's authority, record whether a control outside the model enforces it, or whether it depends on the model following the prose. Trace each element of the policy surface to a decision recorded in [scoping and design](#31-scoping-and-design). For example, trace a tool permission to a permitted goal, and an approval condition to the blast radius analysis.
 
-Apply instrumentation to allow for [decommissioning](#38-decommissioning) will later need to enumerate. Emit signals when the agent create resources (webhooks, subscriptions, sub-agents, durable memory writes, etc.).
+Add the instrumentation [decommissioning](#38-decommissioning) will need when it enumerates what the agent created. Emit a signal when the agent creates a resource, such as a webhook, a subscription, a sub-agent, or a durable memory write.
 
-Each artifact, not just the code, MUST be versioned, ideally in an auditable version control system, and revertible independently of the code around it. Changes SHOULD be reviewed by someone other than their author. How much review a change needs, for example whether one that widens the agent's authority needs a dedicated security review, is for each organization to set according to its maturity and risk tolerance.
+Each artifact, not just the code, MUST be versioned, ideally in an auditable version control system, and revertible independently of the code around it. Changes SHOULD be reviewed by someone other than their author. How much review a change needs is for each organization to set, according to its maturity and risk tolerance. For example, each organization decides whether a change that widens the agent's authority needs a dedicated security review.
 
 The reviewed policy surface, handling logic, and instrumentation MUST carry a single version identity that is verifiable during [admission](#34-admission-and-deployment). Development and test environments MUST use non-production data and credentials, and the policy surface MUST NOT embed credentials.
 
@@ -288,53 +353,69 @@ The reviewed policy surface, handling logic, and instrumentation MUST carry a si
 
 *Repairs assumptions 1, 3, and 4.*
 
-The strongest gate in the lifecycle, and the one that converts everything prior into a decision.
+This is the strongest gate in the lifecycle. It turns the earlier work into a decision to deploy or not.
 
-Implement: establish the agent's identity and bind it to the constraints set at design time; register it with the identity provider; verify that deployed components are mutually consistent, so instructions, handling logic, and instrumentation come from the same reviewed revision; conduct adversarial testing against known agent failure modes; and record the behavioral baseline that runtime will be compared against.
+Implement:
 
-Verify: that the identity provider issues and will validate the agent's credentials; that serving, storage, and orchestration platforms meet the requirements the agent's design depends on; and that audit logging is in place and reaching a destination somebody reads.
+- Establish the agent's identity and bind it to the constraints set at design time.
+- Register the agent with the identity provider.
+- Verify that the deployed components are mutually consistent, so the instructions, handling logic, and instrumentation come from the same reviewed revision.
+- Run adversarial tests against known agent failure modes.
+- Record the behavioral baseline that runtime will be compared against.
 
-**Gate.** Any unmet prerequisite blocks deployment. This is where the implement-and-verify distinction from section 2.3 acquires teeth. A gate that cannot block is a report.
+Verify:
+
+- The identity provider issues the agent's credentials and will validate them.
+- Serving, storage, and orchestration platforms meet the requirements the agent's design depends on.
+- Audit logging is in place, and the logs reach a destination that somebody reads.
+
+**Gate.** Any unmet prerequisite blocks deployment. This is where the implement-and-verify distinction from section 2.3 becomes binding. A gate that cannot block is a report.
 
 ### 3.5 Runtime
 
 *Repairs assumptions 1 and 4.*
 
-Enforce continuously what was verified once. The agent presents its identity for each consequential action. Policy is evaluated at the point of tool invocation rather than assumed from deployment. Input and output handling apply their filters against live traffic. Decision traces are recorded at fidelity sufficient to reconstruct why an action was taken. Live behavior is compared against the recorded baseline, and the comparison is fail-closed: an agent whose monitoring is off or unread is outside its admitted state. An intervention capability exists and has been exercised rather than merely configured. In the CoSAI Risk Map [^8] the record is the audit record repository, and the comparison and response path are a control [^11].
+Enforce, continuously, what admission verified once. The agent presents its identity for each consequential action. Evaluate policy at the point of tool invocation. Do not assume the policy from deployment. Input and output handling apply their filters against live traffic. Record decision traces at a fidelity sufficient to reconstruct why an action was taken. Compare live behavior against the recorded baseline. The comparison is fail-closed: an agent whose monitoring is off, or unread, is outside its admitted state. An intervention capability exists, and it has been exercised rather than merely configured. In the CoSAI Risk Map [^8], the record is the audit record repository. The comparison and the response path are a control [^11].
 
-Verification continues too. Prerequisites that passed at admission can regress, and a platform that stops meeting a requirement should surface as an alert rather than as an incident.
+Verification continues after admission. A prerequisite that passed at admission can regress. A platform that stops meeting a requirement should surface as an alert rather than as an incident.
 
-Observed effects are evidence only within their recorded coverage. A monitor that attached after a call, was paused, or could not see a channel leaves a gap, and a gap cannot establish that nothing happened in it. The portable result for that check keeps `not_established` (containment clause C7, [#269](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/pull/269)) with its reason and the named gap, such as the interval between the call and the observer attaching, instead of folding it into a pass. The candidate conformance cases for RFC 189 [^13] include this case.
+Observed effects are evidence only inside their recorded coverage. A monitor that attached after a call, was paused, or could not see a channel leaves a gap. A gap cannot establish that nothing happened inside it. The portable result for that check keeps `not_established` (containment clause C7, [#269](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/pull/269)) with its reason and the named gap, such as the interval between the call and the observer attaching. Do not fold that result into a pass. The candidate conformance cases for Request for Comments (RFC) 189 [^13] include this case.
 
-**Gate.** Continuous. An agent operating without enforcement, evidence, and intervention capability has left the lifecycle rather than progressed through it. A gap in the evidence is reported as `not_established` for that gap, never as clean.
+**Gate.** The runtime gate is continuous. An agent that operates without enforcement, evidence, and an intervention capability has left the lifecycle, rather than moved through it. Report a gap in the evidence as `not_established` for that gap, never as clean.
 
 ### 3.6 Reflection and knowledge consolidation
 
 *Repairs assumptions 1, 4, and 5.*
 
-The phase that governs what an instance is permitted to learn. Information may be promoted from an instance's ephemeral context into its own durable memory, into memory shared across instances of the same definition, or into retrieval sources other agents read. Promotion is where poisoning becomes persistent and where future behavior is silently redefined. It is the point at which one instance's compromise becomes the starting condition of every instance that comes after it.
+This phase governs what an instance is permitted to learn. Information may be promoted out of an instance's ephemeral (short-lived) context into:
 
-Reflection is not a step between runtime and maintenance. It is a gate that fires on every promotion event, concurrently with runtime, for as long as an instance writes anything durable.
+- the instance's own durable memory
+- memory shared across instances of the same definition
+- retrieval sources that other agents read
 
-The governing principle is that a context which may have been influenced cannot authorize its own persistence. An instance that has just processed untrusted content is the party least able to judge whether that content should be remembered. The decision to promote is therefore made outside the context that proposes it: by deterministic policy, by an evaluator that does not share the proposing context, or, for high-impact knowledge, by a human acting under conditions the owner has set (section 2.4). Where those conditions sit depends on what the agent does. An agent supporting clinical decisions, or one operating a regulated control, warrants human approval for far more of what it retains than an agent drafting internal documents.
+Promotion is where poisoning becomes persistent, and where future behavior is silently redefined. It is the point at which one instance's compromise becomes the starting condition of every instance that comes after it.
 
-Not all knowledge carries the same risk. A record of what happened in a past session informs behavior. A learned fact shapes conclusions. A learned procedure, describing how to perform a task or use a tool, functions as instruction, which makes it policy surface in the sense of assumption 2. Procedural knowledge is promoted only through the review that section 3.3 requires of any other change to the policy surface.
+Reflection is not a step between runtime and maintenance. It is a gate on every promotion. The gate runs at the same time as runtime, for as long as an instance writes anything durable.
 
-Trust does not improve by being written down. Promoted content keeps the trust tier of its original source rather than acquiring the tier of the store it lands in, so that a retrieval source assigned a high tier in section 3.2 cannot become a channel for laundering low-trust content into authoritative knowledge. Promotion into a store that other instances or other agents read crosses a trust boundary, and is held to a higher bar than promotion into an instance's private memory.
+The governing principle is that a context which may have been influenced cannot authorize its own persistence. An instance that has just processed untrusted content is the party least able to judge whether that content should be remembered. The decision to promote is made outside the context that proposes it. It can be made by deterministic policy, by an evaluator that does not share the proposing context, or, for high-impact knowledge, by a human acting under conditions the owner has set (section 2.4). Where those conditions sit depends on what the agent does. An agent that supports clinical decisions, or that operates a regulated control, warrants human approval for far more of what it retains than an agent that drafts internal documents.
 
-Enforce memory-write policy. Capture provenance for anything retained: its source, the source's trust tier, the instance that proposed it, and the decision that admitted it. Record that provenance when the promotion is decided rather than reconstructing it later: a hash of the promoted content and of the inputs and tool calls that produced it, attested at the moment of the write. Apply the data classification set at scoping to what may be retained. Apply retention labels and rollback markers. Maintain the audit link from a future decision back to the knowledge that informed it.
+Not all knowledge carries the same risk. A record of a past session informs later behavior. A learned fact shapes conclusions. A learned procedure, which says how to perform a task or use a tool, functions as an instruction. That makes it part of the policy surface, in the sense of assumption 2. Procedural knowledge is promoted only through the review that section 3.3 requires of any other change to the policy surface.
+
+Writing a statement down does not raise its trust. Promoted content keeps the trust tier of its source. It does not take the tier of the store it lands in. A retrieval source assigned a high tier in section 3.2 cannot become a channel for laundering low-trust content into authoritative knowledge. Promotion into a store that other instances or other agents read crosses a trust boundary. Hold that promotion to a stricter requirement than promotion into an instance's private memory.
+
+Enforce the memory-write policy. For anything retained, capture provenance: its source, the source's trust tier, the instance that proposed it, and the decision that admitted it. Record that provenance when the promotion is decided. Do not reconstruct it later. At the moment of the write, attest a hash of the promoted content and a hash of the inputs and tool calls that produced it. Apply the data classification from scoping to what may be retained. Apply retention labels and rollback markers. Keep an audit link from a later decision back to the knowledge that informed it.
 
 Accumulated memory is a change to behavior, made in increments that each pass every check. Promotion volume beyond a threshold set at design time, or the passage of a fixed interval, triggers the re-baselining that section 3.7 requires of any other behavioral change.
 
-**Gate.** Nothing becomes durable without provenance and a policy check made outside the proposing context. Ephemeral context and approved durable memory are distinguishable at the storage layer, not only by convention. Everything derived from a given source over a given period can be identified and purged, because the day a source is found to be poisoned is the day that capability is needed.
+**Gate.** Nothing becomes durable without provenance and a policy check made outside the proposing context. Ephemeral context and approved durable memory are distinguishable at the storage layer, not only by convention. Everything derived from a given source over a given period can be identified and purged. The day a source is found to be poisoned is the day that capability is needed.
 
 ### 3.7 Maintenance
 
 *Repairs assumptions 1 and 2.*
 
-Changes to a live agent re-enter review rather than accumulating. A change to the policy surface is treated as a change to behavior, because it is one: behavioral regression testing runs after any change, the baseline is re-established, and instructions and handling logic revert together as a unit rather than drifting apart.
+Changes to a live agent re-enter review rather than accumulating. Treat a change to the policy surface as a change to behavior, because it is one. After any change, run behavioral regression tests, re-establish the baseline, and revert the instructions and the handling logic together rather than letting them drift apart.
 
-Upstream change is the harder half. A model updated behind an API, a framework patched, a tool's contract altered: none of these are changes the deploying organization initiated, and each can alter agent behavior. Maintenance is the phase that notices.
+Upstream change is the harder half. A model updated behind an API, a patched framework, or a tool whose contract changed: the deploying organization did not start these changes, and each one can change how the agent behaves. Maintenance is the phase that notices.
 
 **Gate.** No change to the policy surface, and no change to a prerequisite, reaches production without re-baselining behavior.
 
@@ -342,15 +423,33 @@ Upstream change is the harder half. A model updated behind an API, a framework p
 
 *Repairs assumption 5.*
 
-Decommissioning ends the agent's authority to act. Whether it can come back later is a policy choice, and if it comes back it re-enters through Admission as a new entity. Pausing, suspending, or quarantining a live agent are Runtime or Maintenance states, not this phase. An agent that can resume under the same admitted identity has not been decommissioned. This definition was settled on the working group's RFC [^10] after a longer draft with "soft" and "hard" modes was withdrawn; what looked like two modes was one phase with parameters the organization sets.
+Decommissioning ends the agent's authority to act. Whether the agent can return later is a policy choice. If it returns, it re-enters through Admission as a new entity. Pausing, suspending, or quarantining a live agent belongs to runtime or maintenance, not to this phase. An agent that can resume under the same admitted identity has not been decommissioned. The working group settled this definition in RFC [^10], after withdrawing a longer draft that had "soft" and "hard" modes. What looked like two modes was one phase, with parameters the organization sets.
 
-Every decommissioning does the same things, whatever the organization's retention rules. Record who requested retirement, who approved it, and why. Freeze inbound invocation. Revoke authenticators and tombstone the identifier rather than delete it, because a deleted identifier breaks replay detection. Revoke delegated authority across every sub-agent the agent created. Enumerate its resources across every system it touched and give each one a disposition: revoked, deleted, cryptographically shredded, retained until a date, held for legal reasons, handed over to a successor, or an explicit exception with an owner and an expiry. Publish the terminal state and its effective time where a relying party can check it without the retiring organization's help. Store the disposition receipt: retired identity, authorizer, effective time, each asset's disposition, evidence references, and exceptions.
+Every decommissioning does the same things, whatever retention rules the organization uses:
 
-What varies is set by the organization, in the way NIST SP 800-53 leaves parameters to the implementer [^9]: who may authorize, whether dual control or a legal-hold check is required, how each store is disposed of, how long held assets are kept, which sanitization technique applies, how long the tombstoned identifier is retained, and which archived artifacts may enter a later Admission. Archiving the traces and purging the tool grants of the same agent is a valid combination.
+- Record who requested retirement, who approved it, and why.
+- Freeze inbound invocation.
+- Revoke authenticators, and tombstone the identifier (mark it permanently retired). Do not delete the identifier. A deleted identifier breaks replay detection.
+- Revoke delegated authority on every sub-agent the agent created.
+- Enumerate its resources across every system it touched. Give each resource a disposition: revoked, deleted, cryptographically shredded, retained until a date, held for legal reasons, handed over to a successor, or an explicit exception with an owner and an expiry.
+- Publish the terminal state and its effective time, where a relying party can check both without the retiring organization's help.
+- Store the disposition receipt. The receipt names the retired identity, the authorizer, the effective time, each asset's disposition, the evidence references, and the exceptions.
 
-Two losses are easy to miss. Other systems and people may have come to depend on capabilities the agent was never documented as providing, and the agent may hold knowledge that exists nowhere else. Both should be enumerated before the receipt closes, and instrumented for at development time, since neither can be recovered afterwards. Decommissioning can also be imposed, when an upstream provider disappears or a dependency breaks. The steps above still apply; some confirmations cannot be obtained, and the receipt records that as an exception rather than pretending otherwise.
+What varies is set by organization-defined parameters, in the way NIST SP 800-53 leaves parameters to the implementer [^9]:
 
-**Gate.** Teardown is evidenced rather than asserted. A decommissioning that cannot show what was revoked, what was retained, and when authority ended has not completed. A verifier holding a record signed by this identity can place it before or after that moment, or return `not_established` (containment clause C7) when the published terminal state does not let it decide. A relying party treats `not_established` as unproven, never as "before".
+- who may authorize retirement
+- whether dual control or a legal-hold check is required
+- how each store is disposed of
+- how long held assets are kept
+- which sanitization technique applies
+- how long the tombstoned identifier is retained
+- which archived artifacts may enter a later Admission
+
+Archiving one agent's traces and purging that same agent's tool grants is a valid combination.
+
+Two losses are easy to miss. Other systems and people may have come to depend on capabilities the agent was never documented as providing. The agent may hold knowledge that exists nowhere else. Both should be enumerated before the receipt closes. Development should instrument for both, because neither can be recovered afterwards (section 3.3). Decommissioning can also be imposed, as when an upstream provider disappears or a dependency breaks. The steps above still apply. Some confirmations cannot be obtained. The receipt records that missing confirmation as an exception. It does not treat the confirmation as if it had been obtained.
+
+**Gate.** Teardown is evidenced rather than asserted. A decommissioning that cannot show what was revoked, what was retained, and when authority ended has not completed. A verifier that holds a record signed by this identity can place that record before or after that moment. If the published terminal state does not let the verifier decide, it returns `not_established` (containment clause C7). A relying party treats `not_established` as unproven, never as "before".
 
 ---
 
@@ -358,15 +457,15 @@ Two losses are easy to miss. Other systems and people may have come to depend on
 
 ### 4.1 Adapting controls you already run
 
-An organization operating a mature secure development lifecycle should not start over. The productive move is to ask, control by control, which of the five assumptions it depends on, and then extend it.
+An organization that already runs a secure development lifecycle should not start over. For each control, ask which of the five assumptions it depends on, and then extend the control.
 
-- Controls resting on **assumption 1** need a runtime counterpart. Build-time gates keep their value for the conventional parts of the system, and gain an admission gate and continuous verification alongside.
-- Controls resting on **assumption 2** need their definition of *artifact* widened. Change control, review requirements, and rollback procedures largely transfer once instructions and configuration sit inside the boundary.
-- Controls resting on **assumption 3** need delegation modeled explicitly. Existing identity infrastructure is usually adequate; what is missing is treating an agent as a principal holding constrained, traceable authority.
-- Controls resting on **assumption 4** need baselining added. Test suites keep their role and stop being the sole evidence for production behavior.
-- Controls resting on **assumption 5** need residue enumeration. Existing decommissioning runbooks typically cover provisioned resources and miss everything the agent created.
+- A control that rests on **assumption 1** needs a runtime counterpart. Build-time gates keep their value for the conventional parts of the system. They gain an admission gate and continuous verification alongside.
+- A control that rests on **assumption 2** needs a wider definition of *artifact*. Change control, review requirements, and rollback procedures largely transfer once instructions and configuration sit inside the boundary.
+- A control that rests on **assumption 3** needs delegation modeled explicitly. Existing identity infrastructure is usually adequate. What is missing is treating an agent as a principal that holds constrained, traceable authority.
+- A control that rests on **assumption 4** needs a baseline. Test suites keep their role. They stop being the only evidence of production behavior.
+- A control that rests on **assumption 5** needs an inventory of residue. Existing decommissioning runbooks usually cover resources the organization provisioned. They miss resources the agent created.
 
-Migration cost concentrates in the first and last of these. Most organizations already have some version of the middle three and have simply not applied them to agents.
+Migration cost concentrates in the first and the last of these. Most organizations already have some version of the middle three and have not applied them to agents.
 
 ### 4.2 Where each assumption is repaired
 
@@ -378,19 +477,19 @@ Migration cost concentrates in the first and last of these. Most organizations a
 | 4. Testing approximates production | Admission and deployment | Runtime, reflection and knowledge consolidation |
 | 5. Retirement is deletion | Decommissioning | Reflection and knowledge consolidation |
 
-No assumption is repaired by a single phase, which is the point of framing the lifecycle this way. A gate is only as good as the evidence produced upstream of it and the enforcement downstream.
+No assumption is repaired by a single phase. A gate is only as good as the evidence produced upstream of it and the enforcement downstream.
 
 ---
 
 ## 5. Open questions
 
-Questions the working group considers unsettled, offered as an agenda rather than as gaps papered over. Two questions that appeared in the first draft, observability as a distinct concern and modes of retirement, have since been answered and moved to section 6.
+The questions below are unsettled. They are the working group's agenda. The paper does not treat them as closed. Two questions from the first draft have been answered and moved to section 6: whether observability is a distinct concern, and whether retirement has modes.
 
-1. **Scoping by deployment pattern.** Whether lifecycle obligations should be modulated by how autonomous a deployment is (a model answering questions, a model calling tools, a single agent, an agent coordinating others, an agent composing its own network), and if so, whether the modulation reduces obligations at low autonomy or only reduces the effort of meeting them. A scoping matrix along these lines was proposed in June [^12]; the group's only position so far is that any such matrix is a set of example patterns, not a universal decomposition.
+1. **Scoping by deployment pattern.** Should lifecycle obligations change with how autonomous a deployment is? The range runs from a model that answers questions, to a model that calls tools, to a single agent, to an agent that coordinates other agents, to an agent that composes its own network. If the obligations change, does low autonomy reduce the obligations themselves, or only the effort of meeting them? A scoping matrix along these lines was proposed in June [^12]. The group's only position so far is that any such matrix is a set of example patterns, not a universal decomposition.
 
-2. **Intervention semantics.** Where the capability to halt an agent belongs, how termination cascades to work already delegated, and how completion is verified across in-flight transactions. There is a reasonable argument that termination is the wrong primitive, and that throttling or falling back to a deterministic path serves better in systems where an abandoned transaction is itself a harm. The behavioral monitoring control [^11] leaves open whether it owns the halt or only the decision to halt.
+2. **Intervention semantics.** Where does the capability to halt an agent belong? How does termination cascade to work already delegated? How is completion verified across in-flight transactions? There is a reasonable argument that termination is the wrong primitive, and that throttling or falling back to a deterministic path serves better where an abandoned transaction is itself a harm. The behavioral monitoring control [^11] leaves open whether that control owns the halt, or only the decision to halt.
 
-3. **Evidence portability.** Whether the evidence a gate produces can be made portable enough for a third party to evaluate a procured agent against this lifecycle without access to the supplier's internals. The third answer a verifier gives when evidence is absent is named in the Workstream 4 containment paper, clause C7 ([#269](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/pull/269)): `not_established`, carrying the reason the property could not be determined, beside `pass` and `fail`. The candidate conformance cases for RFC 189 [^13] exercise it, including a write the producer reported and nothing independent observed, which returns `not_established`. What remains open is which gate records must carry that answer, and in what signed form a relying party can verify it.
+3. **Evidence portability.** Can the evidence a gate produces be portable enough that a third party can evaluate a procured agent against this lifecycle, without access to the supplier's internals? Section 3.5 and the Workstream 4 (WS4) containment paper, clause C7 ([#269](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/pull/269)), name the third answer a verifier gives when evidence is absent: `not_established`, beside `pass` and `fail`. The value carries the reason the property could not be determined. The candidate conformance cases for RFC 189 [^13] exercise that answer. One case is a write the producer reported, with nothing independent observed. That case returns `not_established`. What remains open is which gate records must carry that answer, and in what signed form a relying party can verify it.
 
 4. **What is lost at retirement.** Section 3.8 asks organizations to enumerate undocumented dependencies and undocumented knowledge before an agent retires. Whether the lifecycle should require a handover artifact for these, and what it would contain, is unsettled.
 
@@ -398,13 +497,13 @@ Questions the working group considers unsettled, offered as an agenda rather tha
 
 ## 6. Positions of the working group
 
-This paper is meant to carry the working group's opinions, not only a survey of other people's. This section is where those opinions live. It is deliberately a table rather than prose, so a position can be added in one line, dated, and traced to the discussion that produced it.
+This paper is meant to carry the working group's opinions, not only a survey of other people's. Those opinions are recorded in the table below, so a position can be added in one line, dated, and traced to the discussion that produced it.
 
 ### 6.1 How a position gets in
 
-A position is a claim the group has argued and settled, at least for now. It enters this table only with a date and a source: a meeting whose minutes record it, or a GitHub thread where it was reached. Positions can be reopened. When one is, the old row stays and a new row supersedes it, so the paper keeps the history of what the group used to think and why it changed.
+A position is a claim the group has argued and settled, at least for now. It enters the table only with a date and a source. The source is a meeting whose minutes record the claim, or a GitHub thread where the group reached it. A position can be reopened. When that happens, the old row stays, and a new row supersedes it. The paper keeps the history of what the group used to think, and why it changed.
 
-The group produces positions in two ways. Some fall out of ordinary work, such as an RFC review that converges. Others come from a deliberate exercise: a meeting opens with a short review of one influential paper or post, the presenter states one claim from it to argue with, and the room argues. Each such session ends with a position the group either writes here or explicitly declines to take. A position nobody writes down did not happen.
+The group produces positions in two ways. Some come out of ordinary work, such as an RFC review that converges. Others come from a deliberate exercise. A meeting opens with a short review of one influential paper or post. The presenter states one claim from it to argue with, and the room argues. Each such session ends with a position the group writes here, or with an explicit decision to decline. A position nobody writes down did not happen.
 
 ### 6.2 Positions taken
 
@@ -424,11 +523,9 @@ The group produces positions in two ways. Some fall out of ordinary work, such a
 
 ## 7. Takeaways and conclusion
 
-The case for treating agent development as its own lifecycle does not rest on agents being new, or important, or fast-moving. It rests on five specific assumptions that existing practice encodes and that agentic systems violate. Each violation is identifiable, each has a consequence that can be stated in terms of when assurance must be established, and each maps to a phase.
+The case for a separate lifecycle rests on five assumptions that existing practice encodes and that agents break (section 1.1). It does not rest on agents being new, important, or fast-moving. The consequence of each broken assumption is when assurance must be established. Section 4.2 maps each assumption to the phase that repairs it and to the phases that reinforce that repair. Section 1.1 states what the lifecycle adds.
 
-Framed that way, the lifecycle is a modest instrument. It adds a design phase because behavior is not settled at build. It widens the reviewable artifact because policy lives in prose. It makes identity a gated event because authority travels through delegation. It adds baselining because tests no longer stand in for production. It makes retirement a verified teardown because agents leave residue.
-
-An organization already running a mature secure development lifecycle is closer to this than it may expect. The useful question is not whether to adopt a new framework, but which of its existing controls rest on an assumption that no longer holds.
+An organization that already runs a mature secure development lifecycle is closer to this than it may expect. Section 4.1 asks which existing controls rest on an assumption that no longer holds.
 
 A reader who disagrees with a phase is invited to attack the assumption it derives from. That is the argument this structure is built to expose. A reader who disagrees with a position in section 6 is invited to reopen it, with a source.
 
