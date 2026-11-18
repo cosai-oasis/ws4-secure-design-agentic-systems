@@ -156,14 +156,14 @@ This depends on the booking system storing the agent system's booking reference.
 
 ### Run the cases
 
-Each variant is an executable case in the public corpus (21 cases). Install and run, Python 3.12 or later, pinned to the corpus commit under review in [probityai/agent-evidence-vectors#269](https://github.com/probityai/agent-evidence-vectors/pull/269):
+Each variant is an executable case in the public corpus (21 cases). Install and run, Python 3.12 or later, pinned to the published release that carries the corpus:
 
 ```sh
-python -m pip install "agent-evidence-vectors @ git+https://github.com/probityai/agent-evidence-vectors@0191eb7b90a623a7125a03e038fa1ac212c6c684"
+python -m pip install agent-evidence-vectors==0.37.0
 agent-evidence-vectors-trade-booking --output trade-booking-result
 ```
 
-The pin moves to a published release version once #269 is released; the workflow in this repository runs the same pin on every change to this example.
+The workflow in this repository runs the same pin from `requirements.txt` on every change to this example, and Dependabot opens a pull request when a new release is published, which that workflow grades before review.
 
 The command checks every corpus member against its manifest, judges all cases from the signed records alone without reading the expected answers, and exits 1 if any case differs. The corpus is [probityai/agent-evidence-vectors](https://github.com/probityai/agent-evidence-vectors). Its sibling lost-call cases for paid tool calls are `lost_call_no_statement` and `lost_call_settled_not_run` in the occurrence-binding corpus.
 
