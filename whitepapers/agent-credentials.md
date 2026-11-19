@@ -95,7 +95,7 @@ A claim is a piece of information asserted. A claim says nothing by itself about
 
 Evidence is a set of claims produced by an attester about a subject entity, intended to be appraised by a verifier. Evidence is input to verifier appraisal, not a conclusion about trustworthiness. What makes claims into evidence is their source (the attester), their direction (attester to verifier), and the protection that binds them to the attester's key.
 
-Evidence typically includes configuration data, software measurements, telemetry, or supply-chain provenance, such as a workload-identity signal or a TEE quote. For example, an agent provider may issue an evidence document according to the attribute profile of an A2A Agent Card [[A2A](https://a2a-protocol.org/latest/specification/)], which describes the agent's identity, capabilities, skills, endpoints, and authentication requirements. The document MUST reference the attribute profile, be bound to the agent identity as subject, and be signed by the provider as attester.
+Evidence typically includes configuration data, software measurements, telemetry, or supply-chain provenance, such as a workload-identity signal or a TEE quote. For example, an agent provider may issue an evidence document according to the attribute profile of an A2A Agent Card [[A2A](https://a2a-protocol.org/latest/specification/)], which describes the agent's identity, capabilities, skills, endpoints, and authentication requirements. The document MUST reference the attribute profile, be bound to the agent identity as subject, and SHOULD be signed by the provider as attester.
 
 #### Attestation Result
 
@@ -152,7 +152,7 @@ Whatever claims it adds, every credential carries the core in Table 1.
 | Revocation | SHOULD | MAY, if short-lived |
 | Signature | MUST | As supported by packaging format in [Section 3.2](#32-key-binding-profiles-and-packaging) |
 
-An agent is a composition of parts that change on independent schedules: model, tools and skills, configuration, execution environment, and the principal it acts for. A credential needs enough granularity that a change to one part does not invalidate claims about the others.
+An agent is a composition of parts that change on independent schedules: models, tools and skills, configuration, execution environment, and the principal it acts for. A credential needs enough granularity that a change to one part does not invalidate claims about the others.
 
 Each category below can be a standalone credential or a group of fields. Categories overlap; one credential may carry fields from several when the issuer has authority over all of them. An enterprise MAY designate fields as mandatory in its appraisal policy.
 
@@ -169,6 +169,8 @@ Named credential profiles appear at the end of each category. A profile is a fix
 *Profile: verified-ownership. An issuer attests that a named organization controls the subject key.*
 
 **Composition.** Identity says which agent this is; composition says what it is currently made of. Each component is identified by a content-addressed digest that SHOULD pin a specific artifact, not a mutable tag: the model, with weights provenance (e.g. Sigstore model signing [[SIGSTORE](https://github.com/ossf/model-signing-spec)]); the software, code or container image, with SLSA build provenance [[SLSA](https://slsa.dev/spec/v1.2/)]; the resolved tool and skill manifest; the configuration (system prompt, decoding parameters, and guardrails), which relying parties with behavioral requirements SHOULD verify; and the knowledge-base snapshot, with version and ingestion time. Identity is stable; composition is mutable. A composition fingerprint over all components ([Section 3.1](#31-identifying-the-agent)) changes when any component changes, so swapping a model or revoking a tool invalidates the composition claim without invalidating the agent's identity.
+
+Not every component can be measured. A hosted model reached through an API, or a hosted knowledge base, exposes no weights or contents to hash, so all its user can state is the provider, name and version. Each component value therefore has a basis: declared (stated by the agent's owner or operator), provider attested (signed by the component's provider), or measured (a digest the verifier computed or checked against the artifact). Which basis each component requires is a profile decision: a profile MAY, for example, require a measured image but accept a provider-attested hosted model. A profile SHOULD state the basis of each component value it carries, so that a declared model name is not read as a verified one. Assigned and validated skills, below, are this distinction applied to skills.
 
 For example, the following credential indicates a verifier has appraised the evidence, and claims the subject's boot components match approved software identities:
 
@@ -199,22 +201,25 @@ Evidence:  [{ "type": "AmdSevEvidence", "amdSevReport": "sha256:<report-hash>" }
 - **Runtime environment:** The execution environment and the attestation tier covering it ([Section 2.2](#22-how-far-a-relying-party-can-trust-it)).
 - **Risk and trust score:** Relying parties SHOULD NOT accept a score that omits the scoring method and version, evidence window, verifier, or attestation tier. A score SHOULD be a decomposable vector, with the verifier committed to the evidence behind it so specific claims can be challenged through selective disclosure.
 
-For example, the following credential indicates a verifier has appraised the evidence, and claims the subject is present in a named registry at a stated content digest:
+For example, the following credential indicates a verifier has appraised the evidence, and claims the subject is present in a named registry:
 
 ```
 Subject:      "did:key:<subject-pubkey>"
 Profile:      "registry-membership"
 Registry:     "https://assets.radar.cloudflare.com/bots/signature-agent-registry.txt"
-RegistrySRI:  "sha256:<registry-content-digest>"
 Result:       true
 …
 ```
 
-*Profiles: security-scanned (named scanner, version, and clean result on a stated artifact digest); trust-score (score plus the four fields above); registry-membership (subject is present in a named registry at a stated content digest; see [Appendix E](#appendix-e-example-evidence-and-credentials), Example 2).*
+*Profiles: security-scanned (named scanner, version, and clean result on a stated artifact digest); trust-score (score plus the four fields above); registry-membership (subject is present in a named registry; see [Appendix E](#appendix-e-example-evidence-and-credentials), Example 2).*
 
-**Delegation.** Delegation has two sides. The credential side, the "delegation information" of the CoSAI Agentic IAM paper [[COSAI-AIAM, Section 3.1](https://www.coalitionforsecureai.org/wp-content/uploads/2026/04/agentic-identity-and-access-control.pdf)], says whom the agent acts for, the chain of agents it acts through, and the bounds on that chain. A verifier can attest these claims and bind them to the agent like any other. The authorization side, the access tokens that carry permissions, is out of scope.
+**Delegation.** Delegation has two sides. The credential side, the "delegation information" of the CoSAI Agentic IAM paper [[COSAI-AIAM, Section 3.1](https://www.coalitionforsecureai.org/wp-content/uploads/2026/04/agentic-identity-and-access-control.pdf)], says whom the agent acts for, the chain of agents it acts through, and the bounds on that chain. A verifier can attest these claims and bind them to the agent like any other. The authorization side, the access tokens that carry permissions, is out of scope. However, the two sides overlap in where the delegation is recorded, and that choice is covered below.
 
-When agent A invokes agent B, A does not hand over its own credential, which would destroy attribution and give B everything A holds. B's credential instead carries a resolvable principal reference, the chain of actors, and its depth, so a relying party can reconstruct "B, acting for A, acting for the original principal".
+When agent A invokes agent B, A does not hand over its own credential, which would destroy attribution and give B everything A holds. The delegation has to be recorded somewhere else, in either the access token or the agent credential.
+
+In the token pattern [[draft-ietf-wimse-aims](https://datatracker.ietf.org/doc/draft-ietf-wimse-aims/)], the agent identifier goes in `client_id` and the delegating principal in `sub`. The agent credential stays stable, and only the token changes when the delegation changes. This is the simpler choice for single-hop, same-domain deployments, where one authorization server issues the tokens and every relying party trusts it.
+
+In the credential pattern, B's credential carries a resolvable principal reference, the chain of actors, and its depth, so a relying party can reconstruct "B, acting for A, acting for the original principal". You need this pattern when the token cannot carry the chain. That happens in cross-domain calls, where tokens are re-minted at each trust boundary and the upstream chain is lost, and in multi-hop calls, where the relying party needs the full chain and its bounds, not just the immediate caller. The cost is that the credential must be reissued whenever the delegation changes. That cost is small when credentials are already short-lived.
 
 Each hop's authority is contained in its delegator's. The credential states the bound, and the authorization side enforces it, for example with RAR [[RFC9396](https://www.rfc-editor.org/rfc/rfc9396)], caveats [[MACAROONS](https://www.ndss-symposium.org/ndss2014/programme/macaroons-cookies-contextual-caveats-decentralized-authorization-cloud/)], or resource indicators [[RFC8707](https://www.rfc-editor.org/rfc/rfc8707)]. Narrowing SHOULD be checked by the issuing authority, not asserted by the delegating agent, whose model can be manipulated, and again at the enforcement point.
 
@@ -228,7 +233,7 @@ Two credentials with identical claims can deserve very different trust, dependin
 
 - **Software.** The agent process reports on itself; anyone with code execution in the process can forge it.
 - **Platform.** The platform asserts identity and environment, for example through SPIRE workload attestation [[SPIFFE](https://spiffe.io/docs/latest/spiffe-about/overview/)] or cloud managed identities. Holds against a compromised agent process, not a compromised platform.
-- **Hardware.** A hardware root of trust signs a measurement of the environment, for example Intel TDX [[INTEL-TDX](https://www.intel.com/content/www/us/en/developer/tools/trust-domain-extensions/overview.html)], AMD SEV-SNP [[AMD-SEV](https://docs.amd.com/v/u/en-US/SEV-SNP-strengthening-vm-isolation-with-integrity-protection-and-more)], or TPM quotes [[TCG-TPM2](https://trustedcomputinggroup.org/resource/tpm-library-specification/)]. Holds against software and privileged-operator adversaries.
+- **Hardware.** A hardware root of trust signs a measurement of the environment, for example Intel TDX [[INTEL-TDX](https://www.intel.com/content/www/us/en/developer/tools/trust-domain-extensions/overview.html)], AMD SEV-SNP [[AMD-SEV](https://docs.amd.com/v/u/en-US/SEV-SNP-strengthening-vm-isolation-with-integrity-protection-and-more)], or TPM quotes [[TCG-TPM2](https://trustedcomputinggroup.org/resource/tpm-library-specification/)]. Depending on implementation, this tier usually holds against software adversaries and sometimes also against a privileged operator. A TPM quote shows what booted, but does not keep a host administrator out of the environment's memory at runtime; a TEE such as TDX or SEV-SNP adds that isolation [[draft-ietf-rats-ar4si, Section 2.2.1](https://datatracker.ietf.org/doc/draft-ietf-rats-ar4si/)]. Cloud confidential computing often combines the two, for example a virtual TPM whose attestation key chains to a TEE report, while a virtual TPM supplied by the platform alone is rooted in the platform. The tier name alone does not say which applies; the evidence does.
 
 Table 2 summarizes the three tiers, together with the physical-owner limit that [Section 1.2](#12-core-concepts--definitions) places on a hardware-rooted result.
 
@@ -238,7 +243,7 @@ Table 2 summarizes the three tiers, together with the physical-owner limit that 
 |---|---|---|---|---|
 | Software | Yes | No | No | No |
 | Platform | Yes | Yes | No | No |
-| Hardware | Yes | Yes | Yes | No |
+| Hardware | Yes | Yes | Depends on implementation | No |
 
 **Assurance basis.** A tier is only useful to a relying party if the credential says which one applied. An agent credential SHOULD therefore carry the assurance level of its appraisal ([Section 1.2](#12-core-concepts--definitions)) as an assurance basis, so a relying party can apply different thresholds to different actions ([Section 5.2](#52-presentation-and-validation)) without repeating the appraisal:
 
@@ -279,7 +284,13 @@ A name alone proves nothing, since anyone can quote it. Three things turn a set 
 
 **Key binding and proof of possession.** The key, not the identifier, is what anchors an agent credential, as its possession can be proven across domains, and the identifier is linked to that key as described in [Section 3.1](#31-identifying-the-agent).
 
-A holder key MAY be a DID verification method [[W3C-DID](https://www.w3.org/TR/did-core/)], a JWK [[RFC7517](https://www.rfc-editor.org/rfc/rfc7517)], or an X.509 certificate [[RFC5280](https://www.rfc-editor.org/rfc/rfc5280)]. The agent MUST be able to answer a challenge proving possession of the key, and SHOULD do so per request or per connection: with mTLS or HTTP Message Signatures [[RFC9421](https://www.rfc-editor.org/rfc/rfc9421)] (profiled for workloads in [[draft-ietf-wimse-http-signature](https://datatracker.ietf.org/doc/draft-ietf-wimse-http-signature/)], alongside the WIMSE Workload Proof Token [[draft-ietf-wimse-wpt](https://datatracker.ietf.org/doc/draft-ietf-wimse-wpt/)]), or, where the credential is presented to an OAuth authorization server, with DPoP [[RFC9449](https://www.rfc-editor.org/rfc/rfc9449)] or certificate-bound tokens [[RFC8705](https://www.rfc-editor.org/rfc/rfc8705)], the binding profiles ODIS recognizes [[ODIS, Section 7.1.1](https://github.com/cosai-oasis/ws4-odis)].
+A holder key MAY be a DID verification method [[W3C-DID](https://www.w3.org/TR/did-core/)], a JWK [[RFC7517](https://www.rfc-editor.org/rfc/rfc7517)], or an X.509 certificate [[RFC5280](https://www.rfc-editor.org/rfc/rfc5280)]. The agent MUST be able to answer a challenge proving possession of the key, and SHOULD do so per request or per connection: with mTLS or HTTP Message Signatures [[RFC9421](https://www.rfc-editor.org/rfc/rfc9421)] (profiled for workloads in [[draft-ietf-wimse-http-signature](https://datatracker.ietf.org/doc/draft-ietf-wimse-http-signature/)], alongside the WIMSE Workload Proof Token [[draft-ietf-wimse-wpt](https://datatracker.ietf.org/doc/draft-ietf-wimse-wpt/)]), or, where the credential is presented to an OAuth authorization server, with one of three holder-of-key binding methods:
+
+- **TLS session binding** via the tls_exp confirmation method [[draft-mw-oauth-tls-session-bound-tokens](https://datatracker.ietf.org/doc/draft-mw-oauth-tls-session-bound-tokens/)]: connection-level, with one proof amortized across the connection. Suited to a presenter that controls the mTLS connection to the relying party.
+- **OAuth mTLS certificate-bound tokens** [[RFC8705](https://www.rfc-editor.org/rfc/rfc8705)]: the OAuth-native option where session binding is unavailable.
+- **DPoP** [[RFC9449](https://www.rfc-editor.org/rfc/rfc9449)]: suited to deployments where mTLS is unavailable or TLS termination is not controlled.
+
+None of these methods is stronger than the others outside its deployment assumptions: the right one, and its effective assurance, depend on key custody, presenter architecture, TLS termination, and the deployment pattern ([Section 5.2](#52-presentation-and-validation)).
 
 Where the platform supports it, the private key SHOULD be generated and sealed in hardware, so possession also evidences the runtime environment ([Section 2.2](#22-how-far-a-relying-party-can-trust-it)). A key the agent process can export is a bearer secret with extra steps.
 
@@ -292,7 +303,7 @@ Figure 2 shows how each identifier family of [Section 3.1](#31-identifying-the-a
 flowchart TD
     DID["DID<br/>did:example:agent-7"] -->|"verification method<br/>under the<br/>authentication<br/>relationship"| KEY
     WID["WIMSE or SPIFFE ID<br/>spiffe://example.org/<br/>agent-7"] -->|"key bound in<br/>an X.509-SVID,<br/>or in a WIT<br/>cnf claim"| KEY
-    KEY["Holder key<br/>generated and<br/>sealed in hardware<br/>where the platform<br/>supports it"] -->|"proof of possession,<br/>per request or<br/>connection: mTLS,<br/>HTTP Message<br/>Signatures, DPoP or<br/>certificate-bound<br/>tokens"| RP["Relying party"]
+    KEY["Holder key<br/>generated and<br/>sealed in hardware<br/>where the platform<br/>supports it"] -->|"proof of possession,<br/>per request or<br/>connection: mTLS,<br/>HTTP Message<br/>Signatures, TLS<br/>session binding,<br/>certificate-bound<br/>tokens or DPoP"| RP["Relying party"]
 ```
 
 **Profiles and registry.** A credential MUST carry a top-level type or profile field naming a registered profile (see [Appendix C](#appendix-c-named-credential-profiles)). The profile defines the required claims and verification rules, so a relying party can check a credential from an issuer it has never seen.
@@ -303,7 +314,7 @@ The profile registry SHOULD be openly governed, on the model of an IANA media-ty
 
 - **W3C VCs** [[W3C-VC2](https://www.w3.org/TR/vc-data-model-2.0/)], with Data Integrity proofs [[VC-DATA-INTEGRITY](https://www.w3.org/TR/vc-data-integrity/)] or as JWT-VCs [[VC-JOSE-COSE](https://www.w3.org/TR/vc-jose-cose/)], where selective disclosure and cross-domain portability matter.
 - **JWT** [[RFC7519](https://www.rfc-editor.org/rfc/rfc7519)] where existing OAuth infrastructure dominates.
-- **EAT** [[RFC9711](https://www.rfc-editor.org/rfc/rfc9711)], a signed JWT or CWT [[RFC8392](https://www.rfc-editor.org/rfc/rfc8392)], where RATS tooling is in place. EAT is the RATS format for evidence; its EAR profile [[draft-ietf-rats-ear](https://datatracker.ietf.org/doc/draft-ietf-rats-ear/)] carries a verifier's result, and so packages a credential. EAR carries the appraisal policy in ear_appraisal_policy_ids; the other assurance-basis fields are additions.
+- **EAT** [[RFC9711](https://www.rfc-editor.org/rfc/rfc9711)], a signed JWT or CWT [[RFC8392](https://www.rfc-editor.org/rfc/rfc8392)], where RATS tooling is in place. EAT is the RATS format for evidence; its EAR profile [[draft-ietf-rats-ear](https://datatracker.ietf.org/doc/draft-ietf-rats-ear/)] carries a verifier's result, and so packages a credential. EAR carries the appraisal policy in ear_appraisal_policy_ids; the other assurance-basis fields are additions, grouped in one map under a collision-resistant claim name [[draft-ietf-rats-ear, Section 4](https://datatracker.ietf.org/doc/draft-ietf-rats-ear/)].
 - **X.509 certificates and X.509-SVIDs** [[RFC5280](https://www.rfc-editor.org/rfc/rfc5280)] [[SPIFFE](https://spiffe.io/docs/latest/spiffe-about/overview/)] where identity is consumed through existing mTLS and PKI. These carry no assurance basis unless a profile states a default ([Section 2.2](#22-how-far-a-relying-party-can-trust-it)).
 
 Evidence MAY be rendered as a VC or an EAT, and credentials issued by verifiers as a VC or an EAR. Here is the same agent credential rendered as a VC and as an EAR, drawn from the examples in [Appendix E](#appendix-e-example-evidence-and-credentials).
@@ -324,7 +335,6 @@ As a VC:
     "id": "did:key:<subject-pubkey>",
     "profile": "registry-membership",
     "registry": "https://assets.radar.cloudflare.com/bots/signature-agent-registry.txt",
-    "registrySRI": "sha256:<registry-content-digest>",
     "result": true
   },
   "assuranceBasis": {
@@ -347,7 +357,7 @@ As an EAR:
 
 ```json
 {
-  "eat_profile": "tag:ietf.org,2026:rats/ear#04",
+  "eat_profile": "tag:ietf.org,2026:rats/ear#05",
   "iat": 1786024800,
   "exp": 1786039200,
   "iss": "did:key:<verifier-pubkey>",
@@ -361,11 +371,12 @@ As an EAR:
     "registry-membership": {
       "ear_status": "affirming",
       "ear_appraisal_policy_ids": ["https://example.org/policy/registry-membership/v1"],
-      "attestation_tier": "software",
-      "appraisal_time": 1786024780,
+      "org.coalitionforsecureai.assurance_basis": {
+        "attestation_tier": "software",
+        "appraisal_time": 1786024780
+      },
       "ear_verifier_claims": {
         "registry": "https://assets.radar.cloudflare.com/bots/signature-agent-registry.txt",
-        "registrySRI": "sha256:<registry-content-digest>",
         "result": true
       }
     }
@@ -439,6 +450,8 @@ Scenario (c) is where agent credentials earn their place, and where the hardest 
 
 A credential crossing an untrusted boundary SHOULD therefore carry, or be able to resolve, the evidence its claims were appraised from, so the relying party or a verifier it trusts can check it against its own reference values.
 
+Carrying evidence has a cost. Evidence sent across a boundary can expose the tool manifest, configuration details, and knowledge-base metadata, and its delegation claims can reveal who the principal is. Digests reduce this exposure, but a digest can still be matched against known artifacts or linked across presentations. Credentials and evidence SHOULD disclose no more than the relying party needs: digests instead of contents, references behind access control instead of embedded evidence, and selective disclosure where the packaging supports it ([Section 3.2](#32-key-binding-profiles-and-packaging)).
+
 **Portability.** Whatever the trust relationship, the receiver must first establish that the agent in front of it is the one the credential describes. Continuity across domains rests on a cryptographic key, not a string: receiving domains assign their own local names, and the holder key ([Section 3.2](#32-key-binding-profiles-and-packaging)) shows that they refer to the same agent. During cross-domain validation, the relying party MUST bind the credential to the profile-defined subject and holder, authenticate current key material through an accepted trust anchor or federation, verify key status and rotation, establish the issuer's authority for each relied-upon claim, and apply local policy. It MUST NOT accept a credential on signature verification alone.
 
 **Multiple issuers and private registries.** No single issuer will vouch for every agent, so each relying party has to choose whose word it takes. IdPs that issue agent credentials act as verifiers ([Section 1.2](#12-core-concepts--definitions)), and each relying party decides which issuers it accepts for which claims. An enterprise MAY run a private agent registry and issue registry-membership credentials (see [Appendix E](#appendix-e-example-evidence-and-credentials), Example 2) without disclosing its contents, provided the relying party accepts the verifier.
@@ -449,10 +462,11 @@ The deployment analysis also points to three patterns where agent credentials do
 
 **Issuer / observer model.** A credential need not originate with the agent's builder. A platform, network or gateway occupying a vantage point can observe behavior and record what it observed; a verifier, often the observer itself, appraises that record and issues a credential about it ([Section 1.2](#12-core-concepts--definitions)). This matters because the most operationally useful claims are ones an agent cannot self-assert honestly — what it actually did, how often, against which endpoints. A self-asserted claim of good behavior is unfalsifiable; an observer's record of what it saw is evidence, and a credential issued over that record can be appraised by a relying party in a way a self-assertion cannot.
 
-Two constraints:
+Three constraints:
 
 - The observer MUST be identified in the credential. "Observed at a gateway" carries no information without knowing which gateway, under which configuration.
 - Observation is time-bounded. An observer-issued credential SHOULD describe a window, and the window belongs inside the claim.
+- Observation covers one composition. An observer-issued credential SHOULD name the composition fingerprint ([Section 3.1](#31-identifying-the-agent)) of what it observed, or state that it is unknown, so that the re-check of [Section 5.2](#52-presentation-and-validation) can confirm the observation still applies to what is running now. A runtime instance identifier is not enough, since tools can change within one instance.
 
 Whether a relying party accepts an observer-issued credential is up to its appraisal policy.
 
@@ -484,13 +498,15 @@ A credential only helps when it is presented. It states what a verifier appraise
 | **Runtime credential issuer** | A short-lived, key-bound credential for the running instance (workload identity); in [Section 1](#section-1-scope--definitions) terms, the verifier ([Section 1.2](#12-core-concepts--definitions)) | Appraisal of runtime or software evidence |
 | **Authorization issuer (AS)** | Access tokens or authorization grants scoping what the instance may do (out of scope, [Section 1.1](#11-scope)) | Grant evaluation against policy |
 
+Of the three, only the runtime credential issuer issues an agent credential in the sense of [Section 1.2](#12-core-concepts--definitions). A registration record is not a credential: its trust basis is registration, not appraisal of evidence, and a verifier can appraise it as evidence and credentials can reference it.
+
 Keeping these roles separate matters because they rotate on different clocks. Registration records are close to permanent, runtime credentials last minutes to hours, and access tokens often last seconds to minutes, especially for tool calls.
 
 **Rotation and cascade.** When a registration record is revoked, credentials derived from it lose their basis. Profiles SHOULD state whether derived credentials are invalidated immediately or run to a maximum lifetime; high-sensitivity operations SHOULD cascade immediately ([Section 5.3](#53-expiry-and-revocation)).
 
 ## 5.2 Presentation and Validation
 
-**Binding at presentation.** Holder binding is what keeps a stolen credential from being replayed ([Section 3.2](#32-key-binding-profiles-and-packaging)). The mechanisms trade off differently: DPoP signs every request but needs a replay window or server nonce; mTLS binds once per connection but breaks at a TLS-terminating proxy; HTTP Message Signatures survive intermediaries at a per-request signing cost.
+**Binding at presentation.** Holder binding is what keeps a stolen credential from being replayed ([Section 3.2](#32-key-binding-profiles-and-packaging)). The mechanisms trade off differently: DPoP signs every request but needs a replay window or server nonce; mTLS, certificate-bound tokens and TLS session binding bind once per connection but break at a TLS-terminating proxy; HTTP Message Signatures survive intermediaries at a per-request signing cost.
 
 Possession proves a key was used, not that it belongs to the intended software, so the runtime credential issuer requires attestation evidence before issuance and records the result in the assurance basis ([Section 2.2](#22-how-far-a-relying-party-can-trust-it)). An instance credential belongs to one instance: a re-created process presents a new key and re-attests rather than reusing what the previous instance held, and credentials bound to a rotated key cease to be presentable.
 
@@ -525,7 +541,7 @@ Common anti-patterns break these rules: passing a bearer token as a tool-call ar
 
 ## 5.3 Expiry and Revocation
 
-Revocation is layered. Short lifetime is the primary control: composition and posture claims go stale as parts change and SHOULD be short-lived, and credentials that live minutes to a few hours, as SPIFFE SVIDs do [[SPIFFE](https://spiffe.io/docs/latest/spiffe-about/overview/)], MAY rely on expiry alone. Longer-lived credentials SHOULD carry a revocation reference: a W3C Bitstring Status List [[W3C-BITSTRING](https://www.w3.org/TR/vc-bitstring-status-list/)] entry for VCs, or a CRL [[RFC5280](https://www.rfc-editor.org/rfc/rfc5280)] or OCSP responder [[RFC6960](https://www.rfc-editor.org/rfc/rfc6960)] for X.509.
+Revocation is layered. Short lifetime is the primary control: composition and posture claims go stale as parts change and SHOULD be short-lived, and credentials that live minutes to a few hours, as SPIFFE SVIDs do [[SPIFFE](https://spiffe.io/docs/latest/spiffe-about/overview/)], MAY rely on expiry alone. Longer-lived credentials SHOULD carry a revocation reference: a W3C Bitstring Status List [[W3C-BITSTRING](https://www.w3.org/TR/vc-bitstring-status-list/)] entry for VCs, or a CRL [[RFC5280](https://www.rfc-editor.org/rfc/rfc5280)] or OCSP responder [[RFC6960](https://www.rfc-editor.org/rfc/rfc6960)] for X.509. This paper treats expiry and revocation as final; temporary suspension, such as the X.509 certificateHold reason code or a status list entry with the suspension purpose, is out of scope.
 
 Push signals make a credential revocable before it expires. An OpenID SSF [[SSF](https://openid.net/specs/openid-sharedsignals-framework-1_0-final.html)] transmitter can push CAEP [[CAEP](https://openid.net/specs/openid-caep-1_0-final.html)] or RISC [[RISC](https://openid.net/specs/openid-risc-1_0-final.html)] events, such as session revoked or account disabled, to subscribed relying parties, which MUST treat them as superseding cached authorization state, including for unexpired credentials. Delivery is best-effort: a relying party cannot conclude from the absence of a signal that nothing changed, and an unavailable signal channel falls under the fail-closed rule ([Section 5.2](#52-presentation-and-validation)).
 
@@ -541,7 +557,7 @@ Sections [2](#section-2-credential-taxonomy) to [5](#section-5-credential-lifecy
 
 The access secrets that [Section 1.1](#11-scope) leaves to existing mechanisms remain out of scope. The starting point is the threat themes of the CoSAI Agentic IAM paper [[COSAI-AIAM, Section 2.2](https://www.coalitionforsecureai.org/wp-content/uploads/2026/04/agentic-identity-and-access-control.pdf)], which this paper builds on.
 
-**Adversaries and assumptions.** Each attestation tier of [Section 2.2](#22-how-far-a-relying-party-can-trust-it) holds against a different adversary. The software tier holds only against a remote attacker, the platform tier also against local software such as a compromised agent process, and the hardware tier also against a privileged operator. Trusted issuers and verifiers are assumed honest, with uncompromised keys; a compromised issuer is addressed only by revocation ([Section 5.3](#53-expiry-and-revocation)) once known.
+**Adversaries and assumptions.** Each attestation tier of [Section 2.2](#22-how-far-a-relying-party-can-trust-it) holds against a different adversary. The software tier holds only against a remote attacker, the platform tier also against local software such as a compromised agent process, and the hardware tier, depending on implementation, sometimes also against a privileged operator. Trusted issuers and verifiers are assumed honest, with uncompromised keys; a compromised issuer is addressed only by revocation ([Section 5.3](#53-expiry-and-revocation)) once known.
 
 **The agent as adversary.** The agent itself is not assumed honest. It may be malicious by construction, for example through a malicious skill, or hijacked at runtime, for example through prompt injection. A credential does not prevent either from acting. It narrows what such an agent can do and makes its actions accountable:
 
@@ -573,6 +589,7 @@ What a credential cannot reach is an agent that stops presenting ([Section 4.4](
 | 12 | Revocation that reaches too far or not far enough | This paper | Cascade ([Section 5.1](#51-issuance)); revocation scope ([Section 5.3](#53-expiry-and-revocation)) |
 | 13 | Trust inherited through a stable name whose controller changed | This paper | Key, not string ([Section 3.2](#32-key-binding-profiles-and-packaging), [Section 4.2](#42-crossing-domains)) |
 | 14 | Malicious or hijacked agent acting within valid credentials | This paper | Partly: approved composition and skills ([Section 2.1](#21-what-an-agent-credential-carries)), bounded authority ([Section 2.1](#21-what-an-agent-credential-carries), [Section 5.2](#52-presentation-and-validation)), observer credentials ([Section 4.3](#43-putting-credentials-to-work)), revocation ([Section 5.3](#53-expiry-and-revocation)); behavior under an approved composition remains open ([gap 8](#62-open-gaps-and-recommendations)) |
+| 15 | Disclosure through credential or evidence contents: tool manifest, configuration, knowledge-base metadata, or the principal | This paper | Partly: minimization through digests, access-controlled references and selective disclosure ([Section 4.2](#42-crossing-domains), [Section 3.2](#32-key-binding-profiles-and-packaging)); digests can still be matched or linked |
 
 ## 6.2 Open Gaps and Recommendations
 
@@ -583,8 +600,8 @@ Table 3 shows that most threats are addressed only partly, or only once a missin
 3. **No shared assurance ladder outside this paper ([Section 2.2](#22-how-far-a-relying-party-can-trust-it)).** AR4SI [[draft-ietf-rats-ar4si](https://datatracker.ietf.org/doc/draft-ietf-rats-ar4si/)] standardizes per-aspect trustworthiness claims, such as instance identity, configuration, executables and hardware, graded affirming, warning or contraindicated, and EAR ([Section 3.2](#32-key-binding-profiles-and-packaging)) carries them. AR4SI grades the outcome of an appraisal, not where its evidence is rooted, and covers only hardware-rooted attesting environments, so it has no equivalent of the software and platform tiers. Profiles SHOULD use the tiers and assurance basis of [Section 2.2](#22-how-far-a-relying-party-can-trust-it), and where EAR is used SHOULD express the result as AR4SI trustworthiness claims. The group SHOULD state how the tiers relate to the IALs of NIST SP 800-63 [[NIST-SP-800-63](https://csrc.nist.gov/pubs/sp/800/63/4/final)], which the CoSAI Agentic IAM paper uses for provisioning [[COSAI-AIAM, Section 3.5](https://www.coalitionforsecureai.org/wp-content/uploads/2026/04/agentic-identity-and-access-control.pdf)]; a starting proposal is that agents provisioned at IAL2 or above require at least the platform tier.
 4. **Conclusion-only credentials break at untrusted hops ([Section 4.2](#42-crossing-domains)).** Carrying or resolving evidence is a SHOULD. The group should decide whether it becomes a MUST for cross-organization hops.
 5. **Delegation chains are reconstructable but not tamper-evident ([Section 2.1](#21-what-an-agent-credential-carries)).** A relying party can rebuild who acted for whom, but cannot tell whether a hop altered the chain. The group SHOULD define how a delegation credential carries the originating principal unchanged from the first hop and a chain identifier that every hop binds to.
-6. **Revocation loses history and stops where no push channel is shared ([Section 5.3](#53-expiry-and-revocation)).** Revocation must not destroy the record of prior validity ([Section 5.3](#53-expiry-and-revocation)), so a status entry SHOULD record the time of revocation, not only a current state, and profiles SHOULD state revocation scope. Where propagation stops, only lifetime bounds the chain.
-7. **Composition and profiles are not yet standardized ([Section 3.1](#31-identifying-the-agent), [Section 3.2](#32-key-binding-profiles-and-packaging)).** The group SHOULD version the agent-composition profile ([Section 2.1](#21-what-an-agent-credential-carries)), standardize the fingerprint computation ([Section 3.1](#31-identifying-the-agent)), and maintain an interim profile registry in the CoSAI repository until a permanent, openly governed home is found. Registry governance is the hard part and SHOULD be raised as a working-group question, not assumed solved. Every profile's verification rules SHOULD restate the score fields of [Section 2.1](#21-what-an-agent-credential-carries) and the fail-closed rule of [Section 5.2](#52-presentation-and-validation).
+6. **Revocation loses history and stops where no push channel is shared ([Section 5.3](#53-expiry-and-revocation)).** Revocation must not destroy the record of prior validity ([Section 5.3](#53-expiry-and-revocation)), so a status entry MUST record the time of revocation, not only a current state, and profiles SHOULD state revocation scope. Where propagation stops, only lifetime bounds the chain.
+7. **Composition and profiles are not yet standardized ([Section 3.1](#31-identifying-the-agent), [Section 3.2](#32-key-binding-profiles-and-packaging)).** The group SHOULD version the agent-composition profile ([Section 2.1](#21-what-an-agent-credential-carries)), standardize the fingerprint computation ([Section 3.1](#31-identifying-the-agent)), and maintain an interim profile registry in the CoSAI repository until a permanent, openly governed home is found. Registry governance is the hard part and SHOULD be raised as a working-group question, not assumed solved. Related work such as draft-heigh-wimse-workload-identity-metadata [[draft-heigh-wimse-workload-identity-metadata](https://datatracker.ietf.org/doc/draft-heigh-wimse-workload-identity-metadata/)] may supply the delivery mechanism, and the group will explore working with such parallel initiatives. Every profile's verification rules SHOULD restate the score fields of [Section 2.1](#21-what-an-agent-credential-carries) and the fail-closed rule of [Section 5.2](#52-presentation-and-validation).
 8. **Credentials alone do not reach every threat ([Section 4.4](#44-where-credentials-fall-short)).** Non-presenting agents and credential-stripping intermediaries are outside cooperative presentation, and no observer ([Section 4.3](#43-putting-credentials-to-work)) sits at the instruction layer where behavior is redirected (see [Appendix G](#appendix-g-motivating-incidents), malicious skills), so malicious behavior or drift under an approved composition is not attestable: a skill can match its approved digest and still carry an undocumented feature. The paper proposes no control for these.
 
 # References
@@ -640,16 +657,18 @@ Table 3 shows that most threats are addressed only partly, or only once a missin
 - **[W3C-BITSTRING]** W3C, "Bitstring Status List v1.0", W3C Recommendation, May 2025. <https://www.w3.org/TR/vc-bitstring-status-list/>
 - **[W3C-DID]** W3C, "Decentralized Identifiers (DIDs) v1.0", W3C Recommendation, July 2022. <https://www.w3.org/TR/did-core/>
 - **[W3C-VC2]** W3C, "Verifiable Credentials Data Model v2.0", W3C Recommendation, May 2025. <https://www.w3.org/TR/vc-data-model-2.0/>
+- **[draft-heigh-wimse-workload-identity-metadata]** Heigh, S., Salowey, J., and Rosomakho, Y., "Workload Identity Metadata", individual Internet-Draft draft-heigh-wimse-workload-identity-metadata-00, October 2026 (work in progress). <https://datatracker.ietf.org/doc/draft-heigh-wimse-workload-identity-metadata/>
 - **[draft-ietf-oauth-transaction-tokens]** "Transaction Tokens", IETF OAuth WG Internet-Draft draft-ietf-oauth-transaction-tokens-11, July 2026 (work in progress). <https://datatracker.ietf.org/doc/draft-ietf-oauth-transaction-tokens/>
 - **[draft-ietf-oauth-v2-1]** "The OAuth 2.1 Authorization Framework", IETF OAuth WG Internet-Draft draft-ietf-oauth-v2-1-16, September 2026 (work in progress). <https://datatracker.ietf.org/doc/draft-ietf-oauth-v2-1/>
-- **[draft-ietf-rats-ar4si]** "Attestation Results for Secure Interactions", IETF RATS WG Internet-Draft draft-ietf-rats-ar4si-10, May 2026 (work in progress). <https://datatracker.ietf.org/doc/draft-ietf-rats-ar4si/>
-- **[draft-ietf-rats-ear]** "EAT Attestation Results", IETF RATS WG Internet-Draft draft-ietf-rats-ear-04, May 2026 (work in progress). <https://datatracker.ietf.org/doc/draft-ietf-rats-ear/>
+- **[draft-ietf-rats-ar4si]** "Attestation Results for Secure Interactions", IETF RATS WG Internet-Draft draft-ietf-rats-ar4si-11, October 2026 (work in progress). <https://datatracker.ietf.org/doc/draft-ietf-rats-ar4si/>
+- **[draft-ietf-rats-ear]** "EAT Attestation Results", IETF RATS WG Internet-Draft draft-ietf-rats-ear-05, November 2026 (work in progress). <https://datatracker.ietf.org/doc/draft-ietf-rats-ear/>
 - **[draft-ietf-wimse-aims]** Kasselman, P., et al., "AI Identity Management System", IETF WIMSE WG Internet-Draft draft-ietf-wimse-aims-00, September 2026 (work in progress). <https://datatracker.ietf.org/doc/draft-ietf-wimse-aims/>
 - **[draft-ietf-wimse-arch]** "Workload Identity in a Multi System Environment (WIMSE) Architecture", IETF WIMSE WG Internet-Draft draft-ietf-wimse-arch-08, July 2026 (work in progress). <https://datatracker.ietf.org/doc/draft-ietf-wimse-arch/>
 - **[draft-ietf-wimse-http-signature]** "WIMSE Workload-to-Workload Authentication with HTTP Signatures", IETF WIMSE WG Internet-Draft draft-ietf-wimse-http-signature-07, September 2026 (work in progress). <https://datatracker.ietf.org/doc/draft-ietf-wimse-http-signature/>
 - **[draft-ietf-wimse-workload-creds]** "WIMSE Workload Credentials", IETF WIMSE WG Internet-Draft draft-ietf-wimse-workload-creds-02, July 2026 (work in progress). <https://datatracker.ietf.org/doc/draft-ietf-wimse-workload-creds/>
 - **[draft-ietf-wimse-wpt]** "WIMSE Workload Proof Token", IETF WIMSE WG Internet-Draft draft-ietf-wimse-wpt-02, August 2026 (work in progress). <https://datatracker.ietf.org/doc/draft-ietf-wimse-wpt/>
 - **[draft-meunier-webbotauth-registry]** Guerreiro, M., Kirazci, U., and Meunier, T., "Registry and Signature Agent card for Web bot auth", individual Internet-Draft draft-meunier-webbotauth-registry-02, May 2026 (work in progress). <https://datatracker.ietf.org/doc/draft-meunier-webbotauth-registry/>
+- **[draft-mw-oauth-tls-session-bound-tokens]** Krishnan, R., Prasad, A., Lopez, D., and Addepalli, S., "TLS-Session-Bound Access Tokens for OAuth 2.0", individual Internet-Draft draft-mw-oauth-tls-session-bound-tokens-07, June 2026 (work in progress). <https://datatracker.ietf.org/doc/draft-mw-oauth-tls-session-bound-tokens/>
 
 # Appendix A: Glossary
 
@@ -773,7 +792,7 @@ A profile is a fixed set of fields with defined semantics, so that relying parti
 | validated-capabilities | Capabilities and skills | The declared capabilities that a verifier exercised and confirmed | Example 1 |
 | security-scanned | Security and compliance posture | The scanner, its version, the result, and the artifact digest scanned | |
 | trust-score | Security and compliance posture | The score, with its scoring method and version, evidence window, verifier, and attestation tier | |
-| registry-membership | Security and compliance posture | The registry checked, a content digest of the registry at the time of the check, and the result | Example 2 |
+| registry-membership | Security and compliance posture | The registry checked and the result | Example 2 |
 
 Delegation claims ([Section 2.1](#21-what-an-agent-credential-carries)) have no named profile yet; a profile for them depends on the chain format of [gap 5](#62-open-gaps-and-recommendations). As [gap 7](#62-open-gaps-and-recommendations) recommends, each profile's verification rules should restate the score fields of [Section 2.1](#21-what-an-agent-credential-carries) where a score is carried, and the fail-closed rule of [Section 5.2](#52-presentation-and-validation).
 
@@ -787,7 +806,7 @@ An agent descriptor states an agent's name, endpoints, capabilities and skills. 
 |---|---|---|---|
 | A2A Agent Card [[A2A](https://a2a-protocol.org/latest/specification/)] | A2A project, Agentic AI Foundation (Linux Foundation) | Published, v1.0; normative definition in `spec/a2a.proto` | Capability and skill vocabulary ([Section 2.1](#21-what-an-agent-credential-carries)); the descriptor signed in [Appendix E](#appendix-e-example-evidence-and-credentials), Example 1 |
 | OASF [[OASF](https://docs.agntcy.org/oasf/open-agentic-schema-framework/)] | AGNTCY, a Linux Foundation project | Open source | Schema framework for agent capabilities and attributes; also illustrates a shared profile registry ([Section 3.2](#32-key-binding-profiles-and-packaging)) |
-| ODIS records [[ODIS](https://github.com/cosai-oasis/ws4-odis)] | CoSAI Workstream 4 | Contributor draft, work in progress | Agent registration, runtime and delegation records; its binding profiles are cited in [Section 3.2](#32-key-binding-profiles-and-packaging) |
+| ODIS records [[ODIS](https://github.com/cosai-oasis/ws4-odis)] | CoSAI Workstream 4 | Contributor draft, work in progress | Agent registration, runtime and delegation records |
 
 # Appendix E: Example Evidence and Credentials
 
@@ -949,15 +968,12 @@ ALLOW IF credential.issuer IN accepted_verifiers
 
 ## Example 2: Registry Membership (Agent Credential)
 
-A verifier checks that the subject is listed in a published registry and issues the result. The registry-membership profile requires three fields:
+A verifier checks that the subject is listed in a published registry and issues the result. The registry-membership profile requires two fields:
 
 - **registry:** the URL of the registry that was checked.
-- **registrySRI:** a content digest of the registry at the time of the check.
 - **result:** a boolean.
 
-The digest matters because registries change: without it, a relying party cannot tell which state of the registry the result refers to.
-
-The registry in this example is a Web Bot Auth registry [[draft-meunier-webbotauth-registry](https://datatracker.ietf.org/doc/draft-meunier-webbotauth-registry/)]. It holds no keys itself: it is a list of URLs of signature agent cards, each of which carries or points to a key directory. The verifier follows those entries and checks that the public key encoded in the subject's did:key appears in one of the directories. The registry digest pins only the list of URLs, not the cards or keys behind it, so a verifier that needs to pin those as well should record their digests as evidence.
+The registry in this example is a Web Bot Auth registry [[draft-meunier-webbotauth-registry](https://datatracker.ietf.org/doc/draft-meunier-webbotauth-registry/)]. It holds no keys itself: it is a list of URLs of signature agent cards, each of which carries or points to a key directory. The verifier follows those entries and checks that the public key encoded in the subject's did:key appears in one of the directories. A verifier that needs to pin the state of the registry, or the cards and keys behind it, should record their digests as evidence.
 
 The relying party trusts the verifier's appraisal, not the agent's word. It verifies the signature against the verifier's published key, confirms that the named appraisal policy is one it accepts, and checks that the presenter controls the subject key ([Section 5.2](#52-presentation-and-validation)).
 
@@ -967,7 +983,6 @@ The evidence appraised is the agent's key and the registry content. No platform 
 Subject:          "did:key:<subject-pubkey>"     // also the holder key
 Profile:          "registry-membership"
 Registry:         "https://assets.radar.cloudflare.com/bots/signature-agent-registry.txt"
-RegistrySRI:      "sha256:<registry-content-digest>"
 Result:           true
 Assurance basis:  tier "software", policy "registry-membership/v1",
                   appraisal time 2026-08-06T13:59:40Z
@@ -994,7 +1009,6 @@ Signature:        <proof over all above fields>
     "id": "did:key:<subject-pubkey>",
     "profile": "registry-membership",
     "registry": "https://assets.radar.cloudflare.com/bots/signature-agent-registry.txt",
-    "registrySRI": "sha256:<registry-content-digest>",
     "result": true
   },
   "assuranceBasis": {
@@ -1013,11 +1027,11 @@ Signature:        <proof over all above fields>
 }
 ```
 
-**Rendered as an EAR (four hours, no revocation).** EAR carries the appraisal policy in `ear_appraisal_policy_ids` and the issuance time in `iat`. The issuer (`iss`, since EAR defines no issuer claim), the subject, the holder key (`cnf` [[RFC7800](https://www.rfc-editor.org/rfc/rfc7800)]), and the other assurance-basis fields are additions ([Section 3.2](#32-key-binding-profiles-and-packaging)). The result carries no AR4SI trustworthiness vector, because AR4SI covers only hardware-rooted attesting environments and this result is at the software tier ([gap 3](#62-open-gaps-and-recommendations)).
+**Rendered as an EAR (four hours, no revocation).** EAR carries the appraisal policy in `ear_appraisal_policy_ids` and the issuance time in `iat`. The issuer (`iss`, since EAR defines no issuer claim), the subject, the holder key (`cnf` [[RFC7800](https://www.rfc-editor.org/rfc/rfc7800)]), and the other assurance-basis fields, grouped under `org.coalitionforsecureai.assurance_basis`, are additions ([Section 3.2](#32-key-binding-profiles-and-packaging)). The result carries no AR4SI trustworthiness vector, because AR4SI covers only hardware-rooted attesting environments and this result is at the software tier ([gap 3](#62-open-gaps-and-recommendations)).
 
 ```json
 {
-  "eat_profile": "tag:ietf.org,2026:rats/ear#04",
+  "eat_profile": "tag:ietf.org,2026:rats/ear#05",
   "iat": 1786024800,
   "exp": 1786039200,
   "iss": "did:key:<verifier-pubkey>",
@@ -1031,11 +1045,12 @@ Signature:        <proof over all above fields>
     "registry-membership": {
       "ear_status": "affirming",
       "ear_appraisal_policy_ids": ["https://example.org/policy/registry-membership/v1"],
-      "attestation_tier": "software",
-      "appraisal_time": 1786024780,
+      "org.coalitionforsecureai.assurance_basis": {
+        "attestation_tier": "software",
+        "appraisal_time": 1786024780
+      },
       "ear_verifier_claims": {
         "registry": "https://assets.radar.cloudflare.com/bots/signature-agent-registry.txt",
-        "registrySRI": "sha256:<registry-content-digest>",
         "result": true
       }
     }
@@ -1122,7 +1137,7 @@ Signature:        <proof over all above fields>
 
 ```json
 {
-  "eat_profile": "tag:ietf.org,2026:rats/ear#04",
+  "eat_profile": "tag:ietf.org,2026:rats/ear#05",
   "iat": 1786024800,
   "exp": 1786039200,
   "iss": "did:key:<verifier-pubkey>",
@@ -1146,8 +1161,10 @@ Signature:        <proof over all above fields>
         "hardware": 2
       },
       "ear_appraisal_policy_ids": ["https://example.org/policy/golden-image/v1"],
-      "attestation_tier": "hardware",
-      "appraisal_time": 1786024780,
+      "org.coalitionforsecureai.assurance_basis": {
+        "attestation_tier": "hardware",
+        "appraisal_time": 1786024780
+      },
       "ear_attester_claims": {
         "type": "AmdSevEvidence",
         "amdSevReport": "sha256:<report-hash>",
@@ -1263,3 +1280,14 @@ Any input the rule cannot evaluate leaves `allow` false. The PEP treats a missin
 **Coding-agent sandbox escapes (July 2026).** On 20 July, Pillar Security showed that Codex CLI, Cursor and Gemini CLI could each be steered, through prompt injection, into launching a privileged container that reached the host's files [[PILLAR-DOCKER](https://www.pillar.security/blog/one-docker-socket-to-rule-them-all-escaping-codex-cursor-and-gemini-clis-sandboxes)]. Each sandbox restricted writes but left the Docker socket reachable, so every step used an operation the sandbox permitted. This grounds [row 14](#61-threats-addressed): a hijacked agent acts within what it is allowed. A credential with a runtime environment claim ([Section 2.1](#21-what-an-agent-credential-carries)) would have described the sandbox as configured, not what the agent could actually reach through it; bounded authority, per-call checks and revocation narrow the damage but do not prevent it.
 
 **Malicious agent skills (2026).** This is a measurement study rather than a single incident. Liu et al. analyzed 98,380 skills from two community registries and confirmed 157 as malicious; 115 of them carry shadow features absent from their public documentation, and some instruct the agent to keep their actions from the user [[LIU-SKILLS](https://arxiv.org/abs/2602.06547)]. Such instructions are invisible to what a skill declares at issuance and to any observer at the host, device or network. This grounds [gap 8](#62-open-gaps-and-recommendations) and limits the approved-skills profile: a digest match shows that a skill is the approved artifact, not that the artifact has no hidden function.
+
+# Contributors
+
+- Benedict Lau, EQTY Lab
+- Kapil Singh, IBM
+- Kunal Ghosh, Samsung Research America
+- Nicolai Nielsen, Thomson Reuters
+- Rithikha Rajamohan, EQTY Lab
+- Imran Siddique, Anthropic
+- Abhijeet Kolekar , Zscaler
+- Arthur Saputkin, Meta
