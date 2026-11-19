@@ -1,0 +1,48 @@
+# Runs the pinned trade-booking corpus and checks that the worked example names
+# exactly the cases the corpus ran, so the tables cannot drift from the data.
+name: trade-booking-example
+
+on:
+  push:
+    branches: [main, feat/multimodal]
+    paths:
+      - "whitepapers/taxonomy-examples/**"
+      - ".github/workflows/trade-booking-example.yml"
+  pull_request:
+    paths:
+      - "whitepapers/taxonomy-examples/**"
+      - ".github/workflows/trade-booking-example.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  cases:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      - name: Install the pinned corpus
+        run: python -m pip install -r whitepapers/taxonomy-examples/requirements.txt
+      - name: Run every case
+        run: agent-evidence-vectors-trade-booking --output trade-booking-result
+      - name: The example names every case the corpus ran, and no other
+        env:
+          REPORT: trade-booking-result/report.json
+        run: |
+          python - <<'PY'
+          import json, os, re, sys
+          text = open("whitepapers/taxonomy-examples/fx-trade-booking-lost-response.md", encoding="utf-8").read()
+          named = set(re.findall(r"`((?:control|v[123]|booking_record|cancel_reply|break)_[a-z0-9_]+)`", text))
+          ran = {r["case_id"] for r in json.load(open(os.environ["REPORT"]))["results"]}
+          missing, extra = sorted(ran - named), sorted(named - ran)
+          print("cases run:", len(ran), "named in the example:", len(named))
+          if missing or extra:
+              print("not named in the example:", missing)
+              print("named but not run:", extra)
+              sys.exit(1)
+          PY
