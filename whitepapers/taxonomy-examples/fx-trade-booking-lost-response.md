@@ -98,11 +98,11 @@ Case: `control_normal_success`.
 | 3d | The cycle's reconciliation file does not arrive | none | nothing, in either direction | keep holding the capacity; alert operations to the missing file |
 | 4 | Cancel reply with an event ID | event confirmation | booked and cancelled once | release the capacity |
 
-Row 3d is the lost reply again, one layer down. A cycle file that arrived empty states that the deal is absent; a file that never arrived states nothing, so the deal stays unresolved, exactly as after row 1. A later booking found by any cycle up to the end-of-day close is cancelled once (row 3a's rule). The corpus has no case named for the missing file yet; its reader already leaves a deal unresolved when no reconciliation close is counted.
+Row 3d is the lost reply again, one layer down. A cycle file that arrived empty states that the deal is absent; a file that never arrived states nothing, so the deal stays unresolved, exactly as after row 1. A later booking found by any cycle up to the end-of-day close is cancelled once (row 3a's rule). Case: `v1_reconciliation_file_missing_capacity_held`.
 
 Cases: `v1_lost_ack_found_by_search_cancelled_once`, `v1_late_booking_held_until_reconciliation_cancelled_once`, `v1_search_absent_reconciliation_closes_never_booked`, `v1_resend_same_reference_rejected`.
 
-Controls that fail, as cases: capacity released on timeout with no evidence (`v1_lost_ack_released_on_timeout_no_evidence`); capacity released at the provisional absence (`v1_late_booking_released_at_search_not_found`); a second live booking of the same quote under a new reference (`v1_resend_new_reference_duplicate_booking`); an unresolved deal dropped from the agent system's credit limit copy (`v1_unresolved_deal_dropped_from_limit_copy`); the agent system claiming a cancel the booking system never confirmed (`v1_cancel_claimed_by_agent_only`).
+Controls that fail, as cases: capacity released on timeout with no evidence (`v1_lost_ack_released_on_timeout_no_evidence`); capacity released at the provisional absence (`v1_late_booking_released_at_search_not_found`); a second live booking of the same quote under a new reference (`v1_resend_new_reference_duplicate_booking`); an unresolved deal dropped from the agent system's credit limit copy (`v1_unresolved_deal_dropped_from_limit_copy`); the agent system claiming a cancel the booking system never confirmed (`v1_cancel_claimed_by_agent_only`); a missing cycle file read as an empty one, which releases the capacity (`v1_reconciliation_file_missing_read_as_empty_released`).
 
 ### Variant 2: booking succeeds, LP execution fails, cancellation is unconfirmed
 
@@ -113,11 +113,11 @@ Controls that fail, as cases: capacity released on timeout with no evidence (`v1
 | 3a | Cancel reply with an event ID | event confirmation | cancelled once | release the capacity |
 | 3b | Cancel error or no reply | none | cancel unconfirmed; deal still counted | hand to operations; take no further automatic action |
 
-An LP timeout is handled like an LP rejection: operations are notified and the deal is cancelled once in the booking system, which is the source of truth. If it later turns out that the LP did execute, operations reverse that position. The rest follows the rows above: the cancel counts only when the booking system returns an event ID, and an unconfirmed cancel goes to operations with no further automatic action. The corpus has no case for the timeout trigger yet.
+An LP timeout is handled like an LP rejection: operations are notified and the deal is cancelled once in the booking system, which is the source of truth. If it later turns out that the LP did execute, operations reverse that position. The rest follows the rows above: the cancel counts only when the booking system returns an event ID, and an unconfirmed cancel goes to operations with no further automatic action.
 
-Cases: `v2_lp_reject_cancel_confirmed_once`, `v2_lp_reject_cancel_error_held_for_operations`.
+Cases: `v2_lp_reject_cancel_confirmed_once`, `v2_lp_reject_cancel_error_held_for_operations`, `v2_lp_timeout_cancel_confirmed_once`.
 
-Controls that fail, as cases: an automatic cancel retry after the first cancel succeeded but its reply was lost, leaving two cancel events (`v2_lp_reject_cancel_retried_two_events`); capacity released although the cancel is unconfirmed (`v2_lp_reject_cancel_unconfirmed_released_anyway`).
+Controls that fail, as cases: an automatic cancel retry after the first cancel succeeded but its reply was lost, leaving two cancel events (`v2_lp_reject_cancel_retried_two_events`); capacity released although the cancel is unconfirmed (`v2_lp_reject_cancel_unconfirmed_released_anyway`); LP silence read as a fill, which leaves the deal open with no cover (`v2_lp_timeout_read_as_filled_left_open`).
 
 ### Variant 3: operations reverses the booking directly
 
@@ -156,10 +156,10 @@ This depends on the booking system storing the agent system's booking reference.
 
 ### Run the cases
 
-Each variant is an executable case in the public corpus (21 cases). Install and run, Python 3.12 or later, pinned to the published release that carries the corpus:
+Each variant is an executable case in the public corpus (25 cases). Install and run, Python 3.12 or later, pinned to the published release that carries the corpus:
 
 ```sh
-python -m pip install agent-evidence-vectors==0.37.0
+python -m pip install agent-evidence-vectors==0.37.1
 agent-evidence-vectors-trade-booking --output trade-booking-result
 ```
 
@@ -171,7 +171,7 @@ The command checks every corpus member against its manifest, judges all cases fr
 
 1. Lifecycle accuracy: are these sequences realistic? Which assumptions depend on the bank, the booking system or the LP, for example check-only versus atomic cancel, or all-or-none LP execution?
 2. Is a search by reference that finds nothing final, or is the deal held until a reconciliation closes? Practitioner answer (28 October): after the search at the end of the window, the deal is treated as not booked unless the business chose to hold it until the next cycle. The cases hold it, and the note after the controls table says so.
-3. Which missing failure case would materially change the answers? The LP timeout is now described in variant 2 (handled like an LP rejection); it has no executable case yet.
+3. Which missing failure case would materially change the answers? The LP timeout (variant 2) and the missing reconciliation file (row 3d) now each have a case and a failing control.
 
 ### Residual gaps
 
