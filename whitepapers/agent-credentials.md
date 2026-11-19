@@ -1,17 +1,17 @@
-# Title
-Agent Credentials
+# Agent Credentials
 
-## OASIS Open Project : [Coalition for Secure AI (CoSAI)](https://github.com/cosai-oasis) \[WS4 Secure Design Agentic Systems\] (hyperlink to remember to update Title and Author in document Properties \!\!\!)
+OASIS Open Project: [Coalition for Secure AI (CoSAI)](https://github.com/cosai-oasis) WS4 Secure Design Agentic Systems
 
-## Additional artifacts: This document is one component of a Work Product that also includes: XML schemas: (list file names or directory name) Other parts (list titles and/or file names or directory name)
+Additional artifacts: N/A
 
-## Abstract:
+## Abstract
 AI agents increasingly act across organizational boundaries, but there is no shared way for an agent to prove what it is, what it runs, who answers for it, or on whose behalf it acts. Claims about agents are spread across incompatible identifiers, schemas, and formats, so every issuer and verifier builds bespoke integrations. This paper defines a framework for agent credentials, built on the IETF RATS architecture: a credential is a verifier's signed appraisal of evidence, bound to a key the agent holds. It sets out a taxonomy of credential types (identity and ownership, composition, capabilities, security posture, and delegation), attestation tiers that tell a relying party how far to trust a claim, and the formats that can carry them. It then covers deployment patterns, cross-domain trust, the credential lifecycle from issuance to revocation, and the threats credentials address and leave open, with recommendations for further standards work.
 
-## Summary of the technical purpose of the document:
+## Summary of the technical purpose of the document
 This document gives implementers a common model for issuing, presenting, and checking agent credentials, so that relying parties can evaluate an agent from any issuer without bespoke integration. It defines the core fields every credential carries, named profiles for common claims, and an assurance basis that records the attestation tier, appraisal policy, and appraisal time behind each result. It maps these onto existing identifiers (DIDs, SPIFFE and WIMSE IDs), key-binding methods (mTLS, HTTP Message Signatures, DPoP), and packaging formats (W3C VCs, JWTs, EAT and EAR), rather than defining new ones. It specifies the validation steps an enforcement point runs on every call, including holder binding before any claim is relied on and a fail-closed rule when a check cannot complete. Access tokens and authorization remain out of scope; the document defines only the hand-off to them.
 
 ## Status: Draft ready for TSC review
+
 
 ## Table of Contents
 
@@ -49,7 +49,7 @@ This document gives implementers a common model for issuing, presenting, and che
 - [Appendix F: Sample Enforcement Policy](#appendix-f-sample-enforcement-policy)
 - [Appendix G: Motivating Incidents](#appendix-g-motivating-incidents)
 - [Contributors](#contributors)
-- [About CoSAI](#about-cosai)
+- [CoSAI](#cosai)
 
 # Introduction
 
@@ -1334,27 +1334,27 @@ Any input the rule cannot evaluate leaves `allow` false. The PEP treats a missin
 
 **Malicious agent skills (2026).** This is a measurement study rather than a single incident. Liu et al. analyzed 98,380 skills from two community registries and confirmed 157 as malicious; 115 of them carry shadow features absent from their public documentation, and some instruct the agent to keep their actions from the user [[LIU-SKILLS](https://arxiv.org/abs/2602.06547)]. Such instructions are invisible to what a skill declares at issuance and to any observer at the host, device or network. This grounds [gap 8](#62-open-gaps-and-recommendations) and limits the approved-skills profile: a digest match shows that a skill is the approved artifact, not that the artifact has no hidden function.
 
-# Contributors
+---
 
-— Benedict Lau, EQTY Lab (benedict@eqtylab.io) 
-— Kapil Singh, IBM (kapil@us.ibm.com) 
-— Kunal Ghosh, Samsung Research America (kghoshworkid@gmail.com) 
-— Abhijeet Kolekar, Zscaler (akolekar@zscaler.com) 
-— Nicolai Nielsen, Thomson Reuters (nicolai.nielsen@thomsonreuters.com) 
-— Rithikha Rajamohan, EQTY Lab (rithikha.rajamohan@eqtylab.io) 
-— Imran Siddique, Anthropic (imransiddique@live.com) 
-— Jeremy Ware, NVIDIA (jeware@nvidia.com) 
-— Teryl Taylor, IBM (terylt@ibm.com) 
-— Bill Stout, AI Alliance (bstout@thealliance.ai) 
-— Arthur Saputkin, Meta (saputkin@meta.com)
+## Contributors
 
-## 5\. Appendix
+- Benedict Lau, EQTY Lab (benedict@eqtylab.io)
+- Kapil Singh, IBM (kapil@us.ibm.com)
+- Kunal Ghosh, Samsung Research America (kghoshworkid@gmail.com)
+- Abhijeet Kolekar, Zscaler (akolekar@zscaler.com)
+- Nicolai Nielsen, Thomson Reuters (nicolai.nielsen@thomsonreuters.com)
+- Rithikha Rajamohan, EQTY Lab (rithikha.rajamohan@eqtylab.io)
+- Imran Siddique, Anthropic (imransiddique@live.com)
+- Jeremy Ware, NVIDIA (jeware@nvidia.com)
+- Teryl Taylor, IBM (terylt@ibm.com)
+- Bill Stout, AI Alliance (bstout@thealliance.ai)
+- Arthur Saputkin, Meta (saputkin@meta.com)
 
-### About CoSAI 
+## CoSAI 
 
 CoSAI is an OASIS Open Project, bringing together an open ecosystem of AI and security experts from industry-leading organizations. The project is dedicated to sharing best practices for secure AI deployment and collaborating on AI security research and product development. The scope of CoSAI is specifically focused on the secure building, integration, deployment, and operation of AI systems, with an emphasis on mitigating security risks unique to AI technologies. Other aspects of Trustworthy AI are deemed important but beyond the scope of the project including, ethics, fairness, explainability, bias detection, safety, consumer privacy, misinformation, hallucinations, deep fakes, or content safety concerns like hateful or abusive content, malware, or phishing generation. By concentrating on developing robust measures, best practices, and guidelines to safeguard AI systems against unauthorized access, tampering, or misuse, CoSAI aims to contribute to the responsible development and deployment of resilient, secure AI technologies.
 
-### Guidelines on usage of more advanced AI systems (e.g. large language models (LLMs), multi-modal language models. etc) for drafting documents for OASIS CoSAI:
+### Guidelines on usage of more advanced AI systems
 
 CoSAI contributions are actions performed by humans, who are responsible for the content of those contributions, based on their signed OASIS iCLA (and eCLA, if applicable). Each contributor is responsible for ensuring that all contributions comply with these AI use guidelines, including disclosure of any use of AI in contributions.  
 
