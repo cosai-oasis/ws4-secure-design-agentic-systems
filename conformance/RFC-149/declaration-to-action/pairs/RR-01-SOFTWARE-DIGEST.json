@@ -1,0 +1,37 @@
+{
+ "accept": {
+  "consumer_result": {
+   "result": "pass",
+   "unmet_obligation": null
+  },
+  "corpus": "vectors-artifact-binding",
+  "member": "vd05d2e7059332fd5",
+  "reader_expected": {
+   "verdict": "verified"
+  },
+  "sha256": "37ff774ee7479c855f9f444898e331d886b640ac2cee5f88e842413f2890292a"
+ },
+ "differs_in": "one byte of a covered artifact changed after signing",
+ "id": "RR-01-SOFTWARE-DIGEST",
+ "note": "The deployed content must rehash to the digest the typed reference names.",
+ "reader": "aee-verify",
+ "record": {
+  "pointer": "/approved_software_refs/0/digest"
+ },
+ "reject": {
+  "consumer_result": {
+   "result": "fail",
+   "unmet_obligation": null
+  },
+  "corpus": "vectors-artifact-binding",
+  "member": "vb8a8df5360bc6f37",
+  "reader_expected": {
+   "verdict": "failed"
+  },
+  "sha256": "37ff774ee7479c855f9f444898e331d886b640ac2cee5f88e842413f2890292a"
+ },
+ "relationship": "instance_to_software",
+ "rfc_scope": "typed-references",
+ "source": "agent-evidence-vectors==0.17.5",
+ "status": "candidate"
+}

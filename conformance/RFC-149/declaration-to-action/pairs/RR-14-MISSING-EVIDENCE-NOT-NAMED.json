@@ -1,0 +1,42 @@
+{
+ "accept": {
+  "consumer_result": {
+   "result": "not_established",
+   "unmet_obligation": "standing_source"
+  },
+  "corpus": "vectors-agent-audit-record",
+  "member": "v8a2e4c0327732290",
+  "reader_expected": {
+   "codes": [],
+   "tier": "authoritative",
+   "verdict": "valid"
+  },
+  "sha256": "8a2e4c0327732290ec614781bb76039723828d968a59146c172292c0f95da845"
+ },
+ "differs_in": "not-evaluated with the unavailable input removed",
+ "id": "RR-14-MISSING-EVIDENCE-NOT-NAMED",
+ "note": "When evidence is missing the verifier names what was unavailable. Not-evaluated with no named input is refused.",
+ "reader": "auditrecord",
+ "record": {
+  "pointer": "/extensions/agentrust-composition-v0/reference_values"
+ },
+ "reject": {
+  "consumer_result": {
+   "result": "processing_failure",
+   "unmet_obligation": null
+  },
+  "corpus": "vectors-agent-audit-record",
+  "member": "vf320e1e190cd0a35",
+  "reader_expected": {
+   "codes": [
+    "evaluation-inconsistent"
+   ],
+   "verdict": "malformed"
+  },
+  "sha256": "f320e1e190cd0a356dff70d1cc6fcb790f0d08109923595a98c4a72e9f033d88"
+ },
+ "relationship": "missing_evidence",
+ "rfc_scope": "runtime-appraisal",
+ "source": "agent-evidence-vectors==0.17.5",
+ "status": "candidate"
+}

@@ -1,0 +1,34 @@
+{
+  "agent": {
+    "name": "oracle",
+    "version": "1.0.0"
+  },
+  "extra": {
+    "artifact_binding": {
+      "manifest_path": "binding/manifest.json",
+      "schema_version": "artifact-binding/v1"
+    }
+  },
+  "schema_version": "ATIF-v1.7",
+  "session_id": "synthetic-session-0001",
+  "steps": [
+    {
+      "content": "write HARBOR-BINDING-DEMO to /logs/artifacts/answer.txt",
+      "observation": {
+        "results": [
+          {
+            "content": "delegated",
+            "subagent_trajectory_ref": [
+              {
+                "trajectory_path": "agent/subagent.json"
+              }
+            ]
+          }
+        ]
+      },
+      "step_id": 1,
+      "type": "agent"
+    }
+  ],
+  "trajectory_id": "synthetic-trajectory-0001"
+}

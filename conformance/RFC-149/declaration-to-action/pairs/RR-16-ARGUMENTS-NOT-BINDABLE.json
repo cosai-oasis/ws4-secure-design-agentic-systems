@@ -1,0 +1,42 @@
+{
+ "accept": {
+  "consumer_result": {
+   "result": "not_established",
+   "unmet_obligation": "invocation_binding"
+  },
+  "corpus": "vectors-agent-audit-record",
+  "member": "v99868141e3bf075e",
+  "reader_expected": {
+   "codes": [],
+   "tier": "voluntary",
+   "verdict": "valid"
+  },
+  "sha256": "99868141e3bf075e1e0de588a88f2d6a2652892ee64dd9175736bc0c60beda5d"
+ },
+ "differs_in": "authoritative declared on arguments that cannot be bound",
+ "id": "RR-16-ARGUMENTS-NOT-BINDABLE",
+ "note": "A tool call whose arguments cannot be bound stays voluntary. Claiming more is refused.",
+ "reader": "auditrecord",
+ "record": {
+  "pointer": "/extensions/agentrust-composition-v0/tool_catalog/tools/0/schema_hash"
+ },
+ "reject": {
+  "consumer_result": {
+   "result": "processing_failure",
+   "unmet_obligation": null
+  },
+  "corpus": "vectors-agent-audit-record",
+  "member": "vcdbe361d989035b4",
+  "reader_expected": {
+   "codes": [
+    "tier-overclaim-binding"
+   ],
+   "verdict": "malformed"
+  },
+  "sha256": "cdbe361d989035b4584ee631342b1f2fcbe8452499ae920b7e9bc149850bfbb3"
+ },
+ "relationship": "decision_to_action",
+ "rfc_scope": "runtime-appraisal",
+ "source": "agent-evidence-vectors==0.17.5",
+ "status": "candidate"
+}

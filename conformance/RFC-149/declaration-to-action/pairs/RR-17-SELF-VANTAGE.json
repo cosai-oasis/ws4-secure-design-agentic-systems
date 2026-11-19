@@ -1,0 +1,42 @@
+{
+ "accept": {
+  "consumer_result": {
+   "result": "not_established",
+   "unmet_obligation": "observation_vantage"
+  },
+  "corpus": "vectors-agent-audit-record",
+  "member": "v7a12f6c08f822bd5",
+  "reader_expected": {
+   "codes": [],
+   "tier": "voluntary",
+   "verdict": "valid"
+  },
+  "sha256": "7a12f6c08f822bd56893e7f0b7ddbdb6af43291ab495512826d261d4365e49fd"
+ },
+ "differs_in": "substrate coverage declared beside a vantage of self",
+ "id": "RR-17-SELF-VANTAGE",
+ "note": "The agent's own account cannot meet platform-asserted assurance.",
+ "reader": "auditrecord",
+ "record": {
+  "pointer": "/extensions/agentrust-composition-v0/reference_values/required_assurance/instance_to_software"
+ },
+ "reject": {
+  "consumer_result": {
+   "result": "processing_failure",
+   "unmet_obligation": null
+  },
+  "corpus": "vectors-agent-audit-record",
+  "member": "vda7c9c087912fcba",
+  "reader_expected": {
+   "codes": [
+    "field-evidence-self-substrate"
+   ],
+   "verdict": "malformed"
+  },
+  "sha256": "da7c9c087912fcbac6defe8aa6e2aa46a7415b86eec69fe8b6228e24c2170afb"
+ },
+ "relationship": "instance_to_software",
+ "rfc_scope": "runtime-appraisal",
+ "source": "agent-evidence-vectors==0.17.5",
+ "status": "candidate"
+}

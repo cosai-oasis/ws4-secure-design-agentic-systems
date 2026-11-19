@@ -1,0 +1,37 @@
+{
+ "accept": {
+  "consumer_result": {
+   "result": "pass",
+   "unmet_obligation": null
+  },
+  "corpus": "vectors-artifact-binding",
+  "member": "vd05d2e7059332fd5",
+  "reader_expected": {
+   "verdict": "verified"
+  },
+  "sha256": "37ff774ee7479c855f9f444898e331d886b640ac2cee5f88e842413f2890292a"
+ },
+ "differs_in": "a pointer names a document other than the one the binding hashed",
+ "id": "RR-06-LOCATOR-DISAGREES",
+ "note": "A locator is resolved and rehashed, never trusted beside a digest.",
+ "reader": "aee-verify",
+ "record": {
+  "pointer": "/approved_software_refs/5/locator"
+ },
+ "reject": {
+  "consumer_result": {
+   "result": "fail",
+   "unmet_obligation": null
+  },
+  "corpus": "vectors-artifact-binding",
+  "member": "v21fa0d3af33d010d",
+  "reader_expected": {
+   "verdict": "failed"
+  },
+  "sha256": "7f5e8ca5dd19e86e2b496250d31d99af86106c0c755ad93acd2ca9ca774918ef"
+ },
+ "relationship": "instance_to_software",
+ "rfc_scope": "typed-references",
+ "source": "agent-evidence-vectors==0.17.5",
+ "status": "candidate"
+}
