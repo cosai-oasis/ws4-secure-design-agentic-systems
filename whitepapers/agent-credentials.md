@@ -1,3 +1,56 @@
+# Agent Credentials
+
+OASIS Open Project: [Coalition for Secure AI (CoSAI)](https://github.com/cosai-oasis) WS4 Secure Design Agentic Systems
+
+Additional artifacts: N/A
+
+## Abstract
+AI agents increasingly act across organizational boundaries, but there is no shared way for an agent to prove what it is, what it runs, who answers for it, or on whose behalf it acts. Claims about agents are spread across incompatible identifiers, schemas, and formats, so every issuer and verifier builds bespoke integrations. This paper defines a framework for agent credentials, built on the IETF RATS architecture: a credential is a verifier's signed appraisal of evidence, bound to a key the agent holds. It sets out a taxonomy of credential types (identity and ownership, composition, capabilities, security posture, and delegation), attestation tiers that tell a relying party how far to trust a claim, and the formats that can carry them. It then covers deployment patterns, cross-domain trust, the credential lifecycle from issuance to revocation, and the threats credentials address and leave open, with recommendations for further standards work.
+
+## Summary of the technical purpose of the document
+This document gives implementers a common model for issuing, presenting, and checking agent credentials, so that relying parties can evaluate an agent from any issuer without bespoke integration. It defines the core fields every credential carries, named profiles for common claims, and an assurance basis that records the attestation tier, appraisal policy, and appraisal time behind each result. It maps these onto existing identifiers (DIDs, SPIFFE and WIMSE IDs), key-binding methods (mTLS, HTTP Message Signatures, DPoP), and packaging formats (W3C VCs, JWTs, EAT and EAR), rather than defining new ones. It specifies the validation steps an enforcement point runs on every call, including holder binding before any claim is relied on and a fail-closed rule when a check cannot complete. Access tokens and authorization remain out of scope; the document defines only the hand-off to them.
+
+## Status: Draft ready for TSC review
+
+
+## Table of Contents
+
+- [Introduction](#introduction)
+- [Section 1: Scope & Definitions](#section-1-scope--definitions)
+  - [1.1 Scope](#11-scope)
+  - [1.2 Core Concepts & Definitions](#12-core-concepts--definitions)
+- [Section 2: Credential Taxonomy](#section-2-credential-taxonomy)
+  - [2.1 What an Agent Credential Carries](#21-what-an-agent-credential-carries)
+  - [2.2 How Far a Relying Party Can Trust It](#22-how-far-a-relying-party-can-trust-it)
+- [Section 3: Identity & Credential Formats](#section-3-identity--credential-formats)
+  - [3.1 Identifying the Agent](#31-identifying-the-agent)
+  - [3.2 Key Binding, Profiles, and Packaging](#32-key-binding-profiles-and-packaging)
+- [Section 4: Deployment Patterns & Gaps](#section-4-deployment-patterns--gaps)
+  - [4.1 Where Agents Need Credentials](#41-where-agents-need-credentials)
+  - [4.2 Crossing Domains](#42-crossing-domains)
+  - [4.3 Putting Credentials to Work](#43-putting-credentials-to-work)
+  - [4.4 Where Credentials Fall Short](#44-where-credentials-fall-short)
+- [Section 5: Credential Lifecycle & Enforcement](#section-5-credential-lifecycle--enforcement)
+  - [5.1 Issuance](#51-issuance)
+  - [5.2 Presentation and Validation](#52-presentation-and-validation)
+  - [5.3 Expiry and Revocation](#53-expiry-and-revocation)
+- [Section 6: Threat Models & Recommendations](#section-6-threat-models--recommendations)
+  - [6.1 Threats Addressed](#61-threats-addressed)
+  - [6.2 Open Gaps and Recommendations](#62-open-gaps-and-recommendations)
+- [References](#references)
+- [Appendix A: Glossary](#appendix-a-glossary)
+- [Appendix B: RATS Architecture and Role Mapping](#appendix-b-rats-architecture-and-role-mapping)
+- [Appendix C: Named Credential Profiles](#appendix-c-named-credential-profiles)
+- [Appendix D: Agent Descriptor Formats](#appendix-d-agent-descriptor-formats)
+- [Appendix E: Example Evidence and Credentials](#appendix-e-example-evidence-and-credentials)
+  - [Example 1: Agent Metadata (Evidence)](#example-1-agent-metadata-evidence)
+  - [Example 2: Registry Membership (Agent Credential)](#example-2-registry-membership-agent-credential)
+  - [Example 3: Approved Boot Image (Agent Credential)](#example-3-approved-boot-image-agent-credential)
+- [Appendix F: Sample Enforcement Policy](#appendix-f-sample-enforcement-policy)
+- [Appendix G: Motivating Incidents](#appendix-g-motivating-incidents)
+- [Contributors](#contributors)
+- [CoSAI](#cosai)
+
 # Introduction
 
 AI agents need a portable, verifiable way to present claims about themselves, so that the emerging ecosystem of gateways, other agents, and policy enforcement points can use those claims to decide what an agent may access and what it may delegate. Today, claims are expressed inconsistently across:
@@ -1281,13 +1334,45 @@ Any input the rule cannot evaluate leaves `allow` false. The PEP treats a missin
 
 **Malicious agent skills (2026).** This is a measurement study rather than a single incident. Liu et al. analyzed 98,380 skills from two community registries and confirmed 157 as malicious; 115 of them carry shadow features absent from their public documentation, and some instruct the agent to keep their actions from the user [[LIU-SKILLS](https://arxiv.org/abs/2602.06547)]. Such instructions are invisible to what a skill declares at issuance and to any observer at the host, device or network. This grounds [gap 8](#62-open-gaps-and-recommendations) and limits the approved-skills profile: a digest match shows that a skill is the approved artifact, not that the artifact has no hidden function.
 
-# Contributors
+---
 
-- Benedict Lau, EQTY Lab
-- Kapil Singh, IBM
-- Kunal Ghosh, Samsung Research America
-- Nicolai Nielsen, Thomson Reuters
-- Rithikha Rajamohan, EQTY Lab
-- Imran Siddique, Anthropic
-- Abhijeet Kolekar , Zscaler
-- Arthur Saputkin, Meta
+## Contributors
+
+- Benedict Lau, EQTY Lab (benedict@eqtylab.io)
+- Kapil Singh, IBM (kapil@us.ibm.com)
+- Kunal Ghosh, Samsung Research America (kghoshworkid@gmail.com)
+- Abhijeet Kolekar, Zscaler (akolekar@zscaler.com)
+- Nicolai Nielsen, Thomson Reuters (nicolai.nielsen@thomsonreuters.com)
+- Rithikha Rajamohan, EQTY Lab (rithikha.rajamohan@eqtylab.io)
+- Imran Siddique, Anthropic (imransiddique@live.com)
+- Jeremy Ware, NVIDIA (jeware@nvidia.com)
+- Teryl Taylor, IBM (terylt@ibm.com)
+- Bill Stout, AI Alliance (bstout@thealliance.ai)
+- Arthur Saputkin, Meta (saputkin@meta.com)
+
+## CoSAI 
+
+CoSAI is an OASIS Open Project, bringing together an open ecosystem of AI and security experts from industry-leading organizations. The project is dedicated to sharing best practices for secure AI deployment and collaborating on AI security research and product development. The scope of CoSAI is specifically focused on the secure building, integration, deployment, and operation of AI systems, with an emphasis on mitigating security risks unique to AI technologies. Other aspects of Trustworthy AI are deemed important but beyond the scope of the project including, ethics, fairness, explainability, bias detection, safety, consumer privacy, misinformation, hallucinations, deep fakes, or content safety concerns like hateful or abusive content, malware, or phishing generation. By concentrating on developing robust measures, best practices, and guidelines to safeguard AI systems against unauthorized access, tampering, or misuse, CoSAI aims to contribute to the responsible development and deployment of resilient, secure AI technologies.
+
+### Guidelines on usage of more advanced AI systems
+
+CoSAI contributions are actions performed by humans, who are responsible for the content of those contributions, based on their signed OASIS iCLA (and eCLA, if applicable). Each contributor is responsible for ensuring that all contributions comply with these AI use guidelines, including disclosure of any use of AI in contributions.  
+
+* Selection of AI systems: CoSAI recommends the use of reputable AI systems (lowering the risk of inadvertently incorporating infringing material).  
+* Model constraints: Currently, CoSAI or OASIS are not required to have a contract or financial agreement for using AI systems from specific vendors. However, CoSAI editors should consider employing varying tools to avoid potential fairness concerns among vendors.  
+* IP infringement: It is the responsibility of the individual who subscribes/prompts and receives a response from an AI system to confirm they have the right to repost and donate the content to OASIS under our rules.  
+* Transparency: CoSAI’s goal will be to maintain transparency throughout the process by documenting substantial use of AI systems whenever possible (e.g., the prompts and the AI system used), and to ensure that all content, regardless of production by human or AI systems, was reviewed and edited by human experts. This helps build trust in the standards development process and ensures accountability.  
+* Human-edited content and quality control: CoSAI mandates human-reviewed or \-edited results for any final outputs. A robust quality control process should be in place, involving careful review of the generated content for accuracy, relevance, and alignment with CoSAI's goals and principles. Human experts should scrutinize the output of AI systems to identify any errors, inconsistencies, or potential biases.  
+* Iterative refinement: The use of AI systems in drafting standards should be seen as an iterative process, with the generated content serving as a starting point for further refinement and improvement by human experts. Multiple rounds of review and editing may be necessary to ensure the final standards meet the required quality and reliability thresholds.
+
+### Disclaimer
+
+The views represented in this paper do not necessarily represent the views of all CoSAI members, including reviewers and their organizations. 
+
+### **Copyright Notice** 
+
+Copyright © OASIS Open 2025\. All Rights Reserved. This document has been produced under the process and license terms stated in the OASIS Open Project rules: [https://www.oasis-open.org/policies-guidelines/open-projects-process](https://www.oasis-open.org/policies-guidelines/open-projects-process).
+
+This document and translations of it may be copied and furnished to others, and derivative works that comment on or otherwise explain it or assist in its implementation may be prepared, copied, published, and distributed, in whole or in part, without restriction of any kind, provided that the above copyright notice and this section are included on all such copies and derivative works. The limited permissions granted above are perpetual and will not be revoked by OASIS or its successors or assigns. This document and the information contained herein is provided on an "AS IS" basis and OASIS DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE INFORMATION HEREIN WILL NOT INFRINGE ANY OWNERSHIP RIGHTS OR ANY IMPLIED WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE. OASIS AND ITS MEMBERS WILL NOT BE LIABLE FOR ANY DIRECT, INDIRECT, SPECIAL OR CONSEQUENTIAL DAMAGES ARISING OUT OF ANY USE OF THIS DOCUMENT OR ANY PART THEREOF. The name "OASIS" is a trademark of OASIS, the owner and developer of this document, and should be used only to refer to the organization and its official outputs. OASIS welcomes reference to, and implementation and use of, documents, while reserving the right to enforce its marks against misleading uses. Please see [https://www.oasis-open.org/policies-guidelines/trademark/](https://www.oasis-open.org/policies-guidelines/trademark/) for above guidance.  
+   
+This is a Non-Standards Track Work Product. The patent provisions of the OASIS IPR Policy do not apply.
