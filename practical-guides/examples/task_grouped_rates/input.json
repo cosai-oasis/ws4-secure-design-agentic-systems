@@ -1,0 +1,283 @@
+{
+  "evidenceKind": "synthetic-illustration",
+  "matching": {
+    "attack": {
+      "conditions": {
+        "agent": "authored toy, no framework or model execution",
+        "budget": "the same declared conditions in both arms",
+        "environment": "synthetic local episode labels",
+        "rubric": "shared declared binary task failure criterion"
+      },
+      "intervention": "declared toy attack present"
+    },
+    "benign": {
+      "conditions": {
+        "agent": "authored toy, no framework or model execution",
+        "budget": "the same declared conditions in both arms",
+        "environment": "synthetic local episode labels",
+        "rubric": "shared declared binary task failure criterion"
+      },
+      "intervention": "declared toy attack absent"
+    },
+    "outcomeCriteria": "failure means the declared task outcome fails the same rubric; success means it meets that rubric; unresolved means no supported binary label."
+  },
+  "population": {
+    "episodes": "Every authored attack and benign episode, including one unresolved label in each arm of T04.",
+    "independenceBasis": "Independent exchangeable task clusters are a hypothetical resampling assumption, not an empirical finding.",
+    "residualDependence": "A real shared agent, scene, session or robot can correlate tasks; this toy does not measure or rule out that dependence.",
+    "selection": "Task sizes and labels were deliberately chosen to make unequal weighting and missing labels visible.",
+    "taskIndependence": "assumed-for-illustration",
+    "tasks": "The complete four-task authored illustration T01 through T04; no sampled robot tasks."
+  },
+  "resampling": {
+    "confidenceLevel": "0.95",
+    "mode": "exhaustive"
+  },
+  "schemaVersion": 1,
+  "tasks": [
+    {
+      "attack": {
+        "counts": {
+          "failure": 8,
+          "success": 2,
+          "total": 10,
+          "unresolved": 0
+        },
+        "episodes": [
+          {
+            "episodeId": "attack-01",
+            "outcome": "failure"
+          },
+          {
+            "episodeId": "attack-02",
+            "outcome": "failure"
+          },
+          {
+            "episodeId": "attack-03",
+            "outcome": "failure"
+          },
+          {
+            "episodeId": "attack-04",
+            "outcome": "failure"
+          },
+          {
+            "episodeId": "attack-05",
+            "outcome": "failure"
+          },
+          {
+            "episodeId": "attack-06",
+            "outcome": "failure"
+          },
+          {
+            "episodeId": "attack-07",
+            "outcome": "failure"
+          },
+          {
+            "episodeId": "attack-08",
+            "outcome": "failure"
+          },
+          {
+            "episodeId": "attack-09",
+            "outcome": "success"
+          },
+          {
+            "episodeId": "attack-10",
+            "outcome": "success"
+          }
+        ]
+      },
+      "benign": {
+        "counts": {
+          "failure": 2,
+          "success": 8,
+          "total": 10,
+          "unresolved": 0
+        },
+        "episodes": [
+          {
+            "episodeId": "benign-01",
+            "outcome": "failure"
+          },
+          {
+            "episodeId": "benign-02",
+            "outcome": "failure"
+          },
+          {
+            "episodeId": "benign-03",
+            "outcome": "success"
+          },
+          {
+            "episodeId": "benign-04",
+            "outcome": "success"
+          },
+          {
+            "episodeId": "benign-05",
+            "outcome": "success"
+          },
+          {
+            "episodeId": "benign-06",
+            "outcome": "success"
+          },
+          {
+            "episodeId": "benign-07",
+            "outcome": "success"
+          },
+          {
+            "episodeId": "benign-08",
+            "outcome": "success"
+          },
+          {
+            "episodeId": "benign-09",
+            "outcome": "success"
+          },
+          {
+            "episodeId": "benign-10",
+            "outcome": "success"
+          }
+        ]
+      },
+      "taskId": "T01"
+    },
+    {
+      "attack": {
+        "counts": {
+          "failure": 3,
+          "success": 1,
+          "total": 4,
+          "unresolved": 0
+        },
+        "episodes": [
+          {
+            "episodeId": "attack-01",
+            "outcome": "failure"
+          },
+          {
+            "episodeId": "attack-02",
+            "outcome": "failure"
+          },
+          {
+            "episodeId": "attack-03",
+            "outcome": "failure"
+          },
+          {
+            "episodeId": "attack-04",
+            "outcome": "success"
+          }
+        ]
+      },
+      "benign": {
+        "counts": {
+          "failure": 1,
+          "success": 3,
+          "total": 4,
+          "unresolved": 0
+        },
+        "episodes": [
+          {
+            "episodeId": "benign-01",
+            "outcome": "failure"
+          },
+          {
+            "episodeId": "benign-02",
+            "outcome": "success"
+          },
+          {
+            "episodeId": "benign-03",
+            "outcome": "success"
+          },
+          {
+            "episodeId": "benign-04",
+            "outcome": "success"
+          }
+        ]
+      },
+      "taskId": "T02"
+    },
+    {
+      "attack": {
+        "counts": {
+          "failure": 0,
+          "success": 2,
+          "total": 2,
+          "unresolved": 0
+        },
+        "episodes": [
+          {
+            "episodeId": "attack-01",
+            "outcome": "success"
+          },
+          {
+            "episodeId": "attack-02",
+            "outcome": "success"
+          }
+        ]
+      },
+      "benign": {
+        "counts": {
+          "failure": 1,
+          "success": 1,
+          "total": 2,
+          "unresolved": 0
+        },
+        "episodes": [
+          {
+            "episodeId": "benign-01",
+            "outcome": "failure"
+          },
+          {
+            "episodeId": "benign-02",
+            "outcome": "success"
+          }
+        ]
+      },
+      "taskId": "T03"
+    },
+    {
+      "attack": {
+        "counts": {
+          "failure": 1,
+          "success": 1,
+          "total": 3,
+          "unresolved": 1
+        },
+        "episodes": [
+          {
+            "episodeId": "attack-01",
+            "outcome": "failure"
+          },
+          {
+            "episodeId": "attack-02",
+            "outcome": "success"
+          },
+          {
+            "episodeId": "attack-03",
+            "outcome": "unresolved"
+          }
+        ]
+      },
+      "benign": {
+        "counts": {
+          "failure": 0,
+          "success": 2,
+          "total": 3,
+          "unresolved": 1
+        },
+        "episodes": [
+          {
+            "episodeId": "benign-01",
+            "outcome": "success"
+          },
+          {
+            "episodeId": "benign-02",
+            "outcome": "success"
+          },
+          {
+            "episodeId": "benign-03",
+            "outcome": "unresolved"
+          }
+        ]
+      },
+      "taskId": "T04"
+    }
+  ]
+}
