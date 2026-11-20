@@ -1,0 +1,14 @@
+# Keeps the pinned inputs of the conformance cases current. A bump of the
+# corpus package opens a pull request against the branch that holds the cases,
+# and the conformance workflow grades all of them against it before review.
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: "/conformance/RFC-189/observed-effect"
+    target-branch: feat/containment
+    schedule:
+      interval: weekly
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
