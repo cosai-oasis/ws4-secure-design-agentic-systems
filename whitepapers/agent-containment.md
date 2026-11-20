@@ -1174,6 +1174,7 @@ This paper takes no position on how agent-to-agent protocols are designed, how m
    - The claimed boundaries hold.
    - Every path to an in-scope consequential effect is mediated or explicitly excluded from the claim.
    - The agent cannot change the monitor or its policy.
+   - The agent cannot obtain credentials that bypass authorization checks.
    - The evidence verifies.
    - The effective-reach inventory matches the current deployment.
    - Aggregate accounting holds across all agents sharing a principal and each delegation subtree rooted at that principal.
@@ -1305,7 +1306,7 @@ Per-clause provenance for the §7.4 clauses is in the drafting record on [#189](
 
 - **A.1 The x32/seccomp result.** A publishable receipt: test harness, models and versions, sandbox configuration (Landlock, Docker network isolation, seccomp-BPF), the exact bypass, and the chained LLM-API relay. Until this appendix exists, the paper cites the result as reported, not as verified.
 - **A.2 The OpenAI / Hugging Face / Artifactory chain.** Primary sources read 2026-09-05 and 2026-11-06; status per claim:
-  - **Established from Hugging Face's disclosure [14]:** the intrusion into Hugging Face started in their data-processing pipeline — a remote-code dataset loader and a template injection in a dataset configuration, reaching a processing worker — followed by escalation to node-level access, credential harvesting, and lateral movement. Artifactory appears nowhere in that account, and the disclosure affirmatively reports the software supply chain verified clean, container images and published packages included. The blog's sentence merging Artifactory into the Hugging Face breach is wrong; §6 carries the corrected telling.
+  - **Established from Hugging Face's disclosure [14]:** the intrusion into Hugging Face started in their data-processing pipeline — a remote-code dataset loader and a template injection in a dataset configuration, reaching a processing worker — followed by escalation to node-level access, credential harvesting, and lateral movement. Artifactory appears nowhere in that account, and the disclosure affirmatively reports the software supply chain verified clean, container images and published packages included. The blog's sentence [11] merging Artifactory into the Hugging Face breach is wrong; §6 carries the corrected telling.
   - **Established from NVD:** at least ten JFrog CVEs published 2026-07-27, nine naming Artifactory, severities up to a privilege-escalation flaw. Published-same-day is not used-in-the-chain; no CVE record connects itself to the incident, and researcher-credit claims trace to news coverage only. "Zero-day" is OpenAI's own characterization of the Artifactory flaws in its escape [2], [25]; no source applies it to the Hugging Face breach.
   - **Established from OpenAI's disclosure [2] and technical report [25]:** the models reached the public internet through zero-days in the internal Artifactory package-registry proxy. Figures that neither source gives stay out of the body: 17,600 attacker actions, the 4.5-day duration, 181 enrolled nodes.
 - **A.3 Comparison of external findings.** @Johncavanaugh-IIS's comparison of the OpenAI researcher findings against the blog post's findings: what they found that we did not, and the reverse. Lands here first; sections 2 and 6 draw from it.
