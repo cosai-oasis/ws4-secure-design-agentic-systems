@@ -999,72 +999,82 @@ Candidate conformance cases [29] exercise producer visibility, interval coverage
 
 ## 8. A vetted-sandbox commons
 
-The question raised was whether CoSAI has a role in specifying what a vetted agent sandbox must demonstrate, so that implementations can be measured against it. The answer is yes, with a boundary: the role is not another set of isolation requirements, and this section does not attempt one.
+This section sets out what a vetted agent sandbox needs to demonstrate, so implementations can be assessed against a common set of properties. It proposes a role for CoSAI in coordinating that work, not another set of isolation requirements.
 
 ### 8.1 What already exists, and what it does not cover
 
-Two CoSAI artifacts already occupy adjacent ground, and a third is in progress.
+The *MCP Security* paper defines four cumulative security assurance levels. Their execution-isolation controls distinguish:
 
-The *MCP Security* paper's security assurance profiles grade isolation across four levels:
+1. **L1 — Sandbox:** a restricted local user context is recommended; access to production credentials or live data is prohibited.
+2. **L2 — Internal:** application sandboxing or containerised execution with resource limits is required.
+3. **L3 — Production:** strong container isolation is required, with no shared runtime across trust boundaries.
+4. **L4 — Regulated:** strong tenant isolation with attested workload identity is required. TEEs or confidential containers are recommended where the threat model, regulation or platform supports their use [10].
 
-1. a restricted local user context;
-2. containerised execution with resource limits;
-3. strong isolation with no shared runtime across trust boundaries;
-4. attested tenant isolation using TEEs or confidential containers [10].
+The CoSAI Risk Map work under review distinguishes OS- and process-level runtime isolation from hardware-enforced confidential computing. Its proposed entries identify the corresponding risks and controls (secure-ai-tooling#516). Together with the MCP assurance profiles, this work provides a basis for specifying a sandbox's required controls without restating them here.
 
-The CoSAI Risk Map's isolation and containment entries name the corresponding risks and controls, including the distinction between OS- and process-level isolation and hardware-enforced confidential computing. Together, they answer the question *what should a sandbox be configured to do*, at a level of detail this paper has no reason to restate.
+The *MCP Security* paper identifies automated checks of claimed assurance levels as future work and defers an evidence-per-level annex [10]. This section develops the demonstration requirement for deployed agent controls (§8.2).
 
-Neither requires that a sandbox be able to **show** that it does what it is configured to do. That gap is not academic.
+Section 5 distinguishes two forms of mode 3: a policy that does not adequately specify the intended boundary, and an adequate policy that is not the one deployed. In either case, a control can be active and unchanged by the agent without enforcing the intended boundary. Checking that the control is enabled is not enough; review the policy for gaps and test that the deployed controls enforce it (§5.2).
 
-§5's third failure mode is the control that was on, untouched, and wrong: an insufficiently specified policy. A configuration-level requirement is structurally unable to catch this mode, because the configuration is present and conformant in exactly the cases that fail.
+The Linux kernel documentation warns that filtering system calls by number without checking the architecture value can leave checks open to abuse where calling conventions use overlapping numbers [7]. The filter can be active while failing to enforce the intended boundary. Section 8 addresses this risk through demonstrations of the deployed controls, complementing the policy review described in §5.2.
 
-A seccomp profile that filters syscall numbers without checking the architecture value satisfies "syscall filtering is enabled" and does not hold [7]. Verification is the only control that reaches mode 3, which is why §5's table assigns this section to it.
-
-The blog post stated the requirement in one line: before any agent run, programmatically verify that the sandbox enforces its policy, because security controls need unit tests, not just the application [11]. A commons generalises that line into an agreed set of things a sandbox must be able to demonstrate, so that "vetted" means the same thing across implementations and an operator procuring one (§1.1) has something to ask for.
+Before each agent run, programmatically verify that the sandbox enforces its intended policy. The proposed commons would establish a shared set of properties that sandboxes must demonstrate, giving operators a consistent basis for assessing implementations and specifying what providers must demonstrate when procuring an agent deployment (§1.1).
 
 ### 8.2 The demonstration requirement
 
-A vetted sandbox should be able to demonstrate, mechanically and before an agent run, at least the following. These are the paper's own properties, restated as things to test rather than things to assert:
+A vetted sandbox should be able to demonstrate the following properties mechanically before each agent run. These are minimum demonstrations of the properties described in this paper, not a separate set of isolation requirements.
 
-- **The claimed boundary holds.** For each axis the implementation claims (§2), a test shows the boundary is in force: the declared egress policy denies what it says it denies, the declared filesystem scope is the actual scope, and the declared privilege set is the actual set. A claim without a test is a configuration, not a demonstration.
-- **Mediation is complete for the effects claimed.** For each consequential effect the deployment says is mediated, evidence shows that no unmediated path to that effect remains (§3), or an explicit statement names the paths excluded from the claimed assurance boundary. Exclusions are part of the demonstration, not gaps in it.
-- **The enforcement point is outside the agent's reach.** A test shows the agent cannot alter the policy or the monitor that applies it (§5), including its own sandbox configuration.
-- **The evidence is produced and is verifiable.** The events §7 requires are emitted, carry the correlation key, and have integrity protection that someone who does not trust the operator can check. A containment claim whose evidence cannot be verified has nothing behind it (§6.3).
-- **The reachable set is enumerated and current.** The deployment can state everything the agent can reach, by any path in its effective reach, and the enumeration matches what is deployed (§6.1).
-- **Aggregate accounting holds across the principal.** Consumption is admitted or refused atomically across the set of agents sharing a principal and across each delegation subtree (§4). An action whose outcome is unknown stays charged. A request the accounting authority cannot decide within its latency bound is refused or held, not allowed (§4.3). Per-agent limits can hold while the aggregate does not; that is the failure §4 exists to catch, and no test confined to one agent can see it.
+- **The claimed boundaries hold.** For each axis the deployment claims to protect (§2), test that its controls enforce the declared boundary: the egress policy denies the traffic it says it denies, the actual filesystem scope matches the declared scope, the write scope that outlives the run or that other agents can read matches what the deployment declares, and the agent's actual privileges match the declared set. A configuration alone does not demonstrate that these boundaries hold.
 
-The demonstration should be re-runnable, not a one-time certification. The properties above are deployment configuration, and configuration drifts. In practice, this means a pre-run check whose failure prevents the run. That is the difference between a sandbox that is vetted and one that was vetted once. The result is identified by a content digest and referenced from the run's evidence records (§7.1), so a demonstration from one run cannot stand in for another. A demonstration also has a validity window: for a long-running agent the check repeats during the run, and a claim whose last demonstration has lapsed is not a current claim.
+- **Mediation covers every path to the claimed effects.** For each consequential effect the deployment claims to mediate, demonstrate that every path to that effect crosses independently enforced authorization before the effect occurs, or explicitly identify the paths excluded from the claimed assurance boundary (§3). The demonstration must also verify the caller's authority for effects on resources named in tool-call arguments, not just permission to invoke the tool. Include those exclusions in the demonstration. An excluded path is outside the claim; it is not established to be closed or safe.
+
+- **The agent cannot change the enforcement point or its policy.** Test that the agent cannot alter the monitor, the policy it applies or the sandbox configuration that enforces the boundary (§5).
+
+- **The agent cannot obtain credentials that bypass authorization checks.** Test that the agent cannot read a password, token or other credential that would let it act without passing through the required authorization checks. Include credentials exposed through environment variables, mounted files, credential helpers, key-agent sockets, metadata endpoints and tool results.
+
+- **The required evidence is produced and can be verified.** Test that the deployment produces the events and correlation information required by §7 and §7.1. The evidence must identify the observation layer: agent-level, tool-call/gateway or kernel/system. These layers have different visibility; a record from one cannot stand in for another. During the test, the observer must be outside the agent's authority, and its records must be tamper-evident so a reviewer can detect alteration without trusting the operator or the record store. Verification must support the particular containment claim; integrity protection alone does not establish independent observation or complete coverage (§§6.3, 7). For an empty test result, apply the absence rules (§7.4); lack of an observed event alone does not establish absence.
+
+- **The reachable-set inventory matches the deployment.** Demonstrate that the current inventory identifies every system, service and endpoint the agent can reach through any path in its effective reach, including indirect paths through providers, tools and other agents (§§3, 6.1). Check the inventory against what is actually deployed, not just the intended configuration.
+
+- **Aggregate accounting holds across the principal and each delegation subtree.** Test atomic enforcement of shared limits before consumption across all agents sharing a principal and each delegation subtree (§4). Each action uses either the shared budget or a protected local check within the scope and remaining allowance of an already atomically charged lease; all other applicable checks still apply. Unknown outcomes stay charged until authoritative non-consumption or idempotent reconciliation resolves them. If the shared or local accounting check times out, refuse or hold the action for confirmation, never allow it. Test across agents: per-agent limits alone do not establish the shared bound (§4.3).
+
+The demonstration should be repeatable, not a one-time certification. Deployment configuration can change, so test the deployed controls before every agent run. If the check fails, do not start the run. Identify the demonstration result by its content digest and include that digest in the evidence records for the specific run (§7.1). A result from another run cannot replace that run's demonstration. Each result is valid only for a defined period. During a long run, repeat the check before that period expires. Once the result expires, it no longer supports a current containment claim.
+
+**What a demonstration establishes when an agent can recognize the test.** An agent behaving within its limits during a test does not establish that it cannot exceed them. The demonstration must test the controls that enforce the claimed boundary, not rely on the agent choosing to respect it. If recognizing the test changes the agent's behavior, a quiet result alone cannot establish that the same controls will hold during ordinary operation. State which conditions were tested and what the evidence supports.
+
+Binding results to a run, repeating checks and keeping them within a validity window help address changes in the deployment. They do not, by themselves, establish that the controls enforce the claimed boundary when the agent recognizes the test and changes its behavior. Where that difference leaves enforcement untested, identify the gap and limit the claim rather than treating repeated passes as proof that it is closed.
 
 ### 8.3 A worked criterion: container-runtime access
 
-The most concrete criterion offered so far came from the review of the skeleton. It is worth stating in full because it shows what a criterion looks like when it is specific enough to test.
+Coding agents may need to create and run containers to start a database, execute a test suite or reproduce a build. The control must support that work while keeping the enforcement point outside the agent's control. This is the "Agents that create containers" deployment shape described in §1.1. The worked criterion below tests whether containers created by the agent remain within the claimed boundary.
 
-**The requirement is real.** Coding agents genuinely need to build and run containers: to bring up a database, to execute a test suite, or to reproduce a build. The criterion cannot be a prohibition. It has to be a control answer, which is what makes this a good worked example rather than a misconfiguration to design away. This is also the deployment shape §1.1 names separately: the agent that builds its own boxes, where a boundary exists but the workload's job is to create more.
+**Keep the host's privileged runtime outside the agent's control.** Giving the agent unrestricted control of a root-privileged Docker daemon on the host lets it start containers that mount and modify that host's filesystem [31]. Exposing the daemon's control socket can therefore give the agent a way around the intended boundary, not just permission to build containers. An inadequate policy that exposes this control (mode 3) also puts the enforcement point within the agent's reach, creating a mode-2 condition (§5.2). Docker's local-sandbox guidance explicitly warns against mounting the host Docker socket into the agent's container [32].
 
-**The disqualifying shape.** Mounting the host's container-runtime socket into the sandbox (Docker-out-of-Docker) is not a weakened boundary. It is a documented escape path: a caller that can reach the host daemon can start a container with host privilege and bind-mount the host filesystem, which ends the containment question regardless of how the sandbox is otherwise configured. In §5's terms this places the enforcement point inside the agent's reach by construction: a mode-2 condition established at deployment time rather than reached by an agent. Docker's own agent-sandbox guidance states the same conclusion for the same reason: mounting the host socket into a container would give the agent full access to the environment, and their product avoids it.
+**Test the boundary, not the engine's location.** Putting a container engine inside the sandbox does not, by itself, establish where the containers it creates are confined. Docker's local Sandboxes run the engine and those containers inside a microVM; the hypervisor supplies the isolation boundary, not privilege separation within the VM [32]. Other designs, including runtimes with their own isolation layer, must demonstrate that the containers they create remain within the claimed boundary.
 
-**What actually qualifies is the boundary underneath the engine, not the engine's location.** Running a container engine inside the sandbox is necessary but not sufficient. The relevant question is where the containers that engine starts land. Docker's implementation answers it by running the inner engine inside a microVM, so the hypervisor is the boundary and the engine is a second layer. Runtimes that provide their own isolation boundary beneath the containers they start serve the same function. Running an inner engine unprivileged reduces what a breakout is worth, and it is worth doing, but it hardens the workload rather than providing the boundary itself. A configuration that requires elevated privilege on the outer container to make the inner engine work has traded one escape path for another.
+Running the engine without root privileges reduces its authority, but does not by itself demonstrate that boundary [33]. Nor should nesting containers be treated as protection if the outer container has broad access to the host. For a root-privileged host daemon, Docker's `--privileged` option grants all capabilities and access to all host devices, and relaxes AppArmor or SELinux restrictions to give nearly the host access of a process outside the container [34]. Assess those permissions as part of the boundary, not as an incidental setup requirement.
 
-**What the sandbox must demonstrate** is the part that makes this a criterion rather than advice. It must show that:
+**What the sandbox must demonstrate.** Test that:
 
-- no host container-runtime endpoint is reachable from the agent's execution context;
-- containers the agent starts are confined by a boundary that does not include the host; and
-- this remains true for containers started at runtime, not only for the sandbox as launched.
+- the agent's execution context cannot reach any host container-runtime endpoint;
+- containers the agent creates are confined by a boundary that does not include the host; and
+- both conditions continue to hold for containers created during the run, not just for the sandbox's initial configuration.
 
-The third clause is the one implementations most often cannot show, and it is where a drifting configuration surfaces.
+The third check tests whether the boundary still holds as the agent creates containers, rather than assuming the initial configuration remains sufficient.
+
+A deployment that cannot meet this criterion does not qualify under it; it may still state separately bounded claims with the exposed path recorded as an exclusion (§3).
 
 ### 8.4 What CoSAI should do with this
 
-**Recommendation: not a specification in this paper.** Three efforts already converge on what a sandbox must demonstrate: the assurance profiles, the Risk Map isolation and containment entries ([secure-ai-tooling#516](https://github.com/cosai-oasis/secure-ai-tooling/issues/516)), and this section. A fourth parallel specification written inside a whitepaper would be the worst available outcome. It would repeat the same duplication risk this workstream has already resolved once by routing its OCSF asks through a single channel.
+**Recommendation: develop the commons as a coordinated follow-on, not a separate specification in this paper.** Build on the MCP security assurance profiles and coordinate with the proposed Risk Map isolation and containment controls ([secure-ai-tooling#516](https://github.com/cosai-oasis/secure-ai-tooling/issues/516)). The follow-on should define shared demonstration criteria without creating competing assurance levels or control identifiers.
 
-**Recommendation: develop the commons as a coordinated follow-on**, with the sequencing stated rather than assumed:
+The follow-on should:
 
-- It is the natural home for the *evidence-per-level annex* the MCP Security paper defers in its own open questions: the artifacts each assurance level should be able to produce, generalised from MCP to agent deployments. That is what makes it worth doing once rather than twice [10].
-- It should adopt the assurance profiles' levels rather than invent a parallel grading, and the Risk Map's control identifiers rather than parallel names, so that a demonstration maps to a level and a control an operator already tracks.
-- It belongs with the runtime-isolation practical guide's material, not in a whitepaper. The guide says how to build the boundary, and the commons says how to show it holds.
+- Define the evidence each assurance level should produce, building on the evidence-per-level annex deferred by the MCP Security paper and extending it from MCP to agent deployments [10].
+- Use the MCP assurance levels and the corresponding Risk Map control identifiers, rather than introduce a separate grading system or parallel control names. Each demonstration should identify the level and control it supports.
+- Coordinate with the runtime-isolation practical guide so implementation guidance and demonstration criteria support each other. The guide explains how to build the controls; the commons defines how to show they hold, without prescribing where the follow-on material must live.
 
-**What this paper contributes to it** is the requirement itself (§8.2), the failure mode it exists to catch (§5, mode 3), and one worked criterion (§8.3) specific enough to be implemented or argued with. The remaining criteria are exactly the kind of contribution this section invites.
-
+This paper supplies the demonstration requirements (§8.2), explains why deployed controls need to be tested against their intended policy (§5, mode 3), and gives a worked container-runtime criterion (§8.3). These provide a starting point for the coordinated follow-on, not a complete specification. Further criteria should be developed through that shared effort.
 ---
 
 ## 9. Positions
@@ -1237,6 +1247,10 @@ Sandboxing is one part of that work. The rest is to define the boundaries, imple
 28. NVIDIA. *nat.atif*. NeMo Agent Toolkit API reference. https://docs.nvidia.com/nemo/agent-toolkit/latest/api/nat/atif/index.html (accessed 2026-11-10).
 29. CoSAI WS4. *Candidate conformance cases for section 7.4* (RFC-189), directory `conformance/RFC-189`, revision 4f63db4f33ead48909efe898ebe8ba8f8c665f38. https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/tree/4f63db4f33ead48909efe898ebe8ba8f8c665f38/conformance/RFC-189 (accessed 2026-11-20).
 30. probityai. *agent-evidence-vectors* 0.37.1, the Observed Effect corpus and the vocabulary package; PyPI `agent-evidence-vectors==0.37.1`. https://github.com/probityai/agent-evidence-vectors/tree/v0.37.1 (accessed 2026-11-20).
+31. Docker. *Docker Engine security*. Docker Docs. https://docs.docker.com/engine/security/ (accessed 2026-11-20).
+32. Docker. *Isolation layers*. Docker Sandboxes security, Docker Docs. https://docs.docker.com/ai/sandboxes/security/isolation/ (accessed 2026-11-20).
+33. Docker. *Rootless mode*. Docker Docs. https://docs.docker.com/engine/security/rootless/ (accessed 2026-11-20).
+34. Docker. *Running containers*. Docker Docs. https://docs.docker.com/engine/containers/run/ (accessed 2026-11-20).
 
 ---
 
