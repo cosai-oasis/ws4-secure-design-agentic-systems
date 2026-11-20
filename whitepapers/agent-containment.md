@@ -1075,6 +1075,7 @@ The follow-on should:
 - Coordinate with the runtime-isolation practical guide so implementation guidance and demonstration criteria support each other. The guide explains how to build the controls; the commons defines how to show they hold, without prescribing where the follow-on material must live.
 
 This paper supplies the demonstration requirements (§8.2), explains why deployed controls need to be tested against their intended policy (§5, mode 3), and gives a worked container-runtime criterion (§8.3). These provide a starting point for the coordinated follow-on, not a complete specification. Further criteria should be developed through that shared effort.
+
 ---
 
 ## 9. Positions
