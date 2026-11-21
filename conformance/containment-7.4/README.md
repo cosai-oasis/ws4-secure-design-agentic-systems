@@ -134,6 +134,18 @@ Case 10 depends on none of them: C3 settles it. Cases 22 and 23 depend on none e
 
 - O2: A record the reference verifier refuses as `invalid` (coherent, but its own rules reject its claim) is graded `not_established` with the obligation its refusal names (cases 08, 09). Should a refused claim of independence also be reported as its own finding?
 
+## Why agent-evidence-verify 0.8.0, not 0.7.0
+
+The plan on [#357](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/pull/357#issuecomment-7052380617) named 0.7.0. Its only adapter for these records, `observed_effect/v1`, answers whether a record is well formed, not what a verifier may conclude from it. Run over the 36 cases then on `feat/containment`, it agreed with 6, all of them cases where a well-formed record is the expected `pass` or `absent`. It returned supported for all three cases with an observed write (02, 05, 21) and for 19 of the 21 `not_established` cases, and it had no way to say `pending`, `present` or `absent`, or to report a processing failure. 0.8.0 adds `evidence_sufficiency/v1`, the `feat/containment` checker with the C7 sub-interval fix, and ships these 39 cases as its test vectors.
+
+Graded with the 0.8.0 wheel from PyPI, all 39 cases match and the 12 harness tests pass. Two controls show the job can fail: flipping case 26's expectation to `pass` gives 38 of 39 with case 26 failing, and pointing `run.py` at `main`'s paper, which has no section 7.4, fails the text check.
+
+## Where this runs, and what it replaces
+
+The workflow sits on `main` because Dependabot reads only the default branch. Until the paper lands on `main`, it reads 7.4 from `feat/containment`, and the weekly run catches an edit to 7.4 that does not touch this directory. The workflow has its own file name, `conformance-containment-7.4.yml`, so it does not collide with `conformance.yml` on `feat/containment`.
+
+This directory replaces [#303](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/pull/303), the workflow and Dependabot entries for the earlier checker, and [#271](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/pull/271), whose three C7 coverage cases are cases 25, 27 and 28 here, with their records now in the published corpus. `conformance/RFC-189` on `feat/containment` duplicates this directory and can be removed when the paper merges.
+
 ## Running
 
 ```sh
