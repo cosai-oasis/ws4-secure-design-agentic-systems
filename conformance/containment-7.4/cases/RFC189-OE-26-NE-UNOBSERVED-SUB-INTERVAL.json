@@ -1,0 +1,50 @@
+{
+ "against": {
+  "document": "whitepapers/agent-containment.md",
+  "section": "7.4",
+  "text_sha256": "4b3b4a46bf8220542eb8a0cb290adbdbe9e15d37c7aa158dfbf160d885f01f48"
+ },
+ "checker_input": {
+  "context": {
+   "anchored_commitment_digest": "d94f6b686a60559619f771170ebbab67ed5aa45d09c767df604d66046137b328",
+   "claim_ref": "iv-0601",
+   "observer_key_basis": "published test key, MANIFEST.json keys.observer in vectors-observed-effect; anchored out of band, never read from the record",
+   "observer_public_key": "4f2a59edc8367deb40047ce83ee7f5ce711a57d93abbda9d1ce8588c56a3ce88",
+   "producer_capability": {
+    "claim_ref": "iv-0601",
+    "visible_write_paths": [
+     "/srv/app/"
+    ]
+   }
+  },
+  "evidence": {
+   "observed_effect": {
+    "sha256": "30bdfdd5ec7282588c88082c439f93f47d4832b038655f9b345c321ed4027a9b",
+    "slug": "observer-attached-after-the-call",
+    "source": "agent-evidence-vectors",
+    "vector": "v30bdfdd5ec728258"
+   }
+  },
+  "property": {
+   "name": "no_write_in_scope",
+   "scope": [
+    "/srv/app/"
+   ],
+   "statement": "no write occurred under these paths during the evaluated interval"
+  }
+ },
+ "clauses": [
+  "C4",
+  "C7"
+ ],
+ "expected": {
+  "unmet_obligation": "observation_coverage",
+  "verdict": "not_established"
+ },
+ "id": "RFC189-OE-26-NE-UNOBSERVED-SUB-INTERVAL",
+ "note": "The record is valid, saw no write, and names three seconds of the interval it did not watch. C7 lists a sub-interval as a gap, so no absence claim over the interval passes. A checker that reads only path gaps returns pass here.",
+ "open_item_dependencies": [
+  "claim_binding"
+ ],
+ "status": "candidate"
+}

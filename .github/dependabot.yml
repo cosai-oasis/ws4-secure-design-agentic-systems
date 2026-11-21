@@ -1,0 +1,13 @@
+# Keeps the pinned inputs of the conformance cases current. A release of the
+# verifier or the corpus opens a pull request, and the conformance workflow
+# grades every case against it before review.
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: "/conformance/containment-7.4"
+    schedule:
+      interval: weekly
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
