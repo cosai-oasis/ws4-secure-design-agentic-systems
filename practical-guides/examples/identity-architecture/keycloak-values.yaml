@@ -1,0 +1,8 @@
+keycloak:
+  image:
+    repository: localhost:5000/keycloak-agentic
+    tag: latest
+    pullPolicy: IfNotPresent
+  extraEnvVars:
+    - name: KC_FEATURES
+      value: "client-auth-federated:v1,spiffe:v1,token-exchange:v1,token-exchange-standard:v2,kubernetes-service-accounts:v1"

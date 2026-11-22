@@ -1,0 +1,119 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: weather-agent-server
+  namespace: agents
+data:
+  server.py: |
+    import http.server
+    import json
+    import os
+    import random
+    import uuid
+
+    import tracing
+
+    CARD_PATH = "/app/.well-known/agent-card.json"
+
+    CONDITIONS = ["sunny", "partly cloudy", "overcast", "light rain", "foggy", "clear skies"]
+
+    def mock_weather(location):
+        temp = random.randint(-5, 38)
+        cond = random.choice(CONDITIONS)
+        humidity = random.randint(20, 95)
+        wind = random.randint(0, 40)
+        return f"Weather for {location}: {temp}°C, {cond}, humidity {humidity}%, wind {wind} km/h"
+
+    class A2AHandler(http.server.BaseHTTPRequestHandler):
+        def log_message(self, fmt, *args):
+            print(f"[weather-agent] {fmt % args}", flush=True)
+
+        def do_GET(self):
+            if self.path == "/.well-known/agent-card.json":
+                try:
+                    with open(CARD_PATH, "r") as f:
+                        card = f.read()
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/json")
+                    self.end_headers()
+                    self.wfile.write(card.encode())
+                except FileNotFoundError:
+                    self.send_error(404, "Agent card not found")
+            else:
+                self.send_error(404)
+
+        def do_POST(self):
+            tp = tracing.parse_traceparent(self.headers.get("traceparent"))
+            span = tracing.Span(
+                "weather.message_send",
+                trace_id=tp["trace_id"] if tp else None,
+                parent_span_id=tp["parent_span_id"] if tp else None,
+                kind=tracing.SPAN_KIND_SERVER,
+            )
+
+            auth_header = self.headers.get("Authorization", "")
+            tracing.set_auth_attributes(span, auth_header)
+
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length)
+            try:
+                req = json.loads(body)
+            except json.JSONDecodeError:
+                span.set_error("Parse error")
+                span.end()
+                tracing.export_spans([span])
+                self._json_rpc_error(None, -32700, "Parse error")
+                return
+
+            req_id = req.get("id")
+            method = req.get("method")
+            span.set_attribute("jsonrpc.id", str(req_id))
+
+            if method != "message/send":
+                span.set_error(f"Unknown method: {method}")
+                span.end()
+                tracing.export_spans([span])
+                self._json_rpc_error(req_id, -32601, f"Unknown method: {method}")
+                return
+
+            try:
+                parts = req["params"]["message"]["parts"]
+                text = next((p["text"] for p in parts if p.get("type") == "text"), "")
+            except (KeyError, StopIteration):
+                text = ""
+
+            location = text.strip() if text.strip() else "Unknown location"
+            span.set_attribute("weather.location", location)
+            weather = mock_weather(location)
+
+            resp = {
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "result": {
+                    "id": f"task-{uuid.uuid4().hex[:8]}",
+                    "status": {"state": "completed"},
+                    "artifacts": [{"parts": [{"type": "text", "text": weather}]}]
+                }
+            }
+
+            span.end()
+            tracing.export_spans([span])
+            self._send_json(resp)
+
+        def _json_rpc_error(self, req_id, code, message):
+            resp = {"jsonrpc": "2.0", "id": req_id, "error": {"code": code, "message": message}}
+            self._send_json(resp)
+
+        def _send_json(self, obj):
+            data = json.dumps(obj).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+
+    if __name__ == "__main__":
+        port = int(os.environ.get("PORT", "8080"))
+        server = http.server.HTTPServer(("0.0.0.0", port), A2AHandler)
+        print(f"[weather-agent] A2A JSON-RPC server listening on :{port}", flush=True)
+        server.serve_forever()
